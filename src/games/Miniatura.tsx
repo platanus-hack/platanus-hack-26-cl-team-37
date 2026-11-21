@@ -85,6 +85,15 @@ const DIBUJOS: Record<string, ReactNode> = {
       <path d="M68 62l7 13H61z" fill={C.rojo} />
     </>
   ),
+  muneca: (
+    <>
+      <rect x="10" y="56" width="40" height="22" rx="11" fill={C.celeste} />
+      <rect x="46" y="56" width="42" height="22" rx="11" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeDasharray="4 4" transform="translate(2 0)" />
+      <rect x="46" y="56" width="42" height="22" rx="11" fill={C.menta} transform="rotate(-30 52 67)" />
+      <path d="M92 67a42 42 0 0 0-5-21" fill="none" stroke={C.amarillo} strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M80 47l7-3 2 8" fill="none" stroke={C.amarillo} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   piano: (
     <>
       {[C.celeste, C.menta, C.amarillo, '#a77bdb', C.naranja].map((c, i) => (

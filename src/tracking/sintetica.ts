@@ -337,7 +337,7 @@ export function secuencia(pasos: [number, Partial<PoseMano>][], desdeMs = 0): Po
 
 // ── Guiones preparados ────────────────────────────────────────────────────────────────────────────
 
-export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda'] as const
+export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda', 'muneca'] as const
 export type NombreGuion = (typeof GUIONES_PRESET)[number]
 
 const X_POR_LADO: Record<LadoMano, number> = { derecha: 0.42, izquierda: 0.58 }
@@ -386,6 +386,19 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
         poses: secuencia([[0, { x: 0.5 + (l === 'derecha' ? -REPOSO : REPOSO) / 2, y: 0.5 }], ...pasos.map(([d, sep]) => [d, { x: 0.5 + (l === 'derecha' ? -sep : sep) / 2 }] as [number, Partial<PoseMano>])]),
       }))
       return { manos }
+    }
+    case 'muneca': {
+      // F37 · Muñeca 3D: neutro quieto 2,5 s y luego flexión 45°, extensión 38°, desviación radial 22° y cubital 28°
+      // (cada una: sube en 0,7 s, se sostiene 2,2 s, vuelve en 0,7 s y descansa 0,8 s). Mano derecha o izquierda: mismos ángulos.
+      const neutra = { inclinacionDeg: 0, giroDeg: 0 }
+      const mov = (p: Partial<PoseMano>): [number, Partial<PoseMano>][] => [[700, p], [2200, p], [700, neutra], [800, neutra]]
+      return una([
+        [2500, neutra],
+        ...mov({ inclinacionDeg: 45 }),
+        ...mov({ inclinacionDeg: -38 }),
+        ...mov({ giroDeg: 22 }),
+        ...mov({ giroDeg: -28 }),
+      ])
     }
     case 'calibracion': {
       // Los pasos de la calibración (F08): abierta 2,5 s, abrir y cerrar 3 veces, pinza 1,5 s, soltar.
