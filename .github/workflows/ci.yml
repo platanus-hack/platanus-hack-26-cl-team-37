@@ -1,16 +1,16 @@
 # CI/CD de ManoViva (F29, dueño P1). Spec: docs/equipo/flujo-git-ci.md §3 y §4.
 #
 #   verificar      tipos, lint, unitarias y build. Sin claves. Siempre.
-#   e2e            Playwright contra la base compartida (= producción), uno a la vez en todo el repo.
-#                  Corre solo si están los secretos de Supabase.
-#   vista-previa   deploy de vista previa en Vercel por cada PR y comentario con la URL.
+#   e2e            Playwright contra la base de DESARROLLO (Supabase manoviva-dev), uno a la vez en todo el repo.
+#   vista-previa   deploy por PR en el proyecto de Vercel de desarrollo (apunta a manoviva-dev) y comentario con la URL.
 #   desplegar      deploy a producción al unir a main, con prueba de humo.
-#                  vista-previa y desplegar corren solo si están los secretos de Vercel.
 #
 # Sin secretos, los jobs que los necesitan se omiten (no fallan) y el resumen de la corrida dice qué falta.
 # Secretos (Settings → Secrets and variables → Actions, o `gh secret set NOMBRE`):
-#   Supabase: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-#   Vercel:   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID (los dos últimos están en .vercel/project.json)
+#   Desarrollo: DEV_SUPABASE_URL, DEV_SUPABASE_ANON_KEY, DEV_SUPABASE_SERVICE_ROLE_KEY
+#   Vercel:     VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID (producción), VERCEL_DEV_PROJECT_ID (desarrollo)
+# Las claves de Supabase de PRODUCCIÓN no van a GitHub: el build de producción usa las variables guardadas
+# en el proyecto de Vercel, igual que el deploy manual.
 name: ci
 
 on:
@@ -35,6 +35,7 @@ jobs:
     outputs:
       supabase: ${{ steps.secretos.outputs.supabase }}
       vercel: ${{ steps.secretos.outputs.vercel }}
+      vercel_dev: ${{ steps.secretos.outputs.vercel_dev }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -79,22 +80,25 @@ jobs:
       - name: Secretos disponibles
         id: secretos
         env:
-          A: ${{ secrets.VITE_SUPABASE_URL }}
-          B: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          C: ${{ secrets.SUPABASE_URL }}
-          D: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          A: ${{ secrets.DEV_SUPABASE_URL }}
+          B: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          C: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
           E: ${{ secrets.VERCEL_TOKEN }}
           F: ${{ secrets.VERCEL_ORG_ID }}
           G: ${{ secrets.VERCEL_PROJECT_ID }}
+          H: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
         run: |
-          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ] && [ -n "$D" ]; then sb=true; else sb=false; fi
+          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ]; then sb=true; else sb=false; fi
           if [ -n "$E" ] && [ -n "$F" ] && [ -n "$G" ]; then vc=true; else vc=false; fi
+          if [ -n "$E" ] && [ -n "$F" ] && [ -n "$H" ] && [ $sb = true ]; then vd=true; else vd=false; fi
           echo "supabase=$sb" >> "$GITHUB_OUTPUT"
           echo "vercel=$vc" >> "$GITHUB_OUTPUT"
+          echo "vercel_dev=$vd" >> "$GITHUB_OUTPUT"
           {
             echo "### Secretos"
-            echo "- Supabase (e2e): $([ $sb = true ] && echo 'listos' || echo 'faltan: e2e se omite')"
-            echo "- Vercel (vista previa y deploy): $([ $vc = true ] && echo 'listos' || echo 'faltan: vista previa y deploy se omiten')"
+            echo "- Supabase de desarrollo (e2e): $([ $sb = true ] && echo 'listos' || echo 'faltan: e2e se omite')"
+            echo "- Vercel de desarrollo (vista previa por PR): $([ $vd = true ] && echo 'listos' || echo 'faltan: vista previa se omite')"
+            echo "- Vercel de producción (deploy al unir a main): $([ $vc = true ] && echo 'listos' || echo 'faltan: deploy se omite')"
           } >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
@@ -102,8 +106,8 @@ jobs:
     if: needs.verificar.outputs.supabase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Base compartida: una corrida a la vez en todo el repositorio, y nunca se corta a mitad
-    # (una prueba cortada puede dejar datos del paciente de prueba sin limpiar).
+    # Base de desarrollo compartida por todo el equipo: una corrida a la vez en todo el repositorio, y nunca
+    # se corta a mitad (una prueba cortada puede dejar datos del paciente de prueba sin limpiar).
     concurrency:
       group: e2e-supabase
       cancel-in-progress: false
@@ -127,16 +131,15 @@ jobs:
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Archivos de entorno desde secretos
+      - name: Archivos de entorno (desarrollo) desde secretos
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          DEV_SERVICE: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           umask 077
-          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_ANON_KEY" > .env.local
-          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_SERVICE_ROLE_KEY" > .env.secrets
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$DEV_URL" "$DEV_ANON" > .env.local
+          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$DEV_URL" "$DEV_SERVICE" > .env.secrets
 
       - name: Permisos, inmutabilidad y hashes de la base
         run: npm run verify:db
@@ -157,7 +160,7 @@ jobs:
 
   vista-previa:
     needs: verificar
-    if: github.event_name == 'pull_request' && needs.verificar.outputs.vercel == 'true'
+    if: github.event_name == 'pull_request' && needs.verificar.outputs.vercel_dev == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -168,7 +171,7 @@ jobs:
       cancel-in-progress: true
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v5
 
@@ -176,20 +179,17 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      # Proyecto de Vercel de desarrollo, con la base de desarrollo: probar un PR nunca toca producción.
+      # Las claves públicas (URL y anon) se pasan al build para no depender de las variables del proyecto.
       - name: Deploy de vista previa
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
         run: |
-          # Si están las claves públicas de Supabase, se pasan al build para que la vista previa no dependa
-          # de que el proyecto de Vercel tenga variables de "Preview".
-          EXTRA=()
-          if [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
-            EXTRA=(--build-env "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" --build-env "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY")
-          fi
-          URL=$(npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN" "${EXTRA[@]}")
+          URL=$(npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN" \
+            --build-env "VITE_SUPABASE_URL=$DEV_URL" --build-env "VITE_SUPABASE_ANON_KEY=$DEV_ANON")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Vista previa: $URL" >> "$GITHUB_STEP_SUMMARY"
 
