@@ -844,6 +844,132 @@
       "deploy": false,
       "evidence": "2026-11-21: servidor responde 200 en / y /feature_list.json; Playwright (Chrome, 1440x1000): 34 nodos, 0 errores de consola, filtros estado/dueño/En desarrollo y selección de F17/F21 resaltan su cadena. Pendiente: npm run verify / init.sh no corren en esta máquina (node_modules sin binarios darwin-x64 de oxlint y typescript); queda a la CI del PR.",
       "owner": "P2"
+    },
+    {
+      "prompt": null,
+      "images": [],
+      "deploy": false,
+      "evidence": "Botón \"Salir\" (aria \"Cerrar sesión\", 44 px) en /terapeuta/pacientes con useCerrarSesion (mismo flujo que el perfil del paciente, salida local). e2e terapeuta-salir + smoke + terapeuta: 33 pasan contra la BD de desarrollo; captura docs/capturas/terapeuta-salir.png revisada.",
+      "owner": "coordinación",
+      "id": "F34",
+      "name": "Terapeuta: cerrar sesión",
+      "description": "El terapeuta no tenía cómo salir. Botón \"Salir\" en su pantalla principal (Mis pacientes) que cierra la sesión y vuelve a /acceso, igual que en el perfil del paciente.",
+      "dependencies": [
+        "F02",
+        "F16"
+      ],
+      "status": "done",
+      "acceptance": [
+        "En /terapeuta/pacientes hay un botón \"Salir\" visible (toque ≥ 44 px) con nombre accesible \"Cerrar sesión\"",
+        "Al tocarlo se cierra la sesión, se avisa \"Sesión cerrada\" y se llega a /acceso; volver atrás no reabre el panel"
+      ],
+      "verify": [
+        "npm run e2e -- terapeuta-salir",
+        "npm run captura -- /terapeuta/pacientes terapeuta-salir"
+      ]
+    },
+    {
+      "prompt": null,
+      "images": [],
+      "deploy": false,
+      "evidence": "Muestras.poses opcional (PoseClave: etiqueta, t, lado, valor, 21 puntos en mm, centro en imagen); RegistroSesion.pose con 1 por etiqueta+lado (gana mayor valor), tope 24; ctx.guardarPose en el shell con el cuadro actual. vitest registro-poses (5) + suite completa 402 en verde; tsc y oxlint sin errores; init.sh OK.",
+      "owner": "coordinación",
+      "id": "F35",
+      "name": "Contrato: poses clave de la mano en las muestras",
+      "description": "Para dibujar la mano REAL en la comparación 3D: cada sesión guarda unas pocas poses clave (21 puntos 3D de la mano en mm, sin video) en muestras.poses. Cambio aditivo y opcional del contrato compartido: ctx.guardarPose(etiqueta, lado) en ContextoJuego y RegistroSesion.pose().",
+      "dependencies": [
+        "F09"
+      ],
+      "status": "done",
+      "acceptance": [
+        "Muestras.poses es opcional; las sesiones viejas siguen leyéndose igual",
+        "ctx.guardarPose guarda como máximo 24 poses por sesión, con t, etiqueta, lado y 21 puntos en mm (1 decimal), y reemplaza una pose con la misma etiqueta si la nueva tiene valor mayor",
+        "Nunca se guarda imagen ni video"
+      ],
+      "verify": [
+        "npm test -- registro",
+        "npm run verify"
+      ]
+    },
+    {
+      "prompt": null,
+      "images": [],
+      "deploy": false,
+      "evidence": "",
+      "owner": "coordinación",
+      "id": "F36",
+      "name": "Juego Banda elástica",
+      "description": "Ejercicio con banda elástica en loop tomada con las dos manos. Se mide la distancia entre los nudillos de ambas manos; con la banda recién tensa se marca el reposo; se calcula cuánto se estira (cm y %), las repeticiones y una carga aproximada de la banda según su valor nominal (kg al doble de largo, parámetro). Basado en el prototipo prueba-banda/nudillos.py.",
+      "dependencies": [
+        "F09",
+        "F35"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Se juega con las dos manos; con una sola visible lo dice y no mide",
+        "Marca el reposo (automático al estar 2 s quieta y tensa, o con botón) y muestra en vivo estiramiento en cm y %",
+        "Cuenta repeticiones y guarda por sesión: estiramiento máx., repeticiones, carga aprox. máx., tiempo bajo tensión y cambio del pico de la 1ª a la última repetición",
+        "Guarda poses clave de ambas manos en el pico",
+        "Ninguna palabra \"fuerza\" ni \"presión\": se habla de estiramiento y carga aprox.",
+        "Se puede probar con ?fuente=sintetica"
+      ],
+      "verify": [
+        "npm run e2e -- banda",
+        "npm test -- banda"
+      ]
+    },
+    {
+      "prompt": null,
+      "images": [],
+      "deploy": false,
+      "evidence": "",
+      "owner": "coordinación",
+      "id": "F37",
+      "name": "Juego Muñeca 3D",
+      "description": "Ejercicio de muñeca: con la mano en neutro (2 s quieta) se toma la referencia y se miden en 3D, en los ejes de la mano, flexión/extensión, desviación radial/cubital y giro. Guía por fases (flexión, extensión, radial, cubital) y guarda los máximos. Basado en el prototipo prueba-angulos/angulos3d.py.",
+      "dependencies": [
+        "F09",
+        "F35"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Toma el neutro automáticamente al estar 2 s quieta y lo puede repetir",
+        "Muestra en vivo los tres ángulos con \"aprox.\" y guía por fases",
+        "Guarda máximos por dirección, canales a 10 Hz y poses clave en cada máximo",
+        "Avisa cuando el giro es grande (puede ser el antebrazo, no la muñeca)",
+        "Se puede probar con ?fuente=sintetica"
+      ],
+      "verify": [
+        "npm run e2e -- muneca",
+        "npm test -- muneca"
+      ]
+    },
+    {
+      "prompt": null,
+      "images": [],
+      "deploy": false,
+      "evidence": "",
+      "owner": "coordinación",
+      "id": "F38",
+      "name": "Comparar sesiones en 3D (terapeuta y paciente)",
+      "description": "Vista \"Comparar\" con manos 3D antes/después: el terapeuta la abre desde cada paciente y el paciente desde Progreso. Elige juego y dos sesiones (por defecto la primera y la última válidas). Usa la mano real de muestras.poses si existe; si no, una mano modelo doblada con los ángulos guardados. Vistas especiales para Muñeca 3D, Banda elástica, Movilidad guiada y Caja de juguetes; el resto, mano modelo + métricas. Basado en los prototipos prueba-angulos, prueba-banda y prueba-app.",
+      "dependencies": [
+        "F35",
+        "F16",
+        "F14"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "El terapeuta llega desde la fila del paciente y ve primera vs última sesión del juego elegido, con delta por métrica",
+        "El paciente llega desde Progreso a la misma vista de sus propias sesiones",
+        "three.js se carga solo al abrir la vista (chunk aparte)",
+        "Dice cuándo la mano es modelo y cuándo es real; medidas con \"aprox.\"; sin diagnósticos",
+        "Se ve bien en 390×844 y en escritorio, tema claro y oscuro"
+      ],
+      "verify": [
+        "npm run e2e -- comparar",
+        "npm run captura -- /terapeuta/pacientes comparar"
+      ]
     }
   ]
 }

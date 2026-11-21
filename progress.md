@@ -265,3 +265,7 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 ### 2026-11-21 · Trabajo detenido por el dueño
 - El dueño pidió parar para mover el proyecto a otro repositorio y seguir después. Se detuvieron las líneas G (F17), H (F19), I (F22) y J (F24); su trabajo quedó en commits wip en sus ramas. Las migraciones 700001 y 800001 ya estaban aplicadas a la base y se copiaron a master.
 - Estado: 19 features hechas (F00–F16, F18, F20, F23) y los juegos Caja y Movilidad. Detalle y cómo retomar: session-handoff.md.
+
+## 2026-11-21 · coordinación · línea R (coord/ejercicios-3d, desde dev 377cd89)
+- Nuevas features F34–F38 (salir del terapeuta, poses clave, juegos Banda elástica y Muñeca 3D, comparar sesiones en 3D). Sin la guía de voz.
+- F34 done (botón Salir del terapeuta, e2e). F35 done (muestras.poses + ctx.guardarPose, pruebas). Siguen F36, F37 y F38.

@@ -141,6 +141,12 @@ export interface ContextoJuego<P extends ParametrosNivelBase = ParametrosNivel> 
   ahora(): number
   /** Cambia la zona donde se mueven las manos virtuales (por defecto: sobre toda la mesa). */
   configurarManos(zona: Partial<ZonaManos>): void
+  /**
+   * F35 · Guarda una pose clave de esa mano con el cuadro actual (21 puntos 3D, sin imagen) en muestras.poses, para
+   * dibujar la mano real al comparar sesiones. Una por etiqueta: gana la de mayor `valor` (o la última sin valor).
+   * Máximo 24 por sesión. Devuelve false si esa mano no se ve o no se guardó.
+   */
+  guardarPose(etiqueta: string, lado: LadoMano, valor?: number | null): boolean
 }
 
 export interface ModuloJuego<P extends ParametrosNivelBase = ParametrosNivel> {

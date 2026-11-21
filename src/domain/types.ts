@@ -111,6 +111,26 @@ export interface Muestras {
   flexIndice: (number | null)[]
   /** Señales propias de cada juego (ModuloJuego.muestra), alineadas con `t`. */
   canales?: Record<string, (number | null)[]>
+  /**
+   * F35 · Poses clave de la mano (solo puntos, nunca imagen): para dibujar la mano real al comparar sesiones.
+   * Opcional: las sesiones anteriores no la traen.
+   */
+  poses?: PoseClave[]
+}
+
+/** Una pose clave: los 21 puntos de una mano en un instante (p. ej. "pico", "flexion-max"). */
+export interface PoseClave {
+  /** Qué momento es; una sola pose por etiqueta (gana la de mayor `valor`, o la última sin valor). */
+  etiqueta: string
+  /** ms de juego activo. */
+  t: number
+  lado: LadoMano
+  /** Valor que hizo de esta la mejor pose (grados, cm…), si aplica. */
+  valor: number | null
+  /** 21 puntos 3D en mm, centrados en la mano y orientados como la cámara (x derecha, y abajo, z adelante). */
+  puntos: [number, number, number][]
+  /** Centro de la mano en la imagen (0..1), para ubicar dos manos entre sí (p. ej. la banda). */
+  centro?: [number, number]
 }
 
 export interface Dispositivo {
