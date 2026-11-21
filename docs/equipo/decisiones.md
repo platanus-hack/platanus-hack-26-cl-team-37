@@ -10,3 +10,6 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · P3 · Piano: el botón de sonido vive dentro de `.juego` para quedar bajo la pausa y el aviso de girar el teléfono.
 - 2026-11-21 · P3 · Piano: un dedo abajo se da por subido al recuperar el 60 % de su recorrido (tope bajo el umbral de bajada), para no perder notas si no vuelve a menos de 11° del reposo.
 - 2026-11-21 · P3 · Piano: "Fijar reposo" repetido en la calibración conserva el primer instante de pausa; "Desfase" se marca aproximado (cámara 15–30 fps más latencia).
+- 2026-11-21 · P3 · Memoria de cartas: con `metaAgarres` 0 es práctica libre (sin meta, se arma otro tablero al completar); con meta > 0 la meta son los pares del nivel.
+- 2026-11-21 · P3 · Memoria de cartas: el giro se desenrolla (±180°) antes de filtrar y los grados se rotulan "no validado" en las métricas visibles; "supinación/pronación máxima" pasan a "giro hacia palma arriba / hacia el otro lado (desde palma abajo)".
+- 2026-11-21 · P3 · Memoria de cartas: `?sinMemoria=1` no vale con cámara real y, si se usó, el resumen guarda `sinMemoria` = 1 (sin tocar `ParametrosSesion`).

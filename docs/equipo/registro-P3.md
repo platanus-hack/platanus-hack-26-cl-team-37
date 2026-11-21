@@ -12,3 +12,14 @@ Qué hiciste, qué probaste y qué quedó pendiente. Agrega al final; un bloque 
 - **Desfase:** `aprox: true` y la fórmula menciona 15–30 cuadros/s más la latencia del seguimiento.
 - **e2e:** el primer toque al botón puede solo desbloquear el audio; la prueba toca hasta que silencia y comprueba por `estado().silencio`.
 - Pendiente (no es mío): la descripción del PR sigue siendo la plantilla.
+## 2026-11-21 · F26 Memoria de cartas: correcciones de la revisión del PR #23
+
+Qué se corrigió y por qué (decisiones propias, dentro de `src/games/memoria/`, `e2e/cartas.spec.ts` y la ficha F26):
+- **Salto de ±180° del giro:** `SuavizadorGiro` desenrolla el ángulo hacia el valor previo antes del One Euro y acota la salida a ±180°. Antes, +175° → −178° daba ~−47° filtrado (falso `retorno_palma_abajo`, segundo volteo sin volver a palma abajo, `pronacionMax` inflada). Pruebas nuevas con ese salto exacto.
+- **Meta:** `metaAgarres` = 0 es práctica libre (meta 0, termina solo por tiempo y al completar el tablero se arma otro tras 1,5 s, sin perder los conteos); con meta > 0 es el total de pares del nivel (`metaCartas`). Se quitó `paresDeNivel(nivel.pares)` (recibía pares en vez del número de nivel). Los e2e que contaban con meta 2/4 con `metaAgarres` 0 ahora pasan `metaAgarres` 12; hay un e2e nuevo de práctica libre.
+- **Reiniciar:** pone a cero `contador` y, en el agregado, pares, intentos y volteos (los giros máximos de la sesión se conservan); así `metricas.contador` coincide con `juego.pares`. Los eventos ya registrados no se borran.
+- **Grados no validados visibles:** el aviso va en los nombres de las métricas en vivo y en las tarjetas del resumen, no solo en `formula`.
+- **Nombres de los giros:** "Supinación/Pronación máxima" pasan a "Giro hacia palma arriba (desde palma abajo), máximo" y "Giro hacia el otro lado (desde palma abajo), máximo" (palma abajo ya es pronación completa); los ids de las métricas no cambian.
+- **`sinMemoria`:** `?sinMemoria=1` solo se lee con fuente simulada (nunca con la cámara) y, si se usó, el resumen trae `sinMemoria` = 1 (0 si no). No se tocó `ParametrosSesion` (tipos de P2): el campo de los parámetros sigue siendo opcional y hoy ningún formulario lo fija.
+- **Limpieza:** `scripts/crear-linea.sh` vuelto a la versión de `origin/dev`; capturas horizontales `docs/capturas/memoria-cartas.png` y `memoria-cartas-meta.png` (con `CAPTURA_MEMORIA=docs/capturas`); F26 `done`, `verify` con `-t giro`.
+Pendiente: validar los grados con datos reales (F21).
