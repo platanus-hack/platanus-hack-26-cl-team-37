@@ -110,6 +110,10 @@ rerun solo ese archivo con `--workers=1`. Si pasa, anótalo; no lo marques como 
 
 ## 7. Mapa de archivos y de quién son
 
+**Fuente de verdad ejecutable: `docs/equipo/propiedad.json`.** `node scripts/dueno.mjs --puede <ruta>` dice si puedes editar un archivo;
+`node scripts/dueno.mjs --cambios` revisa todo tu PR (gana la regla de ruta más larga). Claude Code lo consulta solo y **se niega a editar lo de otro rol**
+(`CLAUDE.md`, PASO 0). Tu rol se guarda una vez en `.rol` (`--soy P2`); cambiarlo lo decide la coordinación. La tabla de abajo es el resumen legible.
+
 | Ruta | Dueño | Cómo se edita desde fuera |
 |---|---|---|
 | `src/ui/`, `src/index.css`, `.github/`, `vercel.json`, `.vercelignore`, `playwright*.ts` | P1 | PR chico a P1 |

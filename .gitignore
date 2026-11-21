@@ -37,3 +37,6 @@ supabase/.temp
 
 # La plantilla de variables (solo nombres, sin valores) sí se versiona
 !.env.example
+
+# Rol de esta persona en el equipo (scripts/dueno.mjs)
+.rol

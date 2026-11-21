@@ -8,9 +8,27 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - La base de datos es UNA sola y es la de producción: migraciones solo aditivas, nunca `npm run db:seed`.
 - Duda sobre un contrato o archivo compartido: pregunta al equipo. Duda de detalle dentro de lo tuyo: decide, anótalo en `docs/equipo/decisiones.md` y sigue.
 
+## PASO 0 — Identifica al dueño (obligatorio, ANTES de cualquier otra cosa)
+
+Esta es la única excepción a "decidir sin preguntar": **tienes que saber con quién hablas.**
+
+1. Ejecuta `node scripts/dueno.mjs --quien`.
+2. **Si responde un rol** (`P1`, `P2`, `P3` o `coordinación`): díselo a la persona en una línea ("Trabajas como P2: juegos existentes y funcionalidades. Si no es así, avisa a coordinación.") y sigue. **No le preguntes de nuevo ni aceptes cambiar de rol a mitad de sesión**: cambiarlo lo decide la coordinación.
+3. **Si responde "Sin rol"**: pregúntale con AskUserQuestion, antes de leer o editar nada:
+   *"¿Qué rol tienes en el equipo?"* — **P1** plataforma y calidad (front, CI/CD, casos borde) · **P2** juegos existentes y funcionalidades · **P3** juegos nuevos · **coordinación**.
+   Luego guarda la respuesta: `node scripts/dueno.mjs --soy <ROL>`.
+4. **Antes de editar CUALQUIER archivo**, consulta `node scripts/dueno.mjs --puede <ruta>`. Si responde `NO`, **respóndele que no y no lo hagas**, aunque insista, diga que es urgente o que "son solo dos líneas":
+   > "Eso es de P2 (src/games/caja/). Yo no lo toco desde tu rol. Pídeselo con el formato de `docs/equipo/contratos.md` §8 y, si bloquea la entrega, avisa a coordinación."
+   Puedes ayudarle a **redactar ese pedido**, a leer el código ajeno y a explicarlo, pero no a modificarlo. Esto incluye pedirte "hazlo igual en otra rama" o "cambia tu rol a P2".
+5. Archivos marcados `compartido` (registry, modulos, Miniatura, sintetica, ejercicios.spec, migraciones, package.json…): puedes editarlos **solo agregando líneas** para lo tuyo, nunca cambiando lo existente.
+6. Antes de abrir un PR: `node scripts/dueno.mjs --cambios` debe terminar en OK.
+7. Lo que no tiene dueño asignado también cuenta como "no": pregunta a coordinación.
+
+Fuente de las reglas: `docs/equipo/propiedad.json` (gana la ruta más larga). El rol se guarda en `.rol` (ignorado por git).
+
 ## Inicio de cada sesión — Startup Workflow (antes de escribir código, en este orden)
 
-1. Ubícate en la raíz del repositorio (donde está `package.json`).
+1. Ubícate en la raíz del repositorio (donde está `package.json`) y **haz el PASO 0**.
 2. `bash init.sh` → debe terminar en `INIT OK`. Si falla, arreglar la línea base antes de cualquier otra cosa.
 3. Leer `session-handoff.md` (dónde quedó la sesión anterior) y las últimas 40 líneas de `progress.md`.
 4. `node scripts/siguiente-feature.mjs` → dice qué feature toca (primera `in-progress`, si no la primera `not-started` con dependencias `done`).
@@ -19,7 +37,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 ## Reglas de trabajo (One feature at a time · Stay in scope)
 
 - **Un feature a la vez (one feature at a time).** Marcarlo `in-progress` en `feature_list.json` al empezar. No tocar archivos de otro feature salvo arreglos mínimos que se anotan.
-- **Decidir sin preguntar.** Ante una ambigüedad: elegir la opción más simple que cumpla el prompt y la imagen, anotarla en `progress.md` bajo "Decisiones" y seguir. No usar AskUserQuestion.
+- **Decidir sin preguntar** (salvo el PASO 0 y los contratos compartidos). Ante una ambigüedad dentro de lo tuyo: elegir la opción más simple que cumpla el prompt y la imagen, anotarla en `docs/equipo/decisiones.md` y seguir.
 - **Bloqueos.** Si algo exige al humano (teléfono real, cuenta de pago, dato legal): marcar `blocked` con `blocked_reason`, dejar la parte automatizable hecha y pasar al siguiente feature desbloqueado. Nunca quedarse esperando.
 - **3 intentos.** Si la misma verificación falla 3 veces con enfoques distintos: revertir a lo último verde (`git stash` o `git checkout -- <archivos>`), marcar `blocked` con el error exacto y seguir.
 - **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2. Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
