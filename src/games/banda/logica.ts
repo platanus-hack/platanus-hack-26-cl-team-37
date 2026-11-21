@@ -12,6 +12,7 @@
 //     descartando fragmentos menores al 35 % del pico; solo cuentan los que pasan del 25 % de estiramiento.
 // Port de la prueba de laboratorio (prueba-banda/nudillos.py y comparar_banda.py).
 import type { P3 } from '../../metrics/geometria'
+import { BANDAS } from '../assets/naturales'
 
 export type NumeroNivelBanda = 1 | 2 | 3 | 4 | 5
 
@@ -27,11 +28,11 @@ export interface NivelBanda {
 
 /** Banda por nivel: color y carga nominal (los kg de la cinta al doble de su largo). */
 export const NIVELES_BANDA: Record<NumeroNivelBanda, NivelBanda> = {
-  1: { nombre: 'Banda amarilla', detalle: 'Banda de 2 kg nominales al doble de largo', kgBanda: 2, color: '#f2c230' },
-  2: { nombre: 'Banda roja', detalle: 'Banda de 4 kg nominales al doble de largo', kgBanda: 4, color: '#e5473f' },
-  3: { nombre: 'Banda verde', detalle: 'Banda de 6 kg nominales al doble de largo', kgBanda: 6, color: '#3aaa5c' },
-  4: { nombre: 'Banda azul', detalle: 'Banda de 8 kg nominales al doble de largo', kgBanda: 8, color: '#3d8fe0' },
-  5: { nombre: 'Banda negra', detalle: 'Banda de 10 kg nominales al doble de largo', kgBanda: 10, color: '#3a4350' },
+  1: { nombre: 'Banda amarilla', detalle: 'Banda de 2 kg nominales al doble de largo', kgBanda: 2, color: BANDAS.amarilla },
+  2: { nombre: 'Banda roja', detalle: 'Banda de 4 kg nominales al doble de largo', kgBanda: 4, color: BANDAS.roja },
+  3: { nombre: 'Banda verde', detalle: 'Banda de 6 kg nominales al doble de largo', kgBanda: 6, color: BANDAS.verde },
+  4: { nombre: 'Banda azul', detalle: 'Banda de 8 kg nominales al doble de largo', kgBanda: 8, color: BANDAS.azul },
+  5: { nombre: 'Banda negra', detalle: 'Banda de 10 kg nominales al doble de largo', kgBanda: 10, color: BANDAS.negra },
 }
 
 export function nivelBanda(n: number): NivelBanda {

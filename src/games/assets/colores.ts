@@ -30,23 +30,6 @@ export const MANO = {
 /** Luces de la escena: cielo y sol crema, rebote desde el suelo en noche (tema de cámara y juego). */
 export const LUZ = { cielo: kuwuNum('crema'), suelo: kuwuNum('noche'), sol: kuwuNum('crema') } as const
 
-/** Objetos naturales (excepción del brandbook): madera, fruta, jugo y vidrio con su color propio. */
-export const NATURAL = {
-  madera: 0xc69463,
-  maderaClara: 0xece2cf,
-  maderaSombra: 0xd8c9ad,
-  maderaBase: 0xe6d9bd,
-  naranja: 0xf08a24,
-  naranjaMitad: 0xe27a1c,
-  naranjaExprimida: 0xc2570f,
-  naranjaBrillo: 0x3a1500,
-  hoja: 0x4fa05a,
-  jugo: 0xf2a02a,
-  jugoBrillo: 0x5a2a00,
-  pulpa: 0xffd37a,
-  pulpaBrillo: 0x7a4a00,
-  vidrio: 0xcfe6f2,
-} as const
-
-/** Vetas del lienzo de la mesa (madera natural). */
-export const VETAS = { fondo: '#c69463', oscura: 'rgba(120, 72, 36, 0.06)', clara: 'rgba(255, 230, 190, 0.07)' } as const
+// Objetos con su color real (madera, fruta, jugo, vidrio, bandas elásticas): assets/naturales.ts, sin three.js para
+// que la lógica pura de los juegos también los pueda leer.
+export { BANDAS, NATURAL, VETAS } from './naturales'

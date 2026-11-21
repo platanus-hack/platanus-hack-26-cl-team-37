@@ -11,7 +11,7 @@
 // repeticion_incompleta si un tramo de tensión no llegó al 25 %. Poses: 'reposo' (ambas manos al marcarlo) y 'pico'
 // (ambas manos, valor = estiramiento en cm, queda la de mayor valor).
 import * as THREE from 'three'
-import { KUWU, kuwuNum } from '../../ui/paleta'
+import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -214,11 +214,11 @@ export const crearBanda: CrearJuego = () => {
     const H = ALTO_GUIA
     g.setTransform(resolucionGuia, 0, 0, resolucionGuia, 0, 0)
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.92)'
+    g.fillStyle = kuwuAlfa('noche', 0.92)
     g.beginPath()
     g.roundRect(1, 1, W - 2, H - 2, 16)
     g.fill()
-    g.strokeStyle = 'rgba(255,255,255,0.22)'
+    g.strokeStyle = kuwuAlfa('blanco', 0.22)
     g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
@@ -227,7 +227,7 @@ export const crearBanda: CrearJuego = () => {
       g.textAlign = align
       g.lineJoin = 'round'
       g.lineWidth = 2.5
-      g.strokeStyle = 'rgba(10,16,22,0.9)'
+      g.strokeStyle = kuwuAlfa('noche', 0.9)
       g.strokeText(t, x, y)
       g.fillStyle = color
       g.fillText(t, x, y)
@@ -237,7 +237,7 @@ export const crearBanda: CrearJuego = () => {
     const h = 30
     const yBarra = 16
     const barra = (frac: number, color: string, etiqueta: string) => {
-      g.fillStyle = 'rgba(255,255,255,0.14)'
+      g.fillStyle = kuwuAlfa('blanco', 0.14)
       g.beginPath()
       g.roundRect(x, yBarra, w, h, h / 2)
       g.fill()
@@ -254,11 +254,11 @@ export const crearBanda: CrearJuego = () => {
       barra(pct / 100, `hsl(${tono} 75% 55%)`, `Estiramiento ${Math.round(pct)} %`)
       // marca (solo en los bordes, para no cruzar el texto): desde aquí cuenta una repetición
       const xm = x + w * (REP_MIN_PCT / 100)
-      g.fillStyle = 'rgba(255,255,255,0.9)'
+      g.fillStyle = kuwuAlfa('blanco', 0.9)
       g.fillRect(xm - 1.5, yBarra - 7, 3, 7)
       g.fillRect(xm - 1.5, yBarra + h, 3, 7)
       texto(`Carga aprox. ${num(kg ?? 0, 1)} kg`, W / 2, 68, 'center', FUENTE_TEXTO)
-      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : 'es una estimación', W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? KUWU.amarillo : 'rgba(255,255,255,0.7)')
+      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : 'es una estimación', W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? KUWU.amarillo : kuwuAlfa('blanco', 0.7))
     } else if (fase === 'buscando-reposo') {
       barra(prog, COLOR_OK, `Reposo ${num(prog * (REPOSO_MS / 1000), 1)} / ${num(REPOSO_MS / 1000, 0)} s`)
       texto('Banda recién tensa,', W / 2, 66, 'center', FUENTE_TEXTO)

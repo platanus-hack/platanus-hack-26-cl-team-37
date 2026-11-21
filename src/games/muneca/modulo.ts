@@ -15,7 +15,7 @@
 // Todo son estimaciones de cámara ("aprox."): el antebrazo se supone quieto y los giros hacia o desde la cámara son los
 // menos precisos.
 import * as THREE from 'three'
-import { KUWU, kuwuNum } from '../../ui/paleta'
+import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -328,11 +328,11 @@ export const crearMuneca: CrearJuego = () => {
     const H = ALTO_GUIA
     g.setTransform(resolucionGuia, 0, 0, resolucionGuia, 0, 0)
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.92)'
+    g.fillStyle = kuwuAlfa('noche', 0.92)
     g.beginPath()
     g.roundRect(1, 1, W - 2, H - 2, 16)
     g.fill()
-    g.strokeStyle = 'rgba(255,255,255,0.22)'
+    g.strokeStyle = kuwuAlfa('blanco', 0.22)
     g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
@@ -341,7 +341,7 @@ export const crearMuneca: CrearJuego = () => {
       g.textAlign = align
       g.lineJoin = 'round'
       g.lineWidth = 2.5
-      g.strokeStyle = 'rgba(10,16,22,0.9)'
+      g.strokeStyle = kuwuAlfa('noche', 0.9)
       g.strokeText(t, x, y)
       g.fillStyle = color
       g.fillText(t, x, y)
@@ -350,7 +350,7 @@ export const crearMuneca: CrearJuego = () => {
     const w = W - 2 * x
     const h = 28
     const barra = (y: number, frac: number, color: string, etiqueta: string) => {
-      g.fillStyle = 'rgba(255,255,255,0.14)'
+      g.fillStyle = kuwuAlfa('blanco', 0.14)
       g.beginPath()
       g.roundRect(x, y, w, h, h / 2)
       g.fill()

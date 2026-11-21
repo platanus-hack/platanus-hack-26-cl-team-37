@@ -8,7 +8,8 @@ Modelos 3D, texturas y colores de las escenas, hechos con código three.js (no h
 
 | Archivo | Qué tiene |
 |---|---|
-| `colores.ts` | Colores de las escenas, todos de la paleta del brandbook; `NATURAL` para madera, fruta, jugo y vidrio. Único archivo de `src/games` con colores escritos a mano (`colores.test.ts`). |
+| `colores.ts` | Colores de las escenas, todos de la paleta del brandbook (`colores.test.ts` impide colores a mano en el resto de `src/games`). |
+| `naturales.ts` | La excepción: colores reales de madera, fruta, jugo, vidrio (`NATURAL`) y bandas elásticas (`BANDAS`). Sin three.js, para la lógica pura. |
 | `recursos.ts` | Tipo `Recursos` y ayudantes `material`, `geometria`, `textura`, `estandar`, `liberar`. |
 | `texturas.ts` | `texturaHalo`, `texturaAnillo`, `texturaMadera`, `texturaDeLienzo`. |
 | `sprites.ts` | `crearSprite` (halos, anillos, brillos, "+1"). |
