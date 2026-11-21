@@ -6,7 +6,7 @@ set -euo pipefail
 N="${1:?uso: bash scripts/crear-linea.sh <nombre>}"
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$RAIZ/../lineas/$N"
-RAMA="linea-$N"
+RAMA="${2:-linea-$N}"   # segundo argumento opcional: nombre de la rama (p. ej. p3/torre-cubos)
 [ -e "$DEST" ] && { echo "ya existe $DEST: usa otro nombre"; exit 1; }
 mkdir -p "$RAIZ/../lineas"
 git -C "$RAIZ" worktree prune
