@@ -25,6 +25,8 @@ const Prescripcion = lazy(() => import('./screens/terapeuta/Prescripcion'))
 const Alertas = lazy(() => import('./screens/terapeuta/Alertas'))
 const Planes = lazy(() => import('./screens/terapeuta/Planes'))
 const Informes = lazy(() => import('./screens/terapeuta/Informes'))
+const CompararPaciente = lazy(() => import('./comparar/Comparar').then((m) => ({ default: m.CompararPaciente })))
+const CompararTerapeuta = lazy(() => import('./comparar/Comparar').then((m) => ({ default: m.CompararTerapeuta })))
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
 
@@ -44,6 +46,7 @@ export default function App() {
               <Route path="/inicio" element={<Inicio />} />
               <Route path="/ejercicios" element={<Ejercicios />} />
               <Route path="/progreso" element={<Progreso />} />
+              <Route path="/progreso/comparar" element={<CompararPaciente />} />
               <Route path="/perfil" element={<Perfil />} />
             </Route>
             {/* Paciente: flujo de sesión y privacidad, sin barra */}
@@ -74,6 +77,7 @@ export default function App() {
             </Route>
             <Route element={<Protegida roles={['terapeuta']} />}>
               <Route path="/terapeuta/pacientes/:id/plan" element={<Prescripcion />} />
+              <Route path="/terapeuta/pacientes/:id/comparar" element={<CompararTerapeuta />} />
             </Route>
 
             {/* Ambos roles */}
