@@ -236,3 +236,9 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Pantallas Pacientes, Alertas (dolor + inactividad calculada, umbral de días en localStorage, 3 por defecto), Planes e Informes simples. CSS propio en src/screens/terapeuta/terapeuta.css. Migración 20261121200001 (limpiar alerta de prueba, solo service_role).
 - Decisiones: alertas abiertas = dolor abiertas + pacientes con inactividad (la inactividad no tiene fila en BD, sin botón revisar); orden dolor > sin sesiones > resto; sin sesiones cuenta desde fechaInicio; minigráfico = apertura máxima de las últimas 12 sesiones cerradas.
 - Trabajo en paralelo: líneas A/B/C en ../lineas/ (scripts/crear-linea.sh), puertos e2e 5181/5183/5185. Cada agente commitea solo código; el coordinador actualiza feature_list/progress/handoff al unir.
+
+### 2026-11-21 · F14 Progreso (línea A, Sonnet 5.5)
+- Progreso con Recharts (rango 7d/4s/Todo en la URL), barras por dedo en % o grados, tiempo por agarre del juego con más sesiones, calidad < 70 % excluida con nota. CSS propio progreso.css. PlanItem gana metaRangoGrados opcional (la prescripción F17 puede fijarlo; va en items jsonb, sin migración).
+- Decisión del coordinador: migración 20261121400001 define de una vez los tipos de evento de J1–J6 (y TipoEvento en types.ts), para que los juegos no vuelvan a tocar esa regla.
+- Decisión: init.sh corre npm install en cada línea, así que las líneas tienen node_modules propio (copiado con robocopy; un enlace no sirvió). e2e puede fallar por carga con varias líneas activas; pasa solo.
+- El usuario pidió sumar un juego en paralelo antes del cierre de la app: F23 (Pinza fina) pasa a depender solo de F10.

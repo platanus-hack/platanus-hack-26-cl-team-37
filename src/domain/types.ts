@@ -141,7 +141,18 @@ export interface Sesion {
   creada?: string
 }
 
-export type TipoEvento = 'agarre_inicio' | 'agarre_fin' | 'soltar' | 'perdida_seguimiento' | 'pausa' | 'reanudar'
+export type TipoEvento =
+  | 'agarre_inicio' | 'agarre_fin' | 'soltar' | 'perdida_seguimiento' | 'pausa' | 'reanudar'
+  // J1 Torre de cubos
+  | 'tomar' | 'colocado' | 'caida'
+  // J2 Pinza fina y J3 Atrapa burbujas
+  | 'objetivo_mostrado' | 'toque' | 'error' | 'no_alcanzado' | 'reventada' | 'intento_cerrado' | 'expirada'
+  // J4 Exprime la naranja
+  | 'cierre_inicio' | 'umbral_alcanzado' | 'sostenido_completo' | 'apertura_completa' | 'repeticion_incompleta'
+  // J5 Memoria de cartas
+  | 'sobre_carta' | 'volteo' | 'par' | 'no_par' | 'retorno_palma_abajo'
+  // J6 Piano de dedos
+  | 'nota_mostrada' | 'acierto' | 'dedo_equivocado' | 'nota_perdida'
 
 export interface EventoSesion {
   sesionId: string

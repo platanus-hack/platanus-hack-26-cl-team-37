@@ -371,7 +371,7 @@
       "dependencies": [
         "F04"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con carmen.demo el gráfico sube de ~4,2 a ~6,1 cm",
         "Sesión de calidad baja excluida y anotada"
@@ -381,7 +381,7 @@
         "npm run captura -- /progreso progreso"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea A, Sonnet 5.5): tsc/oxlint limpios; vitest 167 (15 de progreso.ts); e2e progreso (7) + smoke; Carmen 4,2→6,0 cm (▲46%), 1 sesión excluida por calidad 62 %, 19 de 34 sesiones; barras en grados porque el plan demo no trae meta por dedo (modo % cubierto con plan parcheado); captura progreso.png comparada con imagen 09."
     },
     {
       "id": "F15",
@@ -578,7 +578,7 @@
         "ref/imagenes_juegos/02_pinza_fina.png"
       ],
       "dependencies": [
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
