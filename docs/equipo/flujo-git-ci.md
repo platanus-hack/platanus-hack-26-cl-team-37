@@ -6,17 +6,16 @@
 - Cada persona trabaja en ramas cortas con su prefijo: `p1/ci`, `p2/prescripcion`, `p3/torre-cubos`.
   Una rama = una cosa. Vida máxima: unas horas. Hoy no hay ramas de larga duración.
 - Commits: `feat(F17): …`, `fix(shell): …`, `chore(ci): …`, `docs(equipo): …`.
-- **Antes de abrir el PR:** `git fetch && git rebase origin/main`, luego `npm run verify` y los e2e de tu área.
-- **Antes de unir el PR (también quien une un PR ajeno, persona o agente):** vuelve a traer `main` (`git fetch origin && git rebase origin/main` en tu rama, o `gh pr update-branch <n>` en una ajena), corre `npm run verify` y espera la CI en verde sobre el commit actualizado. Como no exigimos "branch up to date", este paso es el que evita que dos PR verdes por separado rompan `main` juntos.
+- **Antes de abrir el PR:** `git fetch && git rebase origin/dev`, luego `npm run verify` y los e2e de tu área.
+- **Antes de unir el PR (también quien une un PR ajeno, persona o agente):** vuelve a traer su rama base, que es `dev` salvo en el PR `dev` → `main` (`git fetch origin && git merge origin/dev` en tu rama, o `gh pr update-branch <n>` en una ajena), corre `npm run verify` y únelo con `verificar` en verde sobre el commit actualizado. Como no exigimos "branch up to date", este paso es el que evita que dos PR verdes por separado rompan `dev` juntos.
 - PR chico (idealmente < 400 líneas), con la plantilla de `.github/pull_request_template.md`. Se une con **squash**.
-- Revisión: con **un visto bueno basta**, de otra persona. Los archivos con dueño (CODEOWNERS) piden el visto bueno de su dueño.
+- Revisión: con **un visto bueno basta**, de otra persona.
   Un PR que solo toca lo tuyo y tiene la CI en verde se puede unir sin esperar horas: pide la revisión y avisa en el chat.
 - Cuando se une tu PR, **borra la rama**.
-- **Revisión de dueños:** `node scripts/dueno.mjs --cambios` debe terminar en OK (el rol se toma del prefijo de la rama `p1/`, `p2/`, `p3/`). P1 puede sumarlo a la CI como paso informativo.
 
 ### Configuración de GitHub (la hace quien es administrador)
 `Settings → Branches → Add rule` para `main`:
-- Require a pull request before merging (1 aprobación; "Require review from Code Owners").
+- Require a pull request before merging (1 aprobación).
 - Require status checks to pass: `verificar` y `e2e` (los nombres de los jobs de §3), sin exigir "branch up to date" para no frenar el día.
 - Do not allow force pushes; allow administrators to bypass (para emergencias).
 - Automatically delete head branches.

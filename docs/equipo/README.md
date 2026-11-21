@@ -23,7 +23,7 @@ Hoy es la fecha límite del hackatón. Somos 3 personas más coordinación, sobr
 ## Reglas de oro
 
 1. **Nada de push directo a `main`.** Rama propia y Pull Request.
-2. **Carpetas ajenas no se tocan.** Claude Code te pregunta tu rol al empezar y se niega a editar lo de otro (`node scripts/dueno.mjs --cambios` lo revisa en tu PR). Si algo ajeno te bloquea, lo pides (formato en `contratos.md` §8).
+2. **Si tocas el área de otro, avísale.** Cada rol tiene su área (`contratos.md` §7), pero no hay bloqueo: cualquiera puede editar cualquier archivo en su PR. Avisa en el chat para no pisarse.
 3. **La base de datos es una sola y es la de producción.** Migraciones solo aditivas; ver `contratos.md` §3.
 4. **Nunca `npm run db:seed`.** Borra y recrea los datos de demostración. Lo corre solo la coordinación, una vez, al final.
 5. **Las claves nunca van al repositorio.** `.env.local` y `.env.secrets` están ignorados por git; no los pegues en chats públicos ni issues.

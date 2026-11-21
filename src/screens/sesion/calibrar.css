@@ -1,0 +1,59 @@
+/* Calibración en horizontal (teléfono apoyado, pantalla completa). Prueba en teléfono 2026-11-21: con el layout
+   vertical la app quedaba en una columna de 520 px al centro y la indicación y el chequeo tapaban la cámara y la mano.
+   Aquí: ancho completo, indicaciones a la izquierda, chequeo a la derecha y el centro libre para la mano.
+   Solo agrega reglas para horizontal bajo (teléfonos); el layout vertical de src/index.css no cambia. */
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .app:has(> .calibrar) { max-width: none; }
+
+  .calibrar .calibrar-vista {
+    --col: clamp(190px, 27vw, 280px);
+    --izq: env(safe-area-inset-left, 0px);
+    --der: env(safe-area-inset-right, 0px);
+  }
+
+  /* Columnas laterales: fondo oscuro translúcido para leer sobre el video sin taparlo del todo. */
+  .calibrar .calibrar-vista::before,
+  .calibrar .calibrar-vista::after {
+    content: ''; position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+    width: calc(var(--col) + 24px);
+  }
+  .calibrar .calibrar-vista::before { left: 0; background: linear-gradient(90deg, rgba(10, 16, 22, 0.82) 70%, rgba(10, 16, 22, 0)); }
+  .calibrar .calibrar-vista::after { right: 0; background: linear-gradient(270deg, rgba(10, 16, 22, 0.82) 70%, rgba(10, 16, 22, 0)); }
+
+  /* Columna izquierda: título, fuente y la indicación del paso. */
+  .calibrar .calibrar-vista > .calibrar-cabeza {
+    right: auto; width: var(--col); padding: 12px 0 0 calc(14px + var(--izq));
+    flex-direction: column; align-items: flex-start; gap: 6px; background: none;
+  }
+  .calibrar .calibrar-cabeza h1 { font-size: 19px; }
+  .calibrar .calibrar-camara { padding: 4px 10px; font-size: 12px; }
+
+  .calibrar .calibrar-vista > .calibrar-indicacion {
+    top: 84px; left: calc(14px + var(--izq)); right: auto; width: var(--col);
+    align-items: flex-start; text-align: left; gap: 8px;
+  }
+  .calibrar .calibrar-pildora { font-size: 16px; padding: 10px 16px; border-radius: 16px; }
+  .calibrar .calibrar-pildora.lista { font-size: 18px; padding: 12px 18px; }
+  .calibrar .calibrar-consejo { font-size: 14px; }
+
+  /* Centro: el marco guía usa toda la altura entre las dos columnas. */
+  .calibrar .calibrar-vista > .calibrar-marco {
+    top: 10px; bottom: 10px;
+    left: calc(var(--col) + 34px + var(--izq)); right: calc(var(--col) + 34px + var(--der));
+    border-radius: 22px;
+  }
+
+  /* Columna derecha: lista de chequeo compacta. */
+  .calibrar .calibrar-vista > .calibrar-chequeo {
+    top: 10px; bottom: auto; left: auto; right: calc(10px + var(--der)); width: var(--col);
+    max-height: calc(100% - 20px); overflow: auto; padding: 8px 12px 12px; gap: 2px; border-radius: 16px;
+  }
+  .calibrar .calibrar-fila { gap: 10px; min-height: 32px; font-size: 13px; }
+  .calibrar .calibrar-fila strong { font-size: 13px; }
+  .calibrar .calibrar-nota { font-size: 11px; }
+  .calibrar .calibrar-icono { width: 22px; height: 22px; }
+
+  /* Avisos de permiso / sin cámara: centrados y con scroll, sin pasar bajo las columnas. */
+  .calibrar .calibrar-vista > .calibrar-problema { top: 10px; left: 50%; right: auto; width: min(520px, 92vw); transform: translateX(-50%); max-height: calc(100% - 20px); z-index: 3; }
+}

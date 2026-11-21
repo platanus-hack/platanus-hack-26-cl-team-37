@@ -566,7 +566,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con grabación sintética completa torre de nivel 1 con cada mano",
         "Resumen muestra desvío por cubo"
@@ -575,7 +575,7 @@
         "npm run e2e -- torre"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: torre e2e 4/4 OK dos corridas (nivel 1 mano derecha e izquierda con desvío por cubo y /sensacion; bajar el cubo hasta meterlo en la torre y soltarlo sin caida; práctica libre con rearmado y Reiniciar); ejercicios+smoke 33/33 OK; vitest 245/245; tsc y oxlint sin errores; dueno --cambios OK. Revisión PR #19: piso de altura del cubo sostenido y al soltar, meta 0 = práctica libre, nivel 4 y fórmulas en cm de la escena (aprox.). fps 37-39 con física.",
       "owner": "P3",
       "rama_inicio": "linea-I"
     },
@@ -603,7 +603,7 @@
     {
       "id": "F24",
       "name": "Juego Atrapa burbujas (J3)",
-      "description": "Burbuja objetivo se revienta solo con mano abierta (extensión ≥ 80 % normalizada por calibración) y palma dentro del radio. Zona de aparición que crece; límite de zona desde el plan. Métricas: extensión, alcance máximo aprox. en cm, tiempo de reacción, mapa de zonas por mano.",
+      "description": "Burbuja objetivo se revienta solo con mano abierta (extensión ≥ 80 % normalizada por calibración) y palma dentro del radio. Zona de aparición que crece; límite de zona desde el plan. Métricas: extensión, alcance máximo aprox. en cm (al reventar), tiempo por burbuja, mapa de zonas por mano.",
       "prompt": "ref/prompts_juegos/J3_atrapa_burbujas.md",
       "images": [
         "ref/imagenes_juegos/03_atrapa_burbujas.png"
@@ -611,7 +611,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Mano a medio abrir no revienta; abierta sí",
         "Resumen muestra alcance por mano"
@@ -620,7 +620,7 @@
         "npm run e2e -- burbujas"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "tsc, oxlint y vitest en verde (incluye pruebas del alcance solo al reventar, del reposo al perder la mano y de Aciertos %); e2e burbujas (derecha, izquierda, zona inyectada en la sesión y alcance con segunda mano) + ejercicios + smoke en verde con --workers=1; captura docs/capturas/atrapa-burbujas.png revisada contra 03_atrapa_burbujas.png. Revisión P1 del PR #22 corregida. Pendiente P2: zona y umbralExtensionPct no están en el editor de planes.",
       "owner": "P3",
       "rama_inicio": "linea-J"
     },
@@ -635,7 +635,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Soltar antes de tiempo = repetición incompleta con paso anotado",
         "grep sin 'fuerza'/'presión' en src/"
@@ -644,7 +644,7 @@
         "npm run e2e -- naranja"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: npx tsc -b, oxlint y vitest OK (22 unitarias de naranja); npm run e2e -- naranja → 4/4 (sesión real nivel 3 con incompletas en pasos 3 y 2, meta 2/2 y /sensacion; mano izquierda nivel 2; nivel 5 con Reiniciar a mitad de repetición = incompleta con paso; grep sin fuerza/presión/apretar). Captura 844x390: docs/capturas/exprime-naranja.png (tarjeta de barras ~210 px, letra 15 px legible). Revisión PR #20 atendida.",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
@@ -659,17 +659,17 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Giro bajo el umbral inclina pero no voltea",
         "Resumen muestra giro máximo a cada lado"
       ],
       "verify": [
         "npm run e2e -- cartas",
-        "npm test -- giro"
+        "npm test -- -t giro"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "Corrido en p3/memoria-cartas: npx tsc -b y npx oxlint sin errores; npx vitest run en verde (pruebas de giro, desenrollado de ±180°, meta, tablero y métricas); e2e cartas (5 pruebas: umbral, retorno a palma abajo, no_par, pares, mano izquierda, nivel 3 sin memoria, práctica libre) con fuente sintética, fps ~35 en el equipo de desarrollo. Capturas horizontales docs/capturas/memoria-cartas.png y memoria-cartas-meta.png comparadas con 05_memoria_de_cartas.png. Grados marcados aprox. y no validados hasta F21.",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
@@ -684,7 +684,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Bajar dos dedos a la vez no es acierto limpio y baja la independencia de ese dedo"
       ],
@@ -693,7 +693,7 @@
         "npm test -- independencia"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "tsc -b, oxlint y vitest (256 pruebas, incl. independencia, detector con dedo que no vuelve al reposo, pausa de reposo idempotente y botón de sonido en iOS) en verde; e2e piano ejercicios smoke con --workers=1: 36 pasaron, piano repetido 3 veces en verde (un fallo aislado de contador bajo carga de la máquina); captura en docs/capturas; PR #21 aprobado, ajustes de revisión aplicados",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
@@ -818,6 +818,32 @@
       "deploy": false,
       "evidence": "",
       "owner": "coordinación"
+    },
+    {
+      "id": "F33",
+      "name": "Tablero HTML de features (tabla + grafo de dependencias)",
+      "description": "Página HTML local que lee feature_list.json en vivo (botón Recargar, tecla R y recarga automática cada 5 s), con filtros básicos (estado, dueño, texto, \"en desarrollo\") y un grafo de nodos de dependencias: clic en un feature resalta toda su cadena aguas arriba y abajo y muestra su detalle. Herramienta interna del equipo, no es parte de la app.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F01"
+      ],
+      "status": "in-progress",
+      "acceptance": [
+        "node scripts/tablero-features.mjs sirve el tablero en http://localhost:5199 sin dependencias nuevas",
+        "Recargar (botón, tecla R o auto) refleja cambios de feature_list.json sin reiniciar el servidor; un JSON a medio editar muestra error y no rompe la página",
+        "Filtros por estado, dueño y texto, con opción de mostrar las dependencias de lo filtrado y atajo \"En desarrollo\"",
+        "Grafo de nodos con capas por dependencia; flechas punteadas para dependencias no terminadas; \"lista para empezar\" destacada",
+        "Clic en un nodo o fila resalta ancestros y descendientes y muestra aceptación, verificación y evidencia",
+        "Vista \"carriles por rol\" (tecla C): una franja por P1, P2, P3, coordinación y base, con avance terminados/total; clic en una franja filtra por ese rol; la base terminada se oculta por defecto para que cada rol empiece a la izquierda"
+      ],
+      "verify": [
+        "node scripts/tablero-features.mjs + captura con Playwright",
+        "npm run verify"
+      ],
+      "deploy": false,
+      "evidence": "2026-11-21: servidor responde 200 en / y /feature_list.json; Playwright (Chrome, 1440x1000): 34 nodos, 0 errores de consola, filtros estado/dueño/En desarrollo y selección de F17/F21 resaltan su cadena. Pendiente: npm run verify / init.sh no corren en esta máquina (node_modules sin binarios darwin-x64 de oxlint y typescript); queda a la CI del PR.",
+      "owner": "P2"
     }
   ]
 }
