@@ -1,5 +1,5 @@
 // Genera los íconos PNG de la PWA desde public/favicon.svg con Chromium (Playwright, ya instalado).
-// Uso: node scripts/generar-iconos.mjs   → public/iconos/*.png (se commitean; no hace falta correrlo en cada build).
+// Uso: node scripts/generar-iconos.mjs   → public/iconos/*.png y project-logo.png (se commitean; no hace falta correrlo en cada build).
 import { readFileSync } from 'node:fs'
 import { chromium } from '@playwright/test'
 
@@ -14,6 +14,8 @@ const variantes = [
   { archivo: 'icono-512.png', tam: 512, html: svg },
   { archivo: 'icono-maskable-512.png', tam: 512, html: ajustado(0.62) },
   { archivo: 'apple-touch-icon.png', tam: 180, html: ajustado(0.78) },
+  // Logo de la entrega de Platanus Hack (raíz del repo): 1000×1000, fondo a sangre.
+  { ruta: 'project-logo.png', tam: 1000, html: ajustado(0.78) },
 ]
 
 function ajustado(escala) {
@@ -27,9 +29,9 @@ try {
   for (const v of variantes) {
     const pagina = await navegador.newPage({ viewport: { width: v.tam, height: v.tam }, deviceScaleFactor: 1 })
     await pagina.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:${v.tam}px;height:${v.tam}px}</style>${v.html}`)
-    await pagina.screenshot({ path: `public/iconos/${v.archivo}`, omitBackground: true })
+    await pagina.screenshot({ path: v.ruta ?? `public/iconos/${v.archivo}`, omitBackground: true })
     await pagina.close()
-    console.log('ok', v.archivo)
+    console.log('ok', v.ruta ?? v.archivo)
   }
 } finally {
   await navegador.close()
