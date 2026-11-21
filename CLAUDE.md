@@ -24,7 +24,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - **3 intentos.** Si la misma verificación falla 3 veces con enfoques distintos: revertir a lo último verde (`git stash` o `git checkout -- <archivos>`), marcar `blocked` con el error exacto y seguir.
 - **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2 para la estructura y el contenido; colores, tipografía e íconos salen siempre del [brandbook](brandbook/) (ver «Estilos»). Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
 - **Datos:** las pantallas usan `repos` (`src/data/repos.ts`), nunca `supabase` directo.
-- **Juegos:** three.js directo (sin React Three Fiber), Rapier solo si el juego mueve objetos. Siguen el contrato de `docs/manoviva-spec.md` §7.
+- **Juegos:** three.js directo (sin React Three Fiber), Rapier solo si el juego mueve objetos. Siguen el contrato de `docs/manoviva-spec.md` §7. Los modelos 3D van en `src/games/assets/` (compartidos en la raíz, los de un juego en `assets/<juego>/`); el `modulo.ts` del juego deja su lógica, el armado de la escena y su HUD.
 - **Sin cámara disponible:** todo juego y flujo debe poder probarse con la fuente de manos `sintetica` o `grabacion` (`?fuente=`).
 
 ## Invariantes (no romper nunca)
