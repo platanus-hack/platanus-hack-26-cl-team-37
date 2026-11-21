@@ -272,3 +272,24 @@ export function Avisos() {
     </div>
   )
 }
+
+// ---------------------------------------------------------- banner de datos demo
+/** Franja fija arriba: los datos de las cuentas demo son ficticios. */
+export function BannerDemo() {
+  return (
+    <div className="banner-demo" role="note">
+      Datos de demostración ficticios
+    </div>
+  )
+}
+
+// ---------------------------------------------------------- pantalla provisoria
+/** Pantalla con título mientras su feature no está construido (cada feature la reemplaza). */
+export function EnConstruccion({ titulo, subtitulo, atras, barra }: { titulo: string; subtitulo?: ReactNode; atras?: string | true; barra?: boolean }) {
+  return (
+    <main className={`pantalla ${barra ? 'con-barra' : ''}`}>
+      <Encabezado titulo={titulo} subtitulo={subtitulo} atras={atras} />
+      <Vacio titulo="En construcción" texto="Esta pantalla estará lista pronto." icono="objetivo" />
+    </main>
+  )
+}

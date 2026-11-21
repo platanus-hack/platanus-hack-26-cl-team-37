@@ -69,7 +69,7 @@
       "dependencies": [
         "F01"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Todas las rutas del spec existen y cargan sin error de consola",
         "Ruta protegida sin sesión redirige a /acceso",
@@ -81,7 +81,7 @@
         "npm run captura -- /acceso esqueleto"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21: npm run e2e -- smoke → 28/28 OK (19 rutas del spec: sin sesión redirigen a /acceso; paciente y terapeuta cargan cada ruta con su h1 y sin errores de consola; rol cruzado redirige al inicio del rol con aviso; barras según rol y ninguna en /sesion/:id/jugar; banner demo; cerrar sesión). npm run captura -- /acceso esqueleto → docs/capturas/esqueleto.png (viewport 390x844, PNG 780x1688 por deviceScaleFactor 2, sin errores de consola); también esqueleto-inicio.png y esqueleto-terapeuta.png: barras inferiores iguales a 00_todas_las_vistas.png (íconos, activo en amarillo, punto de alertas). Diferencia aceptada: franja azul \"Datos de demostración ficticios\" arriba (no está en el diseño, la pide el feature). bash init.sh → INIT OK (tipos, lint, 25 unitarias, build, verify:db 14/14)."
     },
     {
       "id": "F03",

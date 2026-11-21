@@ -13,6 +13,7 @@ import type {
   Sesion,
   Usuario,
 } from '../domain/types'
+import { supabaseRepos } from './supabaseRepos'
 
 export interface AuthService {
   usuarioActual(): Promise<Usuario | null>
@@ -81,3 +82,6 @@ export interface Repos {
   citas: CitasRepo
   perfiles: PerfilesRepo
 }
+
+// Implementación activa. Las pantallas importan `repos` desde aquí.
+export const repos: Repos = supabaseRepos
