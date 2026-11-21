@@ -43,11 +43,14 @@ export function ErrorEstado({ error, reintentar }: { error: unknown; reintentar?
   )
 }
 
-/** Muestra carga / error / contenido de un resultado de useCarga. */
-export function Estados<T>({ r, children, cargando }: { r: { estado: string; datos: T | null; error: unknown; recargar: () => void }; children: (d: T) => ReactNode; cargando?: ReactNode }) {
+/**
+ * Muestra carga / error / contenido de un resultado de useCarga.
+ * Si el cargador terminó y devolvió `null` (no existe), muestra `vacio` (por defecto, un "No encontramos esto").
+ */
+export function Estados<T>({ r, children, cargando, vacio }: { r: { estado: string; datos: T | null; error: unknown; recargar: () => void }; children: (d: T) => ReactNode; cargando?: ReactNode; vacio?: ReactNode }) {
   if (r.estado === 'cargando' && r.datos == null) return <>{cargando ?? <Cargando />}</>
   if (r.estado === 'error') return <ErrorEstado error={r.error} reintentar={r.recargar} />
-  if (r.datos == null) return <Cargando />
+  if (r.datos == null) return <>{vacio ?? <Vacio titulo="No encontramos esto" texto="Puede que ya no exista o que no tengas acceso." icono="buscar" />}</>
   return <>{children(r.datos)}</>
 }
 

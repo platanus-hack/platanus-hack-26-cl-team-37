@@ -68,7 +68,9 @@ Tablas: `clinicas`, `perfiles` (Usuario), `pacientes`, `planes` (versionados), `
 - Planes: nunca se editan. `crear_version_plan` crea la versión N+1 y escribe auditoría antes/después.
 - RPC disponibles: `verificar_acceso`, `crear_version_plan`, `actualizar_privacidad`, `marcar_mensaje_visto`,
   `revisar_alerta`, `eliminar_mis_datos`, `siguiente_id_sesion`, `reset_demo` (solo service_role, solo datos demo),
-  `limpiar_sesiones_prueba(p_desde, p_ids)` (solo service_role: borra sesiones demo no cerradas de pruebas, F09).
+  `limpiar_sesiones_prueba(p_desde, p_ids)` (solo service_role: borra sesiones demo no cerradas de pruebas, F09),
+  `limpiar_paciente_prueba(p_ids)` (solo service_role: borra sesiones —también cerradas—, eventos, alertas y auditoría
+  solo del paciente de prueba `prueba.demo@example.com`, F13).
 
 ## 5. Reglas invariantes
 
@@ -172,6 +174,8 @@ Un juego aparece como "Próximamente" en `/ejercicios` hasta que su feature est�
 
 `npm run db:seed` (re-ejecutable; borra solo datos `demo`). Clínica `CRM-4821`, contraseña `manoviva-demo`.
 Terapeuta `terapeuta.demo@example.com`; pacientes `carmen|luis|marta|jorge.demo@example.com`.
+Paciente de PRUEBA `prueba.demo@example.com` (no comparte métricas: el terapeuta no lo ve): lo usan los e2e que cierran
+sesiones; se limpia con `npx tsx scripts/limpiar-prueba.ts [id ...]`.
 La pantalla de acceso ofrece "Entrar con cuenta demo" y un aviso visible de datos ficticios.
 
 ## 10. Estructura de carpetas

@@ -1,5 +1,5 @@
 // Captura de una vista en tamaño teléfono para compararla con la imagen de referencia.
-// Uso: npm run captura -- <ruta> <nombre> [--como paciente|terapeuta|nadie] [--horizontal] [--espera ms]
+// Uso: npm run captura -- <ruta> <nombre> [--como paciente|terapeuta|prueba|nadie] [--horizontal] [--espera ms]
 //   npm run captura -- /inicio inicio
 //   npm run captura -- "/sesion/S-20261121-03/jugar?fuente=sintetica" caja --horizontal
 // Guarda docs/capturas/<nombre>.png. Levanta el servidor dev en :5175 si no hay uno corriendo.
@@ -15,7 +15,7 @@ const [rutaCruda, nombre] = args.filter((a, i) => !a.startsWith('--') && !(args[
 // Git Bash (MSYS) convierte "/inicio" en "C:/Program Files/Git/inicio": se deshace aquí.
 const ruta = rutaCruda?.replace(/^[A-Za-z]:[\\/].*?[\\/]Git(?=[\\/])/i, '').replace(/\\/g, '/')
 if (!ruta || !nombre) {
-  console.error('Uso: npm run captura -- <ruta> <nombre> [--como paciente|terapeuta|nadie] [--horizontal] [--espera ms]')
+  console.error('Uso: npm run captura -- <ruta> <nombre> [--como paciente|terapeuta|prueba|nadie] [--horizontal] [--espera ms]')
   process.exit(1)
 }
 const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d)
@@ -52,7 +52,8 @@ if (!(await arriba())) {
 
 let sesionJson = null
 if (como !== 'nadie') {
-  const email = como === 'terapeuta' ? 'terapeuta.demo@example.com' : 'carmen.demo@example.com'
+  // prueba = paciente de prueba de los e2e (F13): sus sesiones cerradas se borran con scripts/limpiar-prueba.ts
+  const email = como === 'terapeuta' ? 'terapeuta.demo@example.com' : como === 'prueba' ? 'prueba.demo@example.com' : 'carmen.demo@example.com'
   const sb = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: WebSocket } })
   const r = await sb.auth.signInWithPassword({ email, password: 'manoviva-demo' })
   if (r.error) {

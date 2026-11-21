@@ -348,7 +348,7 @@
       "dependencies": [
         "F12"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Flujo completo preparar→calibrar→jugar→sensación→resumen con fuente sintética deja sesión cerrada con hash verificable",
         "Sin sesión anterior no muestra diferencias"
@@ -358,7 +358,7 @@
         "npm run verify:db"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "npm run e2e -- flujo-paciente 2/2 (paciente de prueba: flujo UI preparar→calibrar→jugar sintético→Terminar→sensación EVA 2→resumen deja la sesión cerrada, hash SHA-256 verificarSesion = verificado sobre lo leído de la BD, update rechazado por inmutable, evento rechazado, recarga no cambia el hash, sin sesión anterior: 0 diferencias + nota de primera sesión; diferencias A→B con oráculo: ▲4 pts, ▼0,6 s, ▲0,4 cm, ▲3°, = igual, Comparado con tu sesión del <fecha A>). npm run e2e 76/76 (sensacion real pasó al paciente de prueba con cierre bloqueado + Reintentar). vitest 141/141 (resumen.test.ts 16, estados.test.tsx 4). npm run verify:db Todo OK (16 chequeos; Carmen 19 cerradas, hash 19/19, terapeuta 4 pacientes, limpieza del paciente de prueba vedada al paciente). bash init.sh INIT OK. Migración 000007 aplicada (supabase db push) + npm run db:seed. Captura docs/capturas/resumen.png (CAPTURA_RESUMEN=1 npm run e2e -- flujo-paciente -g diferencias), comparada con 08: misma estructura (anillo 12/12 agarres, Meta cumplida, barras Izq. 5 azul / Der. 7 amarilla, 6 tarjetas con ▲/▼ verdes y = igual, Leve, Comparado con tu sesión del 20 nov, botón Ver mi progreso). Diferencias aceptadas: banner de datos demo arriba, \"aprox.\" junto a cm y grados (invariante), títulos largos de tarjeta en 2 líneas (texto ≥ 14 px), sin barra de estado del teléfono."
     },
     {
       "id": "F14",

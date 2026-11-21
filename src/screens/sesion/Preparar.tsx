@@ -62,8 +62,8 @@ export default function Preparar() {
           }
         />
       ) : (
-        <Estados r={r}>
-          {(d) => (d ? <Formulario juego={juego} datos={d} /> : <Vacio titulo="No encontramos tu ficha" texto="Pide a tu terapeuta que revise tu cuenta." icono="perfil" />)}
+        <Estados r={r} vacio={<Vacio titulo="No encontramos tu ficha" texto="Pide a tu terapeuta que revise tu cuenta." icono="perfil" />}>
+          {(d) => <Formulario juego={juego} datos={d} />}
         </Estados>
       )}
     </main>

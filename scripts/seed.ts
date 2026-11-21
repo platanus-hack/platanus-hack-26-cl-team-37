@@ -227,6 +227,9 @@ async function main() {
     { key: 'luis', email: 'luis.demo@example.com', nombre: 'Luis A.', rol: 'paciente' },
     { key: 'marta', email: 'marta.demo@example.com', nombre: 'Marta S.', rol: 'paciente' },
     { key: 'jorge', email: 'jorge.demo@example.com', nombre: 'Jorge P.', rol: 'paciente' },
+    // Paciente de PRUEBA de los e2e que cierran sesiones (F13+). No comparte métricas: el terapeuta no la ve.
+    // Sus sesiones (también las cerradas) se borran con scripts/limpiar-prueba.ts (RPC limpiar_paciente_prueba).
+    { key: 'prueba', email: 'prueba.demo@example.com', nombre: 'Paciente de prueba', rol: 'paciente' },
   ] as const
   const ids: Record<string, string> = {}
   for (const p of personas) {
@@ -244,6 +247,7 @@ async function main() {
     { key: 'luis', mano: 'izquierda', condicion: null, semanas: 7, diasExtra: 1, largo: 19.6 },
     { key: 'marta', mano: 'ambas', condicion: null, semanas: 11, diasExtra: 3, largo: 17.2 },
     { key: 'jorge', mano: 'derecha', condicion: null, semanas: 2, diasExtra: 0, largo: 19.1 },
+    { key: 'prueba', mano: 'derecha', condicion: null, semanas: 1, diasExtra: 0, largo: 18.2 },
   ] as const
   const pac: Record<string, string> = {}
   for (const d of pacientesDef) {
@@ -258,7 +262,7 @@ async function main() {
           condicion: d.condicion,
           fecha_inicio: inicio.toISOString().slice(0, 10),
           largo_mano_cm: d.largo,
-          compartir_metricas: true,
+          compartir_metricas: d.key !== 'prueba',
           ultimo_mensaje_visto: d.key === 'carmen' ? 1 : 99,
         })
         .select('id')
@@ -271,7 +275,7 @@ async function main() {
         paciente_id: f.id,
         version: '1.0',
         firmado_el: fecha((d.semanas - 1) * 7 + d.diasExtra, 9, 30).toISOString(),
-        opciones: { analisisEnDispositivo: true, compartirMetricas: true },
+        opciones: { analisisEnDispositivo: true, compartirMetricas: d.key !== 'prueba' },
       }),
       'consent ' + d.key,
     )
@@ -368,6 +372,9 @@ async function main() {
       metaPinzaCm: 6.5, progreso: 0.1 + 0.2 * (i / 2), dolor: 3, esfuerzo: 'Moderado', planVersion: 1, prescritoPor, largoMano: 19.1,
     })
   }
+
+  // ---------------- Paciente de prueba (e2e): plan con Caja nivel 2 y Movilidad, sin sesiones.
+  await plan('prueba', 1, fecha(1, 9, 0), 5, 5, [item('movilidad-guiada', 1, 3, 'derecha', 10, 7), item('caja-juguetes', 2, 6, 'derecha', 12, 7)], null, null)
 
   const n = ok(await db.from('sesiones').select('id', { count: 'exact', head: true }), 'count')
   console.log('Listo. Datos demo sembrados.', n)

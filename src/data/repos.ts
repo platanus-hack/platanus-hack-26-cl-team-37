@@ -43,6 +43,12 @@ export interface SesionesRepo {
   obtener(id: string): Promise<Sesion | null>
   crear(datos: Omit<Sesion, 'id'>): Promise<Sesion>
   actualizar(id: string, cambios: Partial<Sesion>): Promise<void>
+  /**
+   * Cierra una sesión 'en curso' (F13): sube lo pendiente de la cola local, calcula el SHA-256 sobre la sesión y sus
+   * eventos tal como quedaron en la BD y la marca 'cerrada' con ese hash (desde ahí es inmutable). Idempotente: si ya
+   * está cerrada la devuelve tal cual. Falla si quedan escrituras pendientes (sin conexión) o si no está 'en curso'.
+   */
+  cerrar(id: string): Promise<Sesion>
   eventos(id: string): Promise<EventoSesion[]>
   agregarEventos(eventos: EventoSesion[]): Promise<void>
 }

@@ -412,3 +412,34 @@ input[type='range'].deslizador.eva.sin-valor::-moz-range-thumb { opacity: 0; }
 .sensacion-chips .chip[aria-pressed='true'] { background: var(--acento); color: #1b1300; }
 textarea.entrada.sensacion-nota { border-color: transparent; min-height: 60px; font-size: 16px; caret-color: var(--acento); }
 textarea.entrada.sensacion-nota:focus { border-color: var(--acento); }
+
+/* ---------------------------------------------------------- resumen de sesión (F13) */
+.resumen .encabezado h1 { font-size: 30px !important; }
+.resumen .subtitulo { font-size: 15px; }
+.resumen a.boton { text-decoration: none; }
+.resumen-aviso { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.resumen-meta { display: flex; align-items: center; gap: 16px; padding: 20px 16px; border-radius: var(--radio-l); }
+.resumen-anillo { position: relative; width: 120px; height: 120px; flex: none; }
+.resumen-anillo svg { width: 100%; height: 100%; display: block; }
+.resumen-anillo circle { fill: none; stroke-width: 7; }
+.resumen-anillo .pista { stroke: rgba(255, 255, 255, 0.08); }
+.resumen-anillo .avance { stroke: var(--acento); stroke-linecap: round; }
+.resumen-anillo-texto { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.resumen-anillo-texto b { font-family: var(--titulos); font-size: 32px; line-height: 1; }
+.resumen-anillo-texto span { color: var(--texto-2); font-size: 12px; font-family: var(--titulos); font-weight: 600; margin-top: 4px; }
+.resumen-manos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.resumen-manos .insignia { font-size: 14px; padding: 5px 12px; }
+.resumen-mano { width: 100%; display: grid; grid-template-columns: 32px 1fr 20px; align-items: center; gap: 10px; }
+.resumen-mano b { font-family: var(--titulos); text-align: right; font-size: 16px; }
+.resumen-barra { height: 8px; border-radius: 999px; background: var(--tarjeta-2); overflow: hidden; }
+.resumen-barra > span { display: block; height: 100%; width: var(--p); border-radius: 999px; }
+.resumen-barra.izq > span { background: var(--info); }
+.resumen-barra.der > span { background: var(--acento); }
+.resumen-tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.resumen-dato { padding: 14px 12px 12px; border-radius: var(--radio-l); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.resumen-dato-nombre { color: var(--texto-2); font-size: 14px; line-height: 1.25; }
+.resumen-dato-valor { font-family: var(--titulos); font-weight: 700; font-size: 24px; line-height: 1.2; white-space: nowrap; }
+.resumen-aprox { font-family: var(--cuerpo); font-weight: 400; font-size: 13px; color: var(--texto-3); }
+.resumen-dato-cambio { font-size: 14px; }
+.resumen-dato-cambio.mejor { color: var(--exito); }
+.resumen-dato-cambio.otro, .resumen-dato-cambio.neutro { color: var(--texto-2); }

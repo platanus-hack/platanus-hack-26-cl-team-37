@@ -11,8 +11,8 @@ import type {
   Sesion,
   Usuario,
 } from '../domain/types'
-import { idSesion } from '../domain/integridad'
-import { encolar, vaciarCola, type Pendiente } from './colaLocal'
+import { hashSesion, idSesion } from '../domain/integridad'
+import { encolar, hayPendientes, vaciarCola, type Pendiente } from './colaLocal'
 import type { Repos } from './repos'
 import { supabase } from './supabase'
 
@@ -307,6 +307,23 @@ export const supabaseRepos: Repos = {
         if (!esErrorDeRed(e)) throw e
         await encolar({ tipo: 'actualizarSesion', sesionId: id, payload: cambios })
       }
+    },
+    async cerrar(id) {
+      await sincronizarCola()
+      if (await hayPendientes(id)) throw new Error('Sin conexión: quedan datos de la sesión por subir.')
+      const s = await supabaseRepos.sesiones.obtener(id)
+      if (!s) throw new Error('No encontramos esta sesión.')
+      if (s.estado === 'cerrada') return s
+      if (s.estado !== 'en curso') throw new Error('La sesión todavía no se ha jugado.')
+      // El hash se calcula sobre lo que quedó en la BD (lo mismo que leerá quien lo verifique).
+      const hash = await hashSesion(s, await supabaseRepos.sesiones.eventos(id))
+      const r = await supabase.from('sesiones').update({ estado: 'cerrada', hash }).eq('id', id).eq('estado', 'en curso').select('*')
+      ok(r)
+      if (r.data?.length) return aSesion(r.data[0])
+      // Otra pestaña (o un doble montaje) la cerró primero.
+      const otra = await supabaseRepos.sesiones.obtener(id)
+      if (otra?.estado === 'cerrada') return otra
+      throw new Error('No pudimos cerrar la sesión.')
     },
     async eventos(id) {
       const filas = ok(await supabase.from('eventos_sesion').select('*').eq('sesion_id', id).order('seq'))

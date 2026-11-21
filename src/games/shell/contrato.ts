@@ -53,6 +53,13 @@ export interface DefMetrica {
   aprox?: boolean
   /** Para comparar sesiones (resumen y progreso). */
   mejor?: 'mayor' | 'menor'
+  /** Nombre corto para las tarjetas del resumen (F13), p. ej. "Tiempo por agarre". Por defecto `nombre`. */
+  corto?: string
+  /**
+   * ¿Va como tarjeta en /sesion/:id/resumen (F13)? Por defecto sí si tiene unidad: los conteos sin unidad
+   * (agarres, intentos, ciclos) ya se ven en el anillo. Se muestran hasta 5 + la tarjeta de dolor.
+   */
+  tarjeta?: boolean
 }
 
 /** Estado de una mano en el panel izquierdo: '—' (neutro), 'Abierta' (ok, verde), 'Agarrando' (acento, amarillo). */

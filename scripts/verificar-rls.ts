@@ -42,9 +42,14 @@ async function main() {
 
   const pacientes = (await carmen.from('pacientes').select('id')).data ?? []
   check('paciente solo ve su ficha', pacientes.length === 1, `${pacientes.length}`)
-  const ses = (await carmen.from('sesiones').select('*')).data ?? []
-  check('Carmen ve sus 19 sesiones', ses.length === 19, `${ses.length}`)
-  const otras = ses.filter((s) => s.paciente_id !== pacientes[0]?.id)
+  const todas = (await carmen.from('sesiones').select('*')).data ?? []
+  // Las 19 cerradas del seed. Desde F13 la app en producción cierra sesiones al llegar al resumen: si alguien usa la
+  // cuenta demo de Carmen, puede haber más (cerradas o en curso) hasta el próximo `npm run db:seed`. Se exigen ≥ 19
+  // cerradas y que TODAS las cerradas verifiquen su hash; las no cerradas se informan.
+  const ses = todas.filter((s) => s.estado === 'cerrada')
+  const abiertas = todas.length - ses.length
+  check('Carmen ve sus 19 sesiones cerradas del seed', ses.length >= 19, `${ses.length}${ses.length > 19 ? ' (uso de la demo; npm run db:seed las reinicia)' : ''}${abiertas ? ` · ${abiertas} sin cerrar` : ''}`)
+  const otras = todas.filter((s) => s.paciente_id !== pacientes[0]?.id)
   check('no ve sesiones de otros', otras.length === 0)
 
   // integridad tras ida y vuelta a la BD
@@ -75,10 +80,12 @@ async function main() {
   check('paciente no puede crear planes', !!plan.error)
   const limpiar = await carmen.rpc('limpiar_sesiones_prueba', { p_desde: '2000-01-01T00:00:00Z', p_ids: null })
   check('paciente no puede usar la limpieza de pruebas', !!limpiar.error)
+  const limpiarPrueba = await carmen.rpc('limpiar_paciente_prueba', { p_ids: null })
+  check('paciente no puede usar la limpieza del paciente de prueba', !!limpiarPrueba.error)
 
   const diego = await login('terapeuta.demo@example.com')
   const pts = (await diego.from('pacientes').select('id')).data ?? []
-  check('terapeuta ve 4 pacientes', pts.length === 4, `${pts.length}`)
+  check('terapeuta ve 4 pacientes (no el paciente de prueba de los e2e)', pts.length === 4, `${pts.length}`)
   const sesD = await diego.from('sesiones').insert({ id: 'S-20000101-01', paciente_id: pts[0].id, juego: 'x' })
   check('terapeuta no crea sesiones de paciente', !!sesD.error)
 

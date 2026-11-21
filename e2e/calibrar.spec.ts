@@ -113,6 +113,9 @@ test.describe('calibración', () => {
       await expect(page.locator('body')).not.toContainText(/fuerza|presión/i)
       v.sinErrores()
     } finally {
+      // Salir de /jugar antes de borrar: si el juego sigue corriendo, sus eventos podían caer en otra sesión de prueba
+      // que reusara el mismo id (los ids del día se reusan al borrar) (F13).
+      await page.goto('about:blank').catch(() => undefined)
       execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde} ${id}`, { stdio: 'inherit' })
     }
   })

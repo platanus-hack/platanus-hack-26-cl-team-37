@@ -4,13 +4,20 @@
 //   bajo el umbral no hay alerta, sobre el umbral avisa al paciente y crea la alerta. Estados: no existe, cerrada,
 //   preparada. Con CAPTURA_SENSACION=1 guarda docs/capturas/sensacion-llena.png (como la imagen 07) y sensacion-alerta.png.
 // - Sesión REAL 'en curso': EVA = umbral del plan vigente crea UNA fila en alertas (guardar dos veces no la repite) y
-//   la Sesion queda con dolor_eva, esfuerzo y nota, todavía 'en curso'. Se limpia con limpiar(desde, id) (borra también
-//   sus alertas: limpiar_sesiones_prueba).
+//   la Sesion queda con dolor_eva, esfuerzo y nota, todavía 'en curso' (el cierre de /resumen se bloquea en la prueba).
+//   Desde F13 usa el paciente de PRUEBA (el resumen cierra la sesión) y se limpia con limpiarPrueba([id]) (también alertas).
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
-import { CALIBRACION, ID_FALSO, crearSesion, limpiar, parametros } from './juegos.ts'
+import { CALIBRACION, ID_FALSO, crearSesion, limpiarPrueba, parametros } from './juegos.ts'
 
 type Escritura = { tabla: string; metodo: string; cuerpo: unknown }
+
+/** Métricas mínimas de una sesión jugada (el resumen solo cierra sesiones con métricas). */
+const METRICAS = {
+  agarres: 8, agarresIzq: 0, agarresDer: 8, intentos: 10, precision: 0.8, tiempoMedioAgarreS: 4.1, aperturaMaxCm: 5.6,
+  flexionMax: { pulgar: 40, indice: 62, medio: 70, anular: 60, menique: 50 }, flexionIndiceMax: 62, suavidad: 78, calidadRegistro: 0.95,
+  duracionS: 300, fpsMedio: 30, metaCumplida: false, contador: 8, meta: 12, motivoFin: 'tiempo',
+}
 
 /** Sesión falsa en el estado pedido + plan con umbral + alertas; devuelve las escrituras. */
 async function falsa(page: Page, estado: string | null, umbral = 5, extra: Record<string, unknown> = {}): Promise<Escritura[]> {
@@ -157,20 +164,30 @@ test.describe('Dolor y esfuerzo', () => {
     await expect(page.getByRole('textbox', { name: 'Nota para tu terapeuta' })).toHaveValue('Bien')
     await expect(guardar(page)).toBeEnabled()
   })
+})
 
-  test('sesión real: EVA ≥ umbral del plan crea una fila en alertas (una sola) y guarda dolor/esfuerzo/nota sin cerrar', async ({ page }) => {
+// Sesión REAL: guardar lleva a /resumen, que CIERRA la sesión (F13). Por eso usa el paciente de PRUEBA y el cierre se
+// bloquea (PATCH con estado 'cerrada' → 500) mientras se prueba lo de F12: guardar no cierra y la alerta no se repite.
+test.describe('Dolor y esfuerzo · sesión real', () => {
+  test.beforeEach(async ({ context }) => entrarComo(context, 'prueba'))
+
+  test('EVA ≥ umbral del plan crea una fila en alertas (una sola) y guarda dolor/esfuerzo/nota sin cerrar', async ({ page }) => {
     test.setTimeout(60_000)
-    const desde = new Date(Date.now() - 5_000).toISOString()
     let id = ''
+    const sb = await clienteComo('prueba')
     try {
-      const sb = await clienteComo('paciente')
-      id = await crearSesion('caja-juguetes', 5, 12, 2)
-      const up = await sb.from('sesiones').update({ estado: 'en curso', inicio: new Date().toISOString(), fin: new Date().toISOString() }).eq('id', id)
-      expect(up.error).toBeNull()
+      const ahora = new Date().toISOString()
+      id = await crearSesion('caja-juguetes', 5, 12, 2, 'prueba', { estado: 'en curso', inicio: ahora, fin: ahora, metricas: METRICAS })
       const pac = await sb.from('pacientes').select('id').single()
       const plan = await sb.from('planes').select('umbral_dolor').eq('paciente_id', pac.data!.id).order('version', { ascending: false }).limit(1).single()
       const umbral = plan.data!.umbral_dolor as number
 
+      let bloquear = true
+      await page.route('**/rest/v1/sesiones?*', (route) => {
+        const r = route.request()
+        if (bloquear && r.method() === 'PATCH' && /"estado":"cerrada"/.test(r.postData() ?? '')) return route.fulfill({ status: 500, json: { message: 'cierre bloqueado por la prueba' } })
+        return route.fallback()
+      })
       const v = vigilarErrores(page)
       await page.goto(`/sesion/${id}/sensacion?fuente=sintetica`)
       await expect(page.getByRole('heading', { level: 1, name: '¡Sesión completada!' })).toBeVisible({ timeout: 15_000 })
@@ -183,6 +200,7 @@ test.describe('Dolor y esfuerzo', () => {
       await page.getByRole('textbox', { name: 'Nota para tu terapeuta' }).fill('Dolor en la muñeca al final (prueba e2e).')
       await guardar(page).click()
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/resumen\\?fuente=sintetica$`))
+      await expect(page.getByText(/No pudimos cerrar la sesión todavía/)).toBeVisible()
 
       const s = await sb.from('sesiones').select('estado, dolor_eva, esfuerzo, nota, hash').eq('id', id).single()
       expect(s.data).toEqual({ estado: 'en curso', dolor_eva: umbral, esfuerzo: 'Fuerte', nota: 'Dolor en la muñeca al final (prueba e2e).', hash: null })
@@ -194,14 +212,21 @@ test.describe('Dolor y esfuerzo', () => {
       await expect(eva(page)).toHaveText(`${umbral}/10`)
       await guardar(page).click()
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/resumen\\?fuente=sintetica$`))
+      await expect(page.getByText(/No pudimos cerrar la sesión todavía/)).toBeVisible()
       const a2 = await sb.from('alertas').select('id').eq('sesion_id', id)
       expect(a2.data).toHaveLength(1)
-      v.sinErrores()
+
+      // Sin bloqueo, "Reintentar" en el resumen la cierra (F13).
+      bloquear = false
+      await page.getByRole('button', { name: 'Reintentar' }).click()
+      await expect(page.getByText(/No pudimos cerrar la sesión todavía/)).toHaveCount(0)
+      await expect.poll(async () => (await sb.from('sesiones').select('estado').eq('id', id).single()).data?.estado).toBe('cerrada')
+      expect(v.errores.filter((e) => !/status of 500/.test(e))).toEqual([])
     } finally {
-      limpiar(desde, id)
+      limpiarPrueba([id])
     }
     // La limpieza borró la sesión y su alerta.
-    const sb = await clienteComo('paciente')
     expect((await sb.from('alertas').select('id').eq('sesion_id', id)).data).toEqual([])
+    expect((await sb.from('sesiones').select('id').eq('id', id)).data).toEqual([])
   })
 })

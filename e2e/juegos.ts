@@ -3,7 +3,7 @@
 // Sesión falsa: `sesionFalsa(page, juego, …)` simula PostgREST (GET devuelve la fila; PATCH/POST se guardan).
 import { execSync } from 'node:child_process'
 import { expect, type Page } from '@playwright/test'
-import { clienteComo } from './ayudas.ts'
+import { clienteComo, type Como } from './ayudas.ts'
 
 // e2e se tipa sin DOM: tipos mínimos de lo que se toca en el navegador.
 export type EstadoJuego = { fase: string; motivo: string | null; fps: number; calidad: number; pixelRatio: number; jugadoMs: number; contador: number; eventos: number; muestras: number; fisica: boolean; vivo: Record<string, number | null> }
@@ -28,16 +28,20 @@ export async function esperarFase(p: Page, fase: string, timeout = 10_000) {
   await expect.poll(async () => (await juego(p))?.fase, { timeout }).toBe(fase)
 }
 
-/** Crea una sesión real 'preparada' de Carmen (con la sesión demo del e2e, sin ingreso extra). */
-export async function crearSesion(juegoId: string, duracionMin: number, meta: number, nivel = 2): Promise<string> {
-  const sb = await clienteComo('paciente')
+/**
+ * Crea una sesión real 'preparada' de Carmen (con la sesión demo del e2e, sin ingreso extra).
+ * `como: 'prueba'` la crea para el paciente de prueba (obligatorio si la prueba la va a CERRAR; limpiar con limpiarPrueba).
+ * `extra` agrega/reemplaza columnas de la fila (p. ej. { estado: 'en curso', metricas, dolor_eva, inicio }).
+ */
+export async function crearSesion(juegoId: string, duracionMin: number, meta: number, nivel = 2, como: Como = 'paciente', extra: Record<string, unknown> = {}): Promise<string> {
+  const sb = await clienteComo(como)
   const pac = await sb.from('pacientes').select('id').single()
   if (pac.error) throw new Error(pac.error.message)
   const dia = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }).replaceAll('-', '')
   for (let i = 0; i < 4; i++) {
     const id = await sb.rpc('siguiente_id_sesion', { p_dia: dia })
     if (id.error) throw new Error(id.error.message)
-    const r = await sb.from('sesiones').insert({ id: id.data, paciente_id: pac.data.id, juego: juegoId, estado: 'preparada', parametros: parametros(duracionMin, meta, nivel), calibracion: CALIBRACION })
+    const r = await sb.from('sesiones').insert({ id: id.data, paciente_id: pac.data.id, juego: juegoId, estado: 'preparada', parametros: parametros(duracionMin, meta, nivel), calibracion: CALIBRACION, ...extra })
     if (!r.error) return id.data as string
     if (!/duplicate key/i.test(r.error.message)) throw new Error(r.error.message)
   }
@@ -45,6 +49,14 @@ export async function crearSesion(juegoId: string, duracionMin: number, meta: nu
 }
 /** Borra solo la sesión de esta prueba (los e2e corren en paralelo). Sin id (falló antes de crearla), todo desde `desde`. */
 export const limpiar = (desde: string, id: string) => execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde} ${id}`, { stdio: 'inherit' })
+/**
+ * Borra sesiones del PACIENTE DE PRUEBA, también las cerradas (scripts/limpiar-prueba.ts, RPC solo service_role).
+ * Pasar siempre los ids de la prueba: sin ids borra TODO lo del paciente de prueba (otra prueba en paralelo lo perdería).
+ */
+export const limpiarPrueba = (ids: string[]) => {
+  const lista = ids.filter(Boolean)
+  if (lista.length) execSync(`npx tsx scripts/limpiar-prueba.ts ${lista.join(' ')}`, { stdio: 'inherit' })
+}
 
 export const ID_FALSO = 'S-20990101-01'
 export type Escritura = { tabla: string; metodo: string; cuerpo: unknown }

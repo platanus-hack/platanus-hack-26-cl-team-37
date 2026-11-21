@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F12 Dolor y esfuerzo → done (sin deploy: `deploy: false`). Además se arregló el e2e flaky de `tracking` (Google Fonts).
+- Última sesión: 2026-11-21, F13 Resumen de sesión y cierre con hash → done (deploy a producción). Además: paciente de PRUEBA para e2e que cierran sesiones y arreglo de `<Estados>` con `null`.
 - Feature en curso: ninguno.
-- Recommended Next Step: **F13 — Resumen de sesión** (esperado; confirmar con `node scripts/siguiente-feature.mjs`), `/sesion/:id/resumen`.
+- Recommended Next Step: el que diga `node scripts/siguiente-feature.mjs` (F14 esperado).
 
 ## Archivos clave (Files)
 
@@ -118,6 +118,24 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - e2e `e2e/sensacion.spec.ts`: función `falsa(page, estado, umbral, extra)` simula sesiones/planes/alertas (ojo: el POST de alertas va a `/rest/v1/alertas` SIN `?`, usar el glob `**/rest/v1/alertas*`). Prueba real crea una sesión 'en curso' (`crearSesion` + update con `clienteComo`) y limpia con `limpiar(desde, id)` (borra también su alerta). Capturas `CAPTURA_SENSACION=1 npm run e2e -- sensacion` → `sensacion-llena.png`, `sensacion-alerta.png`; `sensacion.png` con `ID=$(npx tsx scripts/crear-preparada.ts caja-juguetes derecha 5 12 2 en-curso)` + `npm run captura -- "/sesion/$ID/sensacion?fuente=sintetica" sensacion` + limpiar.
 - **Para F13 (Resumen):** la Sesion llega 'en curso' con `metricas`, `muestras`, `fin`, `dolorEVA` (siempre), `esfuerzo`/`nota` (pueden ser null). F13 cierra con hash (`src/domain/integridad.ts`). Las pantallas de alertas del terapeuta ya tienen filas reales de tipo 'dolor' con `valor`.
 
+## Paciente de PRUEBA para e2e que CIERRAN sesiones (F13) — leer antes de escribir e2e
+
+- Cerrar una sesión (estado 'cerrada' + hash) la vuelve inmutable: `limpiar-preparadas.ts` ya no la borra y `verify:db` exige que Carmen tenga EXACTAMENTE 19 sesiones. **Todo e2e que llegue a /resumen (o cierre de otra forma) debe usar el paciente de prueba**, nunca a Carmen.
+- Cuenta: `prueba.demo@example.com` / `manoviva-demo` ("Paciente de prueba", demo, clínica CRM-4821, terapeuta Diego, consentimiento, plan v1: Movilidad nivel 1 3 min y Caja nivel 2 6 min, mano derecha, meta 12, umbral de dolor 5; sin sesiones). `compartir_metricas = false`: el terapeuta NO lo ve (no aparece en sus pantallas ni en verify:db).
+- e2e: `entrarComo(context, 'prueba')`, `clienteComo('prueba')`, `crearSesion(juego, durMin, meta, nivel, 'prueba', { estado: 'en curso', metricas, dolor_eva, inicio, ... })` (e2e/juegos.ts) y en el `finally` **`limpiarPrueba(ids)`** (pasar siempre los ids: sin ids borra todo lo del paciente de prueba y rompería otra prueba en paralelo). Restos de corridas fallidas: ver `limpiarRestos` en `e2e/flujo-paciente.spec.ts`.
+- Script: `npx tsx scripts/limpiar-prueba.ts [id ...]` → RPC `limpiar_paciente_prueba(p_ids)` (migración 000007, solo service_role): borra sesiones (también cerradas), eventos, alertas y auditoría SOLO de ese paciente. `npm run db:seed` también lo deja limpio (reset_demo). Captura: `npm run captura -- <ruta> <nombre> --como prueba`.
+- Para comparar contra una sesión anterior, crear sesiones 'en curso' con métricas e `inicio` conocidos y abrir su /resumen (las cierra). Usar combinaciones juego/nivel propias de cada prueba (flujo-paciente usa Caja nivel 1 y nivel 2).
+
+## Resumen de sesión (F13, hecho) — `/sesion/:id/resumen`
+
+- `src/screens/sesion/Resumen.tsx`: el cargador lee la sesión; si está 'en curso' con `metricas` y `dolorEVA`, la CIERRA con `repos.sesiones.cerrar(id)` (nuevo en `SesionesRepo`: vacía la cola local, falla si hay pendientes, relee sesión + eventos de la BD, `hashSesion`, `update estado='cerrada', hash` filtrando `estado='en curso'`; idempotente). Si el cierre falla muestra el resumen con aviso + "Reintentar". Sin dolor → enlace a /sensacion; 'preparada' o sin métricas → "todavía no se juega".
+- Muestra: subtítulo `<juego> · m:ss min (jugado) · Nivel N`, anillo `contador/meta <meta.unidad del juego>` + insignia "Meta cumplida"/"Meta no alcanzada", barras Izq./Der. (`agarresIzq/Der`), tarjetas = `tarjetasResumen(modulo.metricasResumen)` (con unidad o `tarjeta: true`, ≤ 5, título `corto ?? nombre`, "aprox." si `aprox`) + "Dolor reportado" (EVA/10 + banda), diferencia contra `sesionAnterior` (última cerrada mismo juego y nivel) y "Comparado con tu sesión del 20 nov". "Ver mi progreso" → /progreso.
+- Lógica pura `src/metrics/resumen.ts` (+ `resumen.test.ts`): `tarjetasResumen`, `valorMetrica(def, metricas)` (lee `metricas.juego`; sesiones del seed sin `juego` → agregados base si coinciden id y unidad), `sesionAnterior`, `diferencia` (pts para %, tono mejor/otro/neutro según `mejor`), `bandaDolor`, `duracionTexto`, `avanceMeta`. **F14 Progreso / F15 Historial pueden reusarlas.**
+- Contrato J0: `DefMetrica` tiene `corto?` y `tarjeta?` (opcionales). Juegos nuevos (F22–F27): poner `corto` si el nombre es largo y dejar los conteos sin unidad (van al anillo).
+- `<Estados r vacio?>`: si el cargador devuelve `null` muestra `vacio` (por defecto "No encontramos esto"). Ya no hace falta devolver `{ datos: null }`.
+- e2e `e2e/flujo-paciente.spec.ts` (2): flujo UI completo preparar→calibrar→jugar→Terminar→sensación→resumen con el paciente de prueba (cerrada, hash `verificarSesion` = verificado en el navegador, inmutable, sin diferencias) y diferencias A→B con oráculo. `CAPTURA_RESUMEN=1 npm run e2e -- flujo-paciente -g diferencias` → `docs/capturas/resumen.png`. `e2e/sensacion.spec.ts` "sesión real" ahora usa el paciente de prueba y bloquea el PATCH de cierre.
+- Estilos: sección "resumen de sesión (F13)" en `src/index.css` (`.resumen-*`).
+
 ## Cuidado con
 
 - Correr `bash init.sh` antes de nada. Si `npm install` borró los binarios nativos de Windows, init.sh los repone.
@@ -125,7 +143,8 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - En `e2e/` los imports relativos llevan `.ts` (tsconfig.node.json usa nodenext).
 - Git Bash convierte `/ruta` en ruta de Windows: `scripts/captura.mjs` lo deshace; para otros comandos usar `MSYS_NO_PATHCONV=1`.
 - Pantallas siempre vía `repos`, no `supabase` directo.
-- `<Estados>` muestra "Cargando…" si `datos` es null: el cargador de `useCarga` debe devolver un objeto (p. ej. `{ datos: null }`) para poder mostrar un estado vacío. (`Preparar.tsx` de F06 devuelve null sin ficha de paciente: quedaría cargando; no se tocó.)
+- `<Estados>`: desde F13 un cargador que devuelve `null` muestra el estado vacío (prop `vacio`). Las pantallas antiguas que devuelven `{ datos }` siguen funcionando.
+- **Nunca abrir /resumen de una sesión real de Carmen en un e2e**: la cierra para siempre (hasta `npm run db:seed`) y `verify:db` falla (≠ 19 sesiones). Usar el paciente de prueba.
 - e2e de "nada sale de la app" (`tracking`): se permiten solo GET a fonts.googleapis.com / fonts.gstatic.com. Si F18/F20 autoalojan las fuentes, quitar esa excepción.
 - Fechas: el seed usa la fecha del día en que se corre. Si las vistas se ven vacías, `npm run db:seed`.
 
@@ -137,5 +156,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F13 esperado (Resumen de sesión, `/sesion/:id/resumen`, imagen `08_resumen_sesion.png`).
-3. Marcarlo `in-progress` y seguir CLAUDE.md. Reemplazar `src/screens/sesion/Resumen.tsx` (provisoria). Llega desde /sensacion con la Sesion 'en curso' y el query `?fuente=…`. Métricas del juego: `metricas.juego` + `modulo.metricasResumen` (ver secciones de Caja y Movilidad). Cerrar con hash es la parte que hace inmutable la sesión: los e2e que cierren sesiones reales NO se pueden limpiar con `limpiar_sesiones_prueba` (solo borra 'preparada'/'en curso'): preferir sesión falsa (`page.route`) para el cierre o pensar una limpieza con migración NUEVA.
+2. `node scripts/siguiente-feature.mjs` → F14 esperado.
+3. Marcarlo `in-progress` y seguir CLAUDE.md. Si sus e2e cierran sesiones o necesitan sesiones cerradas nuevas: paciente de prueba (sección de arriba). Reusar `src/metrics/resumen.ts` para valores y comparaciones por juego (`metricasResumen` del módulo vía `cargarModulo(juego)` → `crear().metricasResumen`).

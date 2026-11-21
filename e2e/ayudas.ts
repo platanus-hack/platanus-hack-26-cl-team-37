@@ -4,11 +4,15 @@ import { expect, type BrowserContext, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
 
-export type Como = 'paciente' | 'terapeuta'
+// 'prueba' = paciente de PRUEBA (prueba.demo@example.com, F13): para los e2e que CIERRAN sesiones. Una sesión cerrada
+// es inmutable; las de este paciente (solo las suyas) se borran con `limpiarPrueba(ids)` de e2e/juegos.ts. El terapeuta
+// no lo ve (no comparte métricas) y Carmen conserva sus 19 sesiones del seed.
+export type Como = 'paciente' | 'terapeuta' | 'prueba'
 
 export const CUENTAS: Record<Como, string> = {
   paciente: 'carmen.demo@example.com',
   terapeuta: 'terapeuta.demo@example.com',
+  prueba: 'prueba.demo@example.com',
 }
 export const CLAVE_DEMO = 'manoviva-demo'
 

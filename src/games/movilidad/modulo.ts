@@ -453,10 +453,10 @@ export const crearMovilidad: CrearJuego = () => {
     metricasResumen: [
       { id: 'ciclos', nombre: 'Ciclos completos', unidad: '', formula: "eventos 'soltar' (objeto 'ciclo'): cerrar bajo el umbral del nivel y volver a abrir", mejor: 'mayor' },
       { id: 'ritmo', nombre: 'Ritmo medio (ciclos/min)', unidad: '', decimales: 1, formula: '60 000 × (ciclos − 1) / ms entre el primer y el último ciclo, por mano (promedio de las manos)' },
-      { id: 'tiempoMedioCiclo', nombre: 'Tiempo medio cerrar → abrir', unidad: 's', formula: 'promedio de agarre_inicio (cierre) → soltar (apertura)' },
+      { id: 'tiempoMedioCiclo', nombre: 'Tiempo medio cerrar → abrir', unidad: 's', formula: 'promedio de agarre_inicio (cierre) → soltar (apertura)', corto: 'Tiempo por ciclo' },
       { id: 'rango', nombre: 'Rango medio usado', unidad: '%', formula: 'promedio por ciclo de (apertura máx. − mín.), apertura calibrada', mejor: 'mayor' },
-      { id: 'aperturaMax', nombre: 'Apertura máxima', unidad: '%', formula: 'máximo de la apertura calibrada', mejor: 'mayor' },
-      { id: 'flexionIndiceMax', nombre: 'Flexión máxima del índice', unidad: '°', formula: 'máximo de MCP + PIP del índice', aprox: true, mejor: 'mayor' },
+      { id: 'aperturaMax', nombre: 'Apertura máxima', unidad: '%', formula: 'máximo de la apertura calibrada', mejor: 'mayor', corto: 'Apertura máx.' },
+      { id: 'flexionIndiceMax', nombre: 'Flexión máxima del índice', unidad: '°', formula: 'máximo de MCP + PIP del índice', aprox: true, mejor: 'mayor', corto: 'Flexión del índice' },
       { id: 'seguimiento', nombre: 'Siguió la guía', unidad: '%', formula: `cuadros con |apertura − guía| < ${TOLERANCIA_GUIA} / cuadros con mano`, mejor: 'mayor' },
     ],
     usaFisica: false,
