@@ -53,10 +53,11 @@ async function main() {
   check('no ve sesiones de otros', otras.length === 0)
 
   // integridad tras ida y vuelta a la BD
-  // La CI corre varios e2e a la vez contra esta base: una sesión de Carmen que otra corrida está creando o cerrando se
-  // escribe en varios pasos y su hash no cuadra hasta que termina (luego la prueba la borra). Se omiten las cerradas
-  // hace menos de 10 minutos; las del seed son de días anteriores y se siguen exigiendo todas.
-  const recientes = new Set(ses.filter((s) => Date.now() - Date.parse(s.fin ?? s.inicio) < 10 * 60_000).map((s) => s.id))
+  // Solo en la CI, que corre varios e2e a la vez contra esta base: una sesión de Carmen que otra corrida está creando o
+  // cerrando se escribe en varios pasos y su hash no cuadra hasta que termina (luego la prueba la borra). Allí se omiten
+  // las cerradas hace menos de 10 minutos y se listan sus id. A mano (init.sh) se exigen todas, sin excepción.
+  const recientes = new Set(process.env.CI ? ses.filter((s) => Date.now() - Date.parse(s.fin ?? s.inicio) < 10 * 60_000).map((s) => s.id) : [])
+  if (recientes.size) console.log(`  (CI) omitidas por recién cerradas, probablemente de otra corrida de e2e: ${[...recientes].join(', ')}`)
   let verificadas = 0
   for (const f of ses) {
     if (recientes.has(f.id)) continue
