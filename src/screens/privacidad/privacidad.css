@@ -1,6 +1,6 @@
 /* F18 · Privacidad y datos (imagen 13). Clases con prefijo priv-. */
 .privacidad { gap: 14px; }
-.priv-tarjeta { display: flex; align-items: center; gap: 18px; padding: 18px 20px; border-radius: var(--radio); border: 1px solid rgba(79, 209, 161, 0.45); background: #132529; }
+.priv-tarjeta { display: flex; align-items: center; gap: 18px; padding: 18px 20px; border-radius: var(--radio); border: 1px solid transparent; background: var(--tarjeta); }
 .priv-tarjeta h2 { font-size: 18px; margin-bottom: 4px; }
 .priv-tarjeta p { margin: 0; color: var(--texto-2); font-size: 14.5px; line-height: 1.4; }
 .priv-escudo { width: 44px; height: 52px; flex: none; }
@@ -13,7 +13,7 @@
 .priv-ajuste-detalle { color: var(--texto-2); font-size: 14px; margin-top: 2px !important; }
 
 .priv-consent { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 16px 18px; min-height: var(--toque); border-radius: var(--radio); border: 1px solid var(--borde-fuerte); background: var(--tarjeta); color: var(--texto); }
-.priv-consent.pendiente { border-color: rgba(255, 138, 92, 0.55); }
+.priv-consent.pendiente { border-color: var(--dolor); }
 .priv-consent-texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .priv-consent-texto strong { font-family: var(--titulos); font-size: 16px; }
 .priv-consent-texto span { color: var(--texto-2); font-size: 14px; }
@@ -26,11 +26,22 @@
 .priv-texto p, .priv-texto li { color: var(--texto-2); font-size: 15px; line-height: 1.5; }
 .priv-texto p { margin: 0 0 8px; }
 .priv-texto ul { margin: 0 0 8px; padding-left: 20px; }
-.priv-borrador { border: 1px dashed var(--acento); background: var(--acento-tenue); color: var(--acento) !important; border-radius: var(--radio-s); padding: 10px 12px; }
+.priv-borrador { border: 1px dashed var(--amarillo); background: var(--amarillo-suave); color: var(--sobre-amarillo) !important; border-radius: var(--radio-s); padding: 10px 12px; }
 .priv-firma { margin: 14px 0 10px; }
 .priv-pie { margin: 12px 0; font-size: 14px; }
 .priv-acepto { display: flex; align-items: flex-start; gap: 12px; min-height: var(--toque); font-size: 16px; }
-.priv-acepto input { width: 24px; height: 24px; flex: none; margin-top: 2px; accent-color: var(--acento); }
+.priv-acepto input { width: 24px; height: 24px; flex: none; margin-top: 2px; accent-color: var(--tinta); }
 .priv-palabra { width: 100%; min-height: var(--alto-boton); border-radius: var(--radio-s); border: 1px solid var(--borde-fuerte); background: var(--fondo-2); color: var(--texto); padding: 0 14px; font-size: 18px; letter-spacing: 0.08em; }
 .dialogo h3 { margin-bottom: 8px; }
 .hoja .col h3 { font-size: 20px; }
+
+/* Sistema «Salud»: los ajustes en una tarjeta blanca; el consentimiento como tarjeta plana con su estado escrito
+   (sin insignia de color); el escudo en tinta, como los demás íconos. */
+.priv-ajustes { padding: 4px 20px; border-radius: 24px; background: var(--tarjeta); }
+.priv-consent { border: 0; border-radius: 24px; }
+.priv-consent.pendiente { box-shadow: inset 0 0 0 1.5px var(--dolor); }
+.priv-consent .insignia { background: none; padding: 0; font-size: 15px; }
+.priv-consent .insignia.ok { color: var(--suave); }
+.priv-consent .insignia.malo { color: var(--dolor-texto); }
+.priv-escudo path:first-child { fill: var(--tinta); }
+.priv-escudo path:last-child { stroke: var(--sobre-tinta); }

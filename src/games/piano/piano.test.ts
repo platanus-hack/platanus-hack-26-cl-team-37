@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { accionToqueSonido, botonSilenciado } from './audio'
 import { manoSintetica } from '../../tracking/sintetica'
 import {
   AgregadoPiano,
@@ -11,6 +12,7 @@ import {
   REPOSO_MS,
   flexionMcp,
   independenciaPct,
+  inicioPausa,
   frecuenciaNota,
   ladosDelNivel,
   nivelPiano,
@@ -130,7 +132,7 @@ describe('DetectorMano', () => {
     det.fijarReposo(plano())
     correr(det, con({ indice: 40 }), 0, 100)
     expect(det.abajo.indice).toBe(true)
-    correr(det, con({ indice: 15 }), 100, 100) // sobre el umbral de subida (11°)
+    correr(det, con({ indice: 18 }), 100, 100) // sobre el umbral de subida (11°) y sin recuperar el 60% del recorrido
     expect(det.abajo.indice).toBe(true)
     correr(det, con({ indice: 5 }), 200, 100)
     expect(det.abajo.indice).toBe(false)
@@ -144,6 +146,38 @@ describe('DetectorMano', () => {
     const antes = det.reposo!.medio
     correr(det, con({ medio: 60 }, 6), 8000, 4000)
     expect(det.reposo!.medio).toBeCloseTo(antes, 5)
+  })
+  it('un dedo que no vuelve a menos de 11° del reposo se da por subido al recuperar parte de su recorrido', () => {
+    const det = new DetectorMano()
+    det.fijarReposo(plano())
+    correr(det, plano(), 0, 300)
+    let r = correr(det, con({ indice: 40 }), 300, 600)
+    expect(r.pulsacion?.abajo).toEqual(['indice'])
+    r = correr(det, con({ indice: 14 }), r.t, 300) // extensión limitada: queda a 14° (>11°) pero recuperó 26 de 40°
+    expect(det.abajo.indice).toBe(false)
+    expect(det.fase).toBe('reposo')
+    r = correr(det, con({ indice: 14, medio: 45 }), r.t, 600) // la siguiente nota ya se puede tocar
+    expect(r.pulsacion?.abajo).toEqual(['medio'])
+  })
+  it('recuperar poco del recorrido no suelta el dedo, y soltarlo no deja volver a bajar sin cruzar el umbral de bajada', () => {
+    const det = new DetectorMano()
+    det.fijarReposo(plano())
+    correr(det, con({ indice: 40 }), 0, 300)
+    correr(det, con({ indice: 25 }), 300, 300) // recuperó 15 de 40° (37%)
+    expect(det.abajo.indice).toBe(true)
+    correr(det, con({ indice: 14 }), 600, 100)
+    expect(det.abajo.indice).toBe(false)
+    correr(det, con({ indice: 20 }), 700, 300) // sigue bajo el umbral de bajada (22°): no vuelve a contar
+    expect(det.abajo.indice).toBe(false)
+  })
+  it('con un recorrido enorme, el límite de subida sigue por debajo del umbral de bajada', () => {
+    const det = new DetectorMano()
+    det.fijarReposo(plano())
+    correr(det, con({ indice: 100 }), 0, 300)
+    correr(det, con({ indice: 19 }), 300, 100) // 60% de 100° sería 40°, pero nunca más que 18°
+    expect(det.abajo.indice).toBe(true)
+    correr(det, con({ indice: 17 }), 400, 100)
+    expect(det.abajo.indice).toBe(false)
   })
   it('perder la mano olvida la pulsación en curso', () => {
     const det = new DetectorMano()
@@ -240,6 +274,45 @@ describe('Juez: partitura', () => {
     expect(j.notas[0].tMs).toBe(antes + 5000)
     j.avanzar(5000 + n.intervaloMs + 10)
     expect(j.notas[1].apareceMs).toBe(5000 + n.intervaloMs)
+  })
+})
+
+describe('pausa para fijar el reposo', () => {
+  it('apretar "Fijar reposo" dos veces conserva el primer instante de pausa', () => {
+    expect(inicioPausa(null, 1000)).toBe(1000)
+    expect(inicioPausa(1000, 3000)).toBe(1000)
+  })
+  it('con el instante conservado las notas no vuelven ya vencidas (con el segundo sí)', () => {
+    const n = NIVELES_PIANO[1]
+    const armar = () => {
+      const j = new Juez(n, ['derecha'], rng, 3, 0)
+      j.avanzar(100)
+      return j
+    }
+    const reloj = 6000
+    const bien = armar()
+    let pausa = inicioPausa(null, 1000)
+    pausa = inicioPausa(pausa, 3000) // segundo toque durante la calibración
+    bien.atrasar(reloj - pausa)
+    expect(bien.notas[0].tMs).toBe(n.caidaMs + 5000)
+    const mal = armar()
+    mal.atrasar(reloj - 3000) // lo que pasaba antes: se perdían 2 s de atraso
+    expect(mal.notas[0].tMs).toBeLessThan(bien.notas[0].tMs)
+  })
+})
+
+describe('botón de sonido (iOS: contexto suspendido)', () => {
+  it('se ve silenciado mientras el contexto no corre, aunque el paciente no lo haya silenciado', () => {
+    expect(botonSilenciado(false, 'running')).toBe(false)
+    expect(botonSilenciado(false, 'suspended')).toBe(true)
+    expect(botonSilenciado(false, null)).toBe(true)
+    expect(botonSilenciado(true, 'running')).toBe(true)
+  })
+  it('el toque desbloquea cuando el contexto no corre y solo silencia cuando suena', () => {
+    expect(accionToqueSonido(false, 'suspended')).toEqual({ silencio: false, desbloquear: true })
+    expect(accionToqueSonido(false, null)).toEqual({ silencio: false, desbloquear: true })
+    expect(accionToqueSonido(true, 'suspended')).toEqual({ silencio: false, desbloquear: true })
+    expect(accionToqueSonido(false, 'running')).toEqual({ silencio: true, desbloquear: false })
   })
 })
 

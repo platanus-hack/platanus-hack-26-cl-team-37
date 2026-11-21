@@ -1,4 +1,5 @@
-// F04 · Inicio del paciente (docs/referencia/imagenes/02_inicio_paciente.png).
+// F04 · Inicio del paciente con el sistema de diseño «Salud»: arco de la semana (la firma), la tarjeta Ahora con la
+// escena del juego, lo de hoy en una lista y una sola acción, Empezar.
 // Todo sale del Plan vigente, las Sesiones guardadas y la próxima Cita (vía repos); nada escrito a mano.
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -6,11 +7,13 @@ import { useAuth } from '../../auth/contexto'
 import { repos } from '../../data/repos'
 import type { Cita, Paciente, Plan, Sesion } from '../../domain/types'
 import { juegoPorId, nombreJuego } from '../../games/registry'
-import { diaSemana, fechaCorta, fechaLarga, hora, iniciales, LETRAS_DIA, pctCorto } from '../../lib/formato'
+import { diaSemana, fechaCorta, hora, iniciales, LETRAS_DIA } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
-import { adherencia, planDeHoy, racha, semana, type EstadoEjercicio } from '../../metrics/sesion'
+import { planDeHoy, semana, type EstadoEjercicio } from '../../metrics/sesion'
 import { Icono } from '../../ui/Icono'
-import { Anillo, Estados, Vacio } from '../../ui/piezas'
+import { BarraAccion, Estados, Vacio } from '../../ui/piezas'
+import { escenaDe } from '../../ui/escenas'
+import { Ahora, ArcoSemana, EncabezadoMarca } from '../../ui/salud'
 
 interface DatosInicio {
   paciente: Paciente | null
@@ -38,18 +41,8 @@ export default function Inicio() {
   const primerNombre = nombre.split(/\s+/)[0] ?? ''
 
   return (
-    <main className="pantalla con-barra inicio">
-      <header className="fila entre inicio-cabeza">
-        <div className="flex1">
-          <p className="sobretitulo inicio-fecha">{fechaLarga(hoy)}</p>
-          <h1>
-            Hola, {primerNombre} <span aria-hidden="true">👋</span>
-          </h1>
-        </div>
-        <div className="avatar acento inicio-avatar" aria-hidden="true">
-          {iniciales(nombre)}
-        </div>
-      </header>
+    <main className="pantalla con-barra con-boton inicio">
+      <EncabezadoMarca titulo={`Hola, ${primerNombre}`} iniciales={iniciales(nombre)} />
       <Estados r={r}>{(d) => <Contenido d={d} hoy={hoy} />}</Estados>
     </main>
   )
@@ -71,144 +64,107 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
             </Link>
           }
         />
-        {cita && <TarjetaCita cita={cita} />}
+        {cita && <NotaCita cita={cita} />}
       </>
     )
 
   const deHoy = planDeHoy(plan.items, sesiones, hoy)
-  const hechos = deHoy.filter((x) => x.estado === 'hecho').length
   const minutos = plan.items.reduce((a, it) => a + it.duracionMin, 0)
-  const dias = racha(sesiones, hoy)
-  const adh = adherencia(sesiones, plan, hoy)
   const tira = semana(sesiones, plan.items.length, hoy)
+  const hechasSemana = tira.filter((x) => x.estado === 'cumplido').length
   const autor = plan.creadoPorNombre ?? 'tu terapeuta'
+  const ahora = deHoy.find((x) => x.estado === 'siguiente')
+  const resto = deHoy.filter((x) => x.estado !== 'siguiente')
+  const todoHecho = deHoy.every((x) => x.estado === 'hecho')
+  const dias = tira.map((dia, i) => ({ letra: LETRAS_DIA[i], nombre: NOMBRES_DIA[i], estado: dia.estado === 'cumplido' ? ('hecha' as const) : ('pendiente' as const), hoy: dia.hoy }))
 
   return (
     <>
       <MensajeTerapeuta paciente={paciente} plan={plan} autor={autor} />
 
-      <section className="tarjeta plan-hoy" aria-labelledby="plan-hoy-titulo">
-        <Anillo valor={hechos / plan.items.length} tam={88} grosor={9}>
-          <span className="anillo-cuenta" aria-label={`${hechos} de ${plan.items.length} ejercicios hechos`}>
-            <b>{hechos}</b>/{plan.items.length}
-          </span>
-        </Anillo>
-        <div className="flex1">
-          <h2 id="plan-hoy-titulo">Plan de hoy</h2>
-          <p className="plan-hoy-resumen">
-            {plan.items.length} {plan.items.length === 1 ? 'ejercicio' : 'ejercicios'} · {minutos} min
-          </p>
-          <p className="plan-hoy-autor">
-            <Icono nombre="candado" tam={15} /> Indicado por {autor}
-          </p>
-        </div>
-      </section>
+      <ArcoSemana hechas={hechasSemana} total={plan.sesionesPorSemana} dias={dias} />
 
-      <ul className="lista sin-vinetas" aria-label="Ejercicios de hoy">
-        {deHoy.map(({ item, estado }, i) => (
-          <li key={`${item.juego}-${i}`}>
-            <FilaEjercicio juego={item.juego} duracionMin={item.duracionMin} estado={estado} />
-          </li>
-        ))}
-      </ul>
-      {hechos === plan.items.length && (
-        <p className="tarjeta exito compacta" role="status">
-          ¡Completaste el plan de hoy!
-        </p>
+      {ahora && (
+        <Ahora
+          juego={ahora.item.juego}
+          nombre={nombreJuego(ahora.item.juego)}
+          detalle={detalleEjercicio(ahora.item.juego, ahora.item.duracionMin)}
+          to={`/sesion/${ahora.item.juego}/preparar`}
+        />
       )}
 
-      <div className="grid2">
-        <div className="tarjeta dato-inicio">
-          <p className="tenue">Racha</p>
-          <p className="enorme" data-testid="racha">
-            {dias} {dias === 1 ? 'día' : 'días'} {dias > 0 && <span aria-hidden="true">🔥</span>}
+      <section className="tarjeta lista-hoy" aria-labelledby="hoy-titulo">
+        <h2 id="hoy-titulo" className="lista-hoy-rotulo">
+          Hoy
+        </h2>
+        <p className="lista-hoy-resumen">
+          {plan.items.length} {plan.items.length === 1 ? 'ejercicio' : 'ejercicios'}, {minutos} minutos.
+          <span>
+            <Icono nombre="candado" tam={14} /> Indicado por {autor}
+          </span>
+        </p>
+        {todoHecho && (
+          <p className="lista-hoy-resumen" role="status">
+            Completaste el plan de hoy.
           </p>
-        </div>
-        <div className="tarjeta dato-inicio">
-          <p className="tenue">Adherencia</p>
-          <p className="enorme" data-testid="adherencia">
-            {pctCorto(adh)}
-          </p>
-        </div>
-      </div>
-
-      <section className="tarjeta" aria-label="Esta semana">
-        <ol className="tira-semana">
-          {tira.map((dia, i) => (
-            <li key={dia.clave} data-estado={dia.estado} data-hoy={dia.hoy || undefined} aria-label={`${NOMBRES_DIA[i]}: ${textoDia(dia.estado, dia.hoy)}`}>
-              <span className={`letra ${dia.hoy ? 'acento' : ''}`} aria-hidden="true">
-                {LETRAS_DIA[i]}
-              </span>
-              <PuntoDia estado={dia.estado} hoy={dia.hoy} fraccion={dia.hechas / plan.items.length} />
-            </li>
-          ))}
-        </ol>
+        )}
+        {resto.length > 0 && (
+          <ul aria-label="Ejercicios de hoy">
+            {resto.map(({ item, estado }, i) => (
+              <li key={`${item.juego}-${i}`}>
+                <FilaEjercicio juego={item.juego} duracionMin={item.duracionMin} estado={estado} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
-      {cita && <TarjetaCita cita={cita} />}
+      {cita && <NotaCita cita={cita} />}
+
+      {ahora && (
+        <BarraAccion>
+          <Link className="boton primario bloque" to={`/sesion/${ahora.item.juego}/preparar`}>
+            Empezar
+          </Link>
+        </BarraAccion>
+      )}
     </>
   )
 }
 
 const NOMBRES_DIA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
-function textoDia(estado: string, hoy: boolean) {
-  if (estado === 'cumplido') return 'cumplido'
-  if (estado === 'parcial') return 'parcial'
-  if (estado === 'futuro' || hoy) return 'por hacer'
-  return 'sin práctica'
+function detalleEjercicio(juego: string, duracionMin: number) {
+  const j = juegoPorId(juego)
+  const que = (j?.categoria ?? j?.descripcionCorta ?? '').toLowerCase()
+  return `${duracionMin} minutos${que ? `, ${que}` : ''}`
 }
-
-function PuntoDia({ estado, hoy, fraccion }: { estado: string; hoy: boolean; fraccion: number }) {
-  if (estado === 'parcial') {
-    const p = Math.round(Math.min(1, Math.max(0, fraccion)) * 100)
-    return <span className="punto-dia parcial" style={{ background: `conic-gradient(var(--acento) 0 ${p}%, var(--tarjeta-2) ${p}% 100%)` }} />
-  }
-  const clase = estado === 'cumplido' ? 'cumplido' : estado === 'futuro' || hoy ? 'futuro' : 'pendiente'
-  return <span className={`punto-dia ${clase}`} />
-}
-
-const ETIQUETA: Record<EstadoEjercicio, string> = { hecho: 'Hecho', siguiente: 'Siguiente', pendiente: 'Pendiente' }
 
 function FilaEjercicio({ juego, duracionMin, estado }: { juego: string; duracionMin: number; estado: EstadoEjercicio }) {
-  const j = juegoPorId(juego)
-  const detalle = `${j?.categoria ?? j?.descripcionCorta ?? 'Ejercicio'} · ${duracionMin} min`
-  const cuerpo = (
-    <>
-      <span className={`icono-caja ${estado === 'hecho' ? 'ok' : estado === 'siguiente' ? 'acento' : 'apagado'}`} aria-hidden="true">
-        <Icono nombre={estado === 'hecho' ? 'check' : 'play'} tam={22} />
-      </span>
-      <span className="flex1">
-        <span className="ejercicio-nombre">{nombreJuego(juego)}</span>
-        <span className="ejercicio-detalle">{detalle}</span>
-      </span>
-      {estado === 'siguiente' ? <span className="insignia">Siguiente</span> : <span className="tenue">{ETIQUETA[estado]}</span>}
-    </>
-  )
-  if (estado === 'siguiente')
-    return (
-      <Link to={`/sesion/${juego}/preparar`} className="tarjeta destacada tarjeta-boton ejercicio" data-estado={estado}>
-        {cuerpo}
-      </Link>
-    )
+  const escena = escenaDe(juego)
   return (
-    <div className={`tarjeta tarjeta-boton ejercicio ${estado}`} data-estado={estado}>
-      {cuerpo}
+    <div className="fila-hoy" data-estado={estado}>
+      {escena ? <img className="miniatura" src={escena} alt="" /> : <span className="miniatura" aria-hidden="true" />}
+      <span className="fila-hoy-quien">
+        <b>{nombreJuego(juego)}</b>
+        <span>{duracionMin} minutos</span>
+      </span>
+      {estado === 'hecho' ? (
+        <span className="visto" role="img" aria-label="Hecho">
+          ✓
+        </span>
+      ) : (
+        <span className="despues">Después</span>
+      )}
     </div>
   )
 }
 
-function TarjetaCita({ cita }: { cita: Cita }) {
+function NotaCita({ cita }: { cita: Cita }) {
   return (
-    <section className="tarjeta tarjeta-boton cita" aria-label="Próxima cita">
-      <span className="icono-caja info" aria-hidden="true">
-        <Icono nombre="perfil" tam={22} />
-      </span>
-      <span className="flex1">
-        <span className="ejercicio-nombre">Control con {cita.terapeutaNombre ?? 'tu terapeuta'}</span>
-        <span className="ejercicio-detalle">
-          {diaSemana(cita.fecha)} {fechaCorta(cita.fecha)} · {hora(cita.fecha)} · {cita.modalidad}
-        </span>
+    <section className="nota" aria-label="Próxima cita">
+      <span>
+        <b>Control con {cita.terapeutaNombre ?? 'tu terapeuta'}</b> el {diaSemana(cita.fecha).toLowerCase()} {fechaCorta(cita.fecha)}, {hora(cita.fecha)}, {cita.modalidad}.
       </span>
     </section>
   )
