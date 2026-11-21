@@ -280,7 +280,7 @@
         "F08",
         "F09"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con grabación sintética de 'tomar y dejar en la caja' cuenta agarres exactos",
         "Al terminar guarda métricas agregadas y eventos, y va a /sensacion",
@@ -291,7 +291,7 @@
         "captura horizontal 844x390 en docs/capturas/caja.png"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "npm run e2e -- caja 2/2 (4 corridas verdes): sesión REAL nivel 2 (6 juguetes, meta 3) con ?fuente=sintetica en 844x390 y guiones 'ir al juguete → pinza → llevar a la caja → abrir' apuntados en lazo cerrado con window.__manoviva.juego.estado(): pinza lejos de juguetes no toma nada; 1 intento soltado en la mesa (contador 0/3) + 3 agarres a la caja (1/3, 2/3; el 3.º cae al centro, apilado cuenta) → '¡Meta cumplida! 3/3' → /sensacion conservando el query. BD: metricas agarres 3, agarresDer 3, intentos 4, precision 0,75, contador 3, metaCumplida, motivoFin meta, tiempoMedioAgarreS 1–6 s (= juego.tiempoMedioAgarre), suavidad 0–100 (= juego.suavidad, SPARC por traslado), aperturaMaxCm > 5, calidadRegistro > 0,9; muestras 10 Hz con canal agarrando; eventos seq 1..N: 4 agarre_inicio, 4 agarre_fin, soltar enCaja [false,true,true,true], cada soltar precedido de agarre_inicio → agarre_fin del mismo juguete. Sesión falsa nivel 1 (4 juguetes grandes): 1 agarre → 'Reiniciar objetos' devuelve todo a su lugar sin perder el contador → Terminar guarda agarres 1, precision 1 (juego.precision 100). fps con física + juguetes + sombras en Chromium headless (pixel ratio 1,5, calidad 0): 44,8 · 45,5 · 36 · 37,2 (≥ 24). npm run e2e 68/68 · vitest 113/113 (7 nuevas) · bash init.sh INIT OK (BD 15/15, 19 sesiones). Capturas docs/capturas/caja.png (juguete sostenido sobre la caja, 2/3, Agarrando, pinza 0,5 cm con minigráfico, flexión 91°, suavidad 75%) y caja-meta.png (¡Meta cumplida! 3/3), 844x390, comparadas con 06a/06b: mismo HUD, mesa de madera, caja abierta clara al centro con juguetes dentro, cubos/esferas/cilindros/cápsulas/conos de colores con sombra, aviso verde. Diferencias aceptadas: la mano sintética se ve desde la palma y lejos (mapeo en espejo de F09), menos juguetes en la mesa (nivel 2: 6) que en 06a, y sin mano izquierda en la captura (el guion usa solo la derecha)."
     },
     {
       "id": "F11",

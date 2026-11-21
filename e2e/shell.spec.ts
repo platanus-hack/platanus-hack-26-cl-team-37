@@ -5,27 +5,9 @@
 // - Sesión falsa (page.route, sin escribir en la BD): en vertical "Gira tu teléfono"; "Terminar sesión";
 //   'prueba-fisica' carga Rapier (y 'prueba-shell' no).
 // Las sesiones reales se borran al final con scripts/limpiar-preparadas.ts (borra 'preparada' y 'en curso' demo).
-import { execSync } from 'node:child_process'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
-
-// e2e se tipa sin DOM: tipos mínimos de lo que se toca en el navegador.
-type EstadoJuego = { fase: string; motivo: string | null; fps: number; calidad: number; pixelRatio: number; jugadoMs: number; contador: number; eventos: number; muestras: number; fisica: boolean; vivo: Record<string, number | null> }
-type FuenteViva = { fijarPose(p: object, lado?: string): void; ocultar(): void; cargarGuion(g: object): void }
-type Ventana = { __manovivaJuego?: EstadoJuego; __manoviva?: { fuente?: FuenteViva } }
-
-const HORIZONTAL = { width: 844, height: 390 }
-const CALIBRACION = {
-  largoManoCm: 18.2,
-  largoManoFuente: 'estimado',
-  largoManoEstimadoCm: 18.2,
-  aperturaPinzaMaxCm: 9.5,
-  rangoAbrirCerrar: { min: 0.05, max: 1.0 },
-  fps: 30,
-  confianzaMedia: 0.95,
-  escalaCmPorUnidad: 100,
-}
-const parametros = (duracionMin: number, meta: number) => ({ mano: 'derecha', nivel: 2, duracionMin, metaAgarres: meta, metaPinzaCm: 0, prescritoPor: null })
+import { HORIZONTAL, ID_FALSO, crearSesion, esperarFase, juego, limpiar, sesionFalsa, type Ventana } from './juegos.ts'
 
 /** Abrir y cerrar la mano derecha: un ciclo cada 2 s (en bucle). */
 const ABRIR_CERRAR = {
@@ -41,53 +23,6 @@ const ABRIR_CERRAR = {
       ],
     },
   ],
-}
-
-const juego = (p: Page) => p.evaluate(() => (globalThis as unknown as Ventana).__manovivaJuego ?? null)
-async function esperarFase(p: Page, fase: string, timeout = 10_000) {
-  await expect.poll(async () => (await juego(p))?.fase, { timeout }).toBe(fase)
-}
-
-/** Crea una sesión real 'preparada' de Carmen (con la sesión demo del e2e, sin ingreso extra). */
-async function crearSesion(juegoId: string, duracionMin: number, meta: number): Promise<string> {
-  const sb = await clienteComo('paciente')
-  const pac = await sb.from('pacientes').select('id').single()
-  if (pac.error) throw new Error(pac.error.message)
-  const dia = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }).replaceAll('-', '')
-  for (let i = 0; i < 4; i++) {
-    const id = await sb.rpc('siguiente_id_sesion', { p_dia: dia })
-    if (id.error) throw new Error(id.error.message)
-    const r = await sb.from('sesiones').insert({ id: id.data, paciente_id: pac.data.id, juego: juegoId, estado: 'preparada', parametros: parametros(duracionMin, meta), calibracion: CALIBRACION })
-    if (!r.error) return id.data as string
-    if (!/duplicate key/i.test(r.error.message)) throw new Error(r.error.message)
-  }
-  throw new Error('no se pudo asignar id')
-}
-/** Borra solo la sesión de esta prueba (los e2e corren en paralelo). Sin id (falló antes de crearla), todo desde `desde`. */
-const limpiar = (desde: string, id: string) => execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde} ${id}`, { stdio: 'inherit' })
-
-const ID_FALSO = 'S-20990101-01'
-/** Sesión falsa: GET devuelve la fila; PATCH/POST se aceptan sin tocar la BD y se guardan para revisarlos. */
-async function sesionFalsa(page: Page, juegoId: string, duracionMin = 5, meta = 0) {
-  const escrituras: { tabla: string; metodo: string; cuerpo: unknown }[] = []
-  const fila = {
-    id: ID_FALSO, paciente_id: '00000000-0000-0000-0000-000000000000', plan_version: null, juego: juegoId, parametros: parametros(duracionMin, meta),
-    inicio: null, fin: null, estado: 'preparada', calibracion: CALIBRACION, metricas: null, muestras: null, dolor_eva: null, esfuerzo: null, nota: null,
-    dispositivo: null, version_app: null, version_modelo: null, hash: null, creada: new Date().toISOString(),
-  }
-  await page.route('**/rest/v1/sesiones?*', (route) => {
-    const m = route.request().method()
-    if (m === 'GET') return route.fulfill({ json: [fila] })
-    escrituras.push({ tabla: 'sesiones', metodo: m, cuerpo: route.request().postDataJSON() })
-    return route.fulfill({ status: 204, body: '' })
-  })
-  await page.route('**/rest/v1/eventos_sesion?*', (route) => {
-    const m = route.request().method()
-    if (m === 'GET') return route.fulfill({ json: [] })
-    escrituras.push({ tabla: 'eventos_sesion', metodo: m, cuerpo: route.request().postDataJSON() })
-    return route.fulfill({ status: 201, json: [] })
-  })
-  return escrituras
 }
 
 test.describe('base común de juegos', () => {

@@ -165,6 +165,22 @@ describe('agregados de sesión', () => {
     expect(c.tiempoMedio).toBeCloseTo(4)
   })
 
+  it('con agarre_fin, el tiempo del agarre termina al abrir la pinza (no al quedar quieto el objeto)', () => {
+    const c = contarAgarres([
+      ev(1, 1000, 'agarre_inicio', 'derecha', 'cubo-1'),
+      ev(2, 2500, 'agarre_fin', 'derecha', 'cubo-1'),
+      ev(3, 3200, 'soltar', 'derecha', 'cubo-1', true),
+      ev(4, 4000, 'agarre_inicio', 'derecha', 'esfera-2'),
+      ev(5, 4500, 'agarre_fin', 'derecha', 'esfera-2'),
+      ev(6, 5000, 'soltar', 'derecha', 'esfera-2', false),
+      ev(7, 6000, 'agarre_inicio', 'derecha', 'esfera-2'),
+      ev(8, 8500, 'agarre_fin', 'derecha', 'esfera-2'),
+      ev(9, 9000, 'soltar', 'derecha', 'esfera-2', true),
+    ])
+    expect(c).toMatchObject({ intentos: 3, exitosos: 2, der: 2 })
+    expect(c.tiempoMedio).toBeCloseTo(2)
+  })
+
   it('agrega la sesión', () => {
     const m = agregarSesion({
       eventos,

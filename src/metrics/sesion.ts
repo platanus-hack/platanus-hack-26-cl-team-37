@@ -14,7 +14,11 @@ export function calidadSuficiente(s: Pick<Sesion, 'metricas'>): boolean {
   return (s.metricas?.calidadRegistro ?? 0) >= UMBRAL_CALIDAD
 }
 
-/** Intentos y agarres exitosos a partir de los eventos. Un intento = un agarre_inicio. Éxito = soltar con datos.enCaja. */
+/**
+ * Intentos y agarres exitosos a partir de los eventos. Un intento = un agarre_inicio. Éxito = soltar con datos.enCaja.
+ * Tiempo de un agarre = agarre_inicio → agarre_fin (abrir la pinza) del mismo mano|objeto si existe; si no, → soltar
+ * (en Caja, `soltar` llega cuando el juguete ya quedó quieto, F10).
+ */
 export function contarAgarres(eventos: EventoSesion[]) {
   let intentos = 0
   let exitosos = 0
@@ -22,19 +26,25 @@ export function contarAgarres(eventos: EventoSesion[]) {
   let der = 0
   const tiempos: number[] = []
   const abiertos = new Map<string, number>()
+  const finales = new Map<string, number>()
   for (const e of eventos) {
     const clave = `${e.mano}|${e.objeto}`
     if (e.tipo === 'agarre_inicio') {
       intentos++
       abiertos.set(clave, e.t)
+      finales.delete(clave)
+    } else if (e.tipo === 'agarre_fin') {
+      if (abiertos.has(clave)) finales.set(clave, e.t)
     } else if (e.tipo === 'soltar') {
       const t0 = abiertos.get(clave)
+      const t1 = finales.get(clave) ?? e.t
       abiertos.delete(clave)
+      finales.delete(clave)
       if (e.datos && (e.datos as { enCaja?: boolean }).enCaja) {
         exitosos++
         if (e.mano === 'izquierda') izq++
         else if (e.mano === 'derecha') der++
-        if (t0 != null) tiempos.push((e.t - t0) / 1000)
+        if (t0 != null) tiempos.push((t1 - t0) / 1000)
       }
     }
   }

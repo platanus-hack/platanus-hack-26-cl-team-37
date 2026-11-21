@@ -347,9 +347,9 @@ a.tarjeta-juego:active { background: var(--tarjeta-2); }
 .juego-vista { position: absolute; inset: 0; --borde-juego: calc(10px + env(safe-area-inset-left, 0px)); --borde-juego-d: calc(10px + env(safe-area-inset-right, 0px)); }
 .juego-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .juego-caja { position: absolute; z-index: 2; background: rgba(15, 20, 26, 0.9); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28); color: var(--texto); }
-.juego-panel { top: 10px; left: var(--borde-juego); width: 206px; padding: 11px 14px 12px; display: flex; flex-direction: column; gap: 5px; }
+.juego-panel { top: 10px; left: var(--borde-juego); width: 214px; padding: 11px 14px 12px; display: flex; flex-direction: column; gap: 5px; }
 .juego-panel h1 { font-size: 17px; line-height: 1.2; margin-bottom: 2px; }
-.juego-mano { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--texto); }
+.juego-mano { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; white-space: nowrap; font-size: 14px; color: var(--texto); }
 .juego-mano strong { font-family: var(--titulos); font-weight: 700; font-size: 14px; }
 .juego-mano .ok { color: var(--exito); }
 .juego-mano .acento { color: var(--acento); }

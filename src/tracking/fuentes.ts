@@ -39,7 +39,7 @@ export function configDesdeUrl(search: string): ConfigFuente {
 
 declare global {
   interface Window {
-    __manoviva?: { fuente?: FuenteManos; guion?: GuionSintetico }
+    __manoviva?: { fuente?: FuenteManos; guion?: GuionSintetico; /** Estado del juego para e2e (p. ej. Caja: src/games/caja). */ juego?: { estado(): unknown } }
   }
 }
 
