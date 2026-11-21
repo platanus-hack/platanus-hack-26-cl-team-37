@@ -21,6 +21,24 @@ function guardarSilencio(v: boolean) {
   }
 }
 
+/**
+ * Qué muestra el botón: sonido solo si el paciente no lo silenció Y el contexto está corriendo. En iOS Safari el contexto
+ * creado fuera de un toque queda `suspended` y `resume()` falla sin avisar: ahí el botón debe verse silenciado.
+ */
+export function botonSilenciado(silencio: boolean, estadoContexto: string | null): boolean {
+  return silencio || estadoContexto !== 'running'
+}
+
+/**
+ * Qué hace un toque en el botón. Silenciado por el paciente → activa y desbloquea; sonido activo pero contexto aún sin correr
+ * → solo desbloquea (el toque es el gesto que iOS exige); sonando → silencia.
+ */
+export function accionToqueSonido(silencio: boolean, estadoContexto: string | null): { silencio: boolean; desbloquear: boolean } {
+  if (silencio) return { silencio: false, desbloquear: true }
+  if (estadoContexto !== 'running') return { silencio: false, desbloquear: true }
+  return { silencio: true, desbloquear: false }
+}
+
 export class SonidoPiano {
   private ac: AudioContext | null = null
   private falla = false
@@ -57,6 +75,11 @@ export class SonidoPiano {
   /** Para llamarlo desde un toque del paciente (p. ej. el botón de sonido): deja el contexto listo. */
   desbloquear() {
     this.contexto()
+  }
+
+  /** Estado del AudioContext ('running', 'suspended'…), o null si aún no existe o no hay WebAudio. */
+  estado(): string | null {
+    return this.ac?.state ?? null
   }
 
   tocar(dedo: Dedo, lado: LadoMano) {

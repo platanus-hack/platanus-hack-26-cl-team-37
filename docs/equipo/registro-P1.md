@@ -41,3 +41,8 @@ Qué hiciste, qué probaste y qué quedó pendiente. Agrega al final; un bloque 
 - **Progreso:** cifras en Archivo fino, sin pesos 700.
 - **Común:** encabezado de pantallas internas con volver arriba y título de 30 px debajo (`Encabezado`, `src/ui/piezas.tsx`); título de pantalla de una línea en 30 px.
 - Pendiente: Perfil (sigue "En construcción", es F19 de P2) y las pantallas de P2/P3 (sensación con escala de dolor, resumen, terapeuta, capa del juego). Escenas para los juegos nuevos.
+
+## 2026-11-21 · Acceso centrado en computador (rama p1/acceso-ancho)
+- Revisión visual de https://manoviva-dev.vercel.app: en computador `/acceso` se estiraba a todo el ancho (1440 px) mientras el resto de la app usa la columna de 520 px. Causa: `SoloPublica` devolvía `<Outlet/>` sin el contenedor `.app`. Ahora lo envuelve.
+- Pruebas: tipos, lint y 284 unitarias; mirado en 1440×900 (columna centrada) y 375×812 (sin cambios); "Entrar con cuenta demo" llega a `/inicio`; consola sin errores.
+- Avisado a P2 en un issue: la calibración se traba con el teléfono en horizontal.
