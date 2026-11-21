@@ -116,6 +116,7 @@ Este mapa es **orientativo**: dice a quién avisar y quién revisa mejor cada co
 | Ruta | Quién lo lleva | Si lo cambias tú |
 |---|---|---|
 | `src/ui/`, `src/index.css`, `.github/`, `vercel.json`, `.vercelignore`, `playwright*.ts` | P1 | PR chico a P1 |
+| `.oxlintrc.json`, `.gitattributes`, `.editorconfig`, `tsconfig*.json`, `vite.config.ts` (lint, tipos, build) | P1 | PR chico a P1 |
 | `src/data/` (repos, sin conexión, cola local) | P1 | método nuevo en repos: aditivo, avisar a P1 |
 | `src/games/shell/`, `src/games/caja|movilidad|pinza/` | P2 | solo aditivo y avisando |
 | `src/tracking/` | P2 | `sintetica.ts` y `fuentes`: solo agregar (P3 puede) |
