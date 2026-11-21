@@ -169,7 +169,8 @@ jobs:
 
       - name: e2e
         # 1 solo proceso: las pruebas comparten el paciente de prueba (privacidad, flujo, historial, offline…) y se pisan en paralelo.
-        run: npx playwright test --workers=1 --retries=1
+        # 2 reintentos: caja y la cámara falsa dependen de los cuadros por segundo del servidor (renderizado por software) y a veces fallan una vez.
+        run: npx playwright test --workers=1 --retries=2
 
       - name: e2e sin conexión (build + preview)
         run: npm run e2e:offline
