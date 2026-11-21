@@ -9,3 +9,6 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · P3 · Atrapa burbujas: el alcance máximo sale solo de las burbujas reventadas y de las manos de la sesión (el reposo se recalcula al reaparecer la mano); la otra mano no revienta burbujas (como movilidad).
 - 2026-11-21 · P3 · Atrapa burbujas: "Tiempo de reacción" pasa a "Tiempo por burbuja" (id y clave `tiempoBurbuja`); Aciertos % cuenta como fallo solo la burbuja que nunca se reventó.
 - 2026-11-21 · P3 → P2 · Atrapa burbujas lee `zona` y `umbralExtensionPct` del plan, pero no están en `ParametrosSesion` ni en el editor de planes: hoy rigen los valores por defecto (detalle en registro-P3.md).
+- 2026-11-21 · P3 · Memoria de cartas: con `metaAgarres` 0 es práctica libre (sin meta, se arma otro tablero al completar); con meta > 0 la meta son los pares del nivel.
+- 2026-11-21 · P3 · Memoria de cartas: el giro se desenrolla (±180°) antes de filtrar y los grados se rotulan "no validado" en las métricas visibles; "supinación/pronación máxima" pasan a "giro hacia palma arriba / hacia el otro lado (desde palma abajo)".
+- 2026-11-21 · P3 · Memoria de cartas: `?sinMemoria=1` no vale con cámara real y, si se usó, el resumen guarda `sinMemoria` = 1 (sin tocar `ParametrosSesion`).

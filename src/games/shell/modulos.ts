@@ -9,6 +9,7 @@ export const MODULOS: Record<string, () => Promise<CrearJuego>> = {
   'movilidad-guiada': () => import('../movilidad/modulo').then((m) => m.crearMovilidad),
   'pinza-fina': () => import('../pinza/modulo').then((m) => m.crearPinza),
   'atrapa-burbujas': () => import('../burbujas/modulo').then((m) => m.crearBurbujas),
+  'memoria-cartas': () => import('../memoria/modulo').then((m) => m.crearMemoria),
   'piano-dedos': () => import('../piano/modulo').then((m) => m.crearPiano),
   // Juegos de prueba de la base (F09): solo se llega con una sesión creada por e2e o scripts/crear-preparada.ts.
   'prueba-shell': () => import('../prueba/modulo').then((m) => m.crearPruebaShell),
