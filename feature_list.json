@@ -581,7 +581,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Si dejo un dedo sin tocar el juego avanza y el resumen muestra la distancia que faltó"
       ],
@@ -589,7 +589,7 @@
         "npm run e2e -- pinza-fina"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea F, Sonnet 5.5): tsc/oxlint limpios; vitest 215 (16 de pinza); e2e pinza-fina (3: secuencia 4/4 tocando cada dedo, no_alcanzado con distancia ≈4 cm y error sin bloqueo, memoria nivel 5) + ejercicios + smoke 36/36; captura horizontal pinza-fina.png (mano más chica y más baja que la referencia). Sin probar con mano izquierda ni con cámara real."
     },
     {
       "id": "F24",

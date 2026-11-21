@@ -255,3 +255,9 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - F18: consentimiento versionado (src/legal/consentimiento-v1.md es texto provisorio para que la clínica lo redacte), interruptores, descarga y eliminación de datos, CSP en vercel.json (sin Google Fonts: las fuentes ya van autoalojadas por F20), cabeceras de seguridad, docs/privacidad-red.md. Restaurar el paciente de prueba: npx tsx scripts/prueba-privacidad.ts restaurar.
 - Decisión del coordinador: F20 devuelve listas vacías cuando falla la red y no hay copia local (uso sin conexión); por eso la prueba de historial ya no espera estado de error de red (sí se prueba en inicio y preparar, con margen de 25 s por los reintentos de supabase-js).
 - Pendiente de revisar: mostrar 0 sesiones sin red puede confundir; hay aviso de Sin conexión pero solo si el navegador reporta offline.
+
+### 2026-11-21 · F23 Juego Pinza fina (línea F, Sonnet 5.5)
+- src/games/pinza/ (logica, modulo, pruebas). Niveles: 1 fija sin límite, 2 fija 6 s, 3 azar 4 s, 4 azar 3 s, 5 memoria 2 s; toque = distancia pulgar-punta < 10 % del largo de mano (histéresis 17 %) sostenida 0,3 s; no_alcanzado guarda la distancia mínima; con mano ambas alternan las secuencias. Métricas de resumen distMin y noAlcanza por dedo.
+- Fuente sintética: nuevo campo pinzaDedo (indice|medio|anular|menique) para que la pinza toque otro dedo; para alcanzarlo hay que flexionarlo (dedos: { medio: 0.6 }).
+- Para otros juegos: luces fijas a la pantalla con c.camara.add(grupo) + c.escena.add(c.camara); configurarManos acepta escala e inclinacionDeg; estado() en window.__manoviva.juego sirve para manejar la mano en lazo cerrado.
+- Observación: con 2 procesos de e2e y varias líneas activas los juegos con física fallan a veces por carga; con --workers=1 pasan. No hay e2e de Pinza fina con la mano izquierda.
