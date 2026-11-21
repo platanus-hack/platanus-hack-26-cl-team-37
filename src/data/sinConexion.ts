@@ -193,6 +193,7 @@ export function conRespaldoLocal(base: Repos, sincronizar: () => Promise<void>):
     perfiles: {
       ...base.perfiles,
       nombre: (id) => leer(`perfiles.nombre:${id}`, () => base.perfiles.nombre(id)),
+      clinica: (id) => leer(`perfiles.clinica:${id}`, () => base.perfiles.clinica(id)),
     },
   }
 }

@@ -1,0 +1,29 @@
+/* F19 · Perfil del paciente. Clases con prefijo perfil-. */
+.perfil { gap: 14px; }
+.perfil-identidad { display: flex; align-items: center; gap: 16px; padding: 18px; }
+.perfil-avatar { width: 56px; height: 56px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--acento-tenue); color: var(--acento); border: 1px solid var(--acento); font-family: var(--titulos); font-weight: 700; font-size: 20px; }
+.perfil-nombre { min-width: 0; }
+.perfil-nombre h2 { font-size: 20px; margin: 0 0 2px; overflow-wrap: anywhere; }
+.perfil-nombre p { margin: 0; color: var(--texto-2); font-size: 15px; }
+.perfil-nota { margin: 0 0 8px; color: var(--texto-2); font-size: 14px; line-height: 1.45; }
+.perfil-datos { margin: 0; }
+.perfil-dato { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--borde); }
+.perfil-dato:last-child { border-bottom: 0; padding-bottom: 2px; }
+.perfil-dato dt { color: var(--texto-2); font-size: 15px; flex: none; }
+.perfil-dato dd { margin: 0; font-size: 16px; font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+
+.perfil-largo { display: flex; flex-direction: column; gap: 12px; }
+.perfil-largo h2 { font-size: 18px; margin: 0; }
+.perfil-largo .perfil-nota { margin: 0; }
+.perfil-largo-control { display: flex; align-items: center; gap: 10px; }
+.perfil-paso { width: var(--toque); height: var(--toque); flex: none; border-radius: 12px; border: 1px solid var(--borde-fuerte); background: var(--fondo-2); display: inline-flex; align-items: center; justify-content: center; }
+.perfil-paso:disabled { opacity: 0.35; cursor: default; }
+.perfil-largo-campo { position: relative; flex: 1; min-width: 0; }
+.perfil-largo-campo .entrada { text-align: center; padding-right: 44px; font-family: var(--titulos); font-weight: 700; font-size: 20px; }
+.perfil-largo-campo span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--texto-2); font-size: 15px; pointer-events: none; }
+
+.perfil-enlace { color: var(--texto); text-decoration: none; }
+.perfil-enlace-texto { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.perfil-enlace-texto strong { font-family: var(--titulos); font-size: 16px; }
+.perfil-enlace-texto span { color: var(--texto-2); font-size: 14px; }
+.perfil-version { margin: 0; text-align: center; color: var(--texto-3); font-size: 13px; }

@@ -254,6 +254,9 @@ export const supabaseRepos: Repos = {
     async actualizarPrivacidad(compartir, investigacion) {
       ok(await supabase.rpc('actualizar_privacidad', { p_compartir: compartir, p_investigacion: investigacion }))
     },
+    async actualizarLargoMano(cm) {
+      ok(await supabase.rpc('actualizar_largo_mano', { p_cm: cm }))
+    },
     async marcarMensajeVisto(version) {
       ok(await supabase.rpc('marcar_mensaje_visto', { p_version: version }))
     },
@@ -438,6 +441,10 @@ export const supabaseRepos: Repos = {
       const n = nombrePerfil(f) ?? null
       cacheNombres.set(id, n)
       return n
+    },
+    async clinica(id) {
+      const f = ok(await supabase.from('clinicas').select('nombre').eq('id', id).maybeSingle())
+      return f?.nombre ?? null
     },
   },
 }
