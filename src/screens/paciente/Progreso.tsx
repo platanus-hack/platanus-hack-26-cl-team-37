@@ -143,7 +143,7 @@ function TarjetaApertura({ p }: { p: ProgresoCalculado }) {
           <AreaChart data={p.puntos} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="prog-relleno" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffc83d" stopOpacity={0.32} />
+                <stop offset="0%" stopColor="#ffc83d" stopOpacity={0.45} />
                 <stop offset="100%" stopColor="#ffc83d" stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -155,23 +155,23 @@ function TarjetaApertura({ p }: { p: ProgresoCalculado }) {
               ticks={marcas}
               tickFormatter={(t: number) => fechaCorta(new Date(t))}
               tickLine={false}
-              axisLine={{ stroke: 'rgba(255,255,255,0.07)' }}
+              axisLine={{ stroke: '#e6e6e2' }}
               tick={<EtiquetaFecha ultimo={marcas.length - 1} />}
               interval={0}
               tickMargin={8}
             />
             <YAxis hide domain={[lo, hi]} />
-            {p.metaPinzaCm != null && <ReferenceLine y={p.metaPinzaCm} stroke="#4fd1a1" strokeWidth={2} strokeDasharray="7 6" ifOverflow="extendDomain" />}
+            {p.metaPinzaCm != null && <ReferenceLine y={p.metaPinzaCm} stroke="#7c7c76" strokeWidth={1.5} strokeDasharray="6 6" ifOverflow="extendDomain" />}
             <Area
               type="monotone"
               dataKey="cm"
-              stroke="#ffc83d"
-              strokeWidth={2.5}
+              stroke="#16171a"
+              strokeWidth={2}
               fill="url(#prog-relleno)"
               isAnimationActive={false}
               dot={(props: { cx?: number; cy?: number; index?: number }) =>
                 props.index === p.puntos.length - 1 && props.cx != null && props.cy != null ? (
-                  <circle key="ultimo" cx={props.cx} cy={props.cy} r={6} fill="#ffc83d" stroke="#1a2733" strokeWidth={2} />
+                  <circle key="ultimo" cx={props.cx} cy={props.cy} r={6} fill="#16171a" stroke="#ffffff" strokeWidth={2} />
                 ) : (
                   <g key={`p${props.index}`} />
                 )
@@ -190,7 +190,7 @@ function EtiquetaFecha({ x, y, payload, index, ultimo }: { x?: number; y?: numbe
   if (x == null || y == null || !payload) return <g />
   const ancla = index === 0 ? 'start' : index === ultimo ? 'end' : 'middle'
   return (
-    <text x={x} y={y + 10} textAnchor={ancla} fill="#6f8193" fontSize={13}>
+    <text x={x} y={y + 10} textAnchor={ancla} fill="#5f5f59" fontSize={13}>
       {fechaCorta(new Date(payload.value))}
     </text>
   )
