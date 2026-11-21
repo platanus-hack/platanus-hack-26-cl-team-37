@@ -37,6 +37,13 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - 2026-11-21 · (F03) Cerrar sesión y el cierre tras verificación fallida usan `signOut({ scope: 'local' })` para no revocar la cuenta demo compartida en otros dispositivos (arregla el riesgo abierto de F02).
 - 2026-11-21 · (F03) `location.state.desde` sigue ignorado: tras ingresar se va siempre al inicio del rol (lo que pide la aceptación).
 - 2026-11-21 · (F03) Ícono nuevo `tendencia` en `src/ui/Icono.tsx` (tarjeta "Soy terapeuta"); `.rol` seleccionada usa tinte amarillo sobre el fondo (más oscuro, como en la imagen).
+- 2026-11-21 · (F04) Plan de hoy = todos los ítems del plan vigente, todos los días (el plan solo guarda días por semana, no cuáles). Un ítem está "Hecho" si hoy hay una sesión cerrada de ese juego (cada sesión cubre un ítem, en orden); el primero no hecho es "Siguiente", el resto "Pendiente". Función pura `planDeHoy` en `src/metrics/sesion.ts` con pruebas. Si todo está hecho: anillo lleno y "¡Completaste el plan de hoy!".
+- 2026-11-21 · (F04) Solo la fila "Siguiente" es tocable (enlace a `/sesion/<juego>/preparar`, con el id del registro, p. ej. `caja-juguetes`). Hecho y Pendiente no navegan.
+- 2026-11-21 · (F04) Mensaje del terapeuta: se muestra si `plan.mensaje` existe y `plan.version > paciente.ultimoMensajeVisto`; se marca visto (RPC `marcar_mensaje_visto`) apenas aparece, así al volver ya no se ve aunque no se cierre. Queda en pantalla hasta cerrarlo con la X. Va arriba, bajo el saludo. El e2e simula "no visto" interceptando la respuesta de `pacientes` (la RPC usa greatest y no se puede revertir sin service_role).
+- 2026-11-21 · (F04) Tira L–D: cumplido = sesiones del día ≥ ejercicios del plan (verde); parcial = torta amarilla proporcional (`semana()` ahora devuelve `hechas`); día pasado sin práctica = círculo gris lleno; hoy sin práctica y días futuros = círculo punteado. Letra de hoy en amarillo.
+- 2026-11-21 · (F04) Estados: sin ficha de paciente o sin plan (o plan sin ítems) → vacío con "Ver ejercicios" (y la cita si hay); error → `ErrorEstado` con Reintentar; el saludo se ve siempre. Nuevo hook `src/lib/useCarga.ts` (estado/datos/error/recargar) para usar con `<Estados>`.
+- 2026-11-21 · (F04) h1 de /inicio = "Hola, <primer nombre> 👋" (sin título "Inicio"); `e2e/smoke.spec.ts` espera /^Hola/. Avatar con iniciales no navega. "Indicado por" usa `creadoPorNombre` (título + nombre) o "tu terapeuta". `formato.ts` suma `diaSemana()` para la cita ("Jueves 26 nov · 11:00 · presencial").
+- 2026-11-21 · (F04) `e2e/ayudas.ts` suma `clienteComo(como)`: cliente Supabase con la sesión demo ya obtenida (sin ingreso extra) para que los e2e comparen la pantalla con la BD.
 
 ## Riesgos abiertos
 
@@ -76,4 +83,11 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - `supabaseRepos.auth`: `signOut({ scope: 'local' })` al salir y al rechazar rol/clínica; error de red distinto de credenciales malas.
 - `e2e/acceso.spec.ts` (7 pruebas por la UI real).
 - Verificación: `npm run e2e -- acceso` 7/7 · `npm run e2e` 35/35 · `npm run captura -- /acceso acceso` + `acceso-lleno` comparadas con 01_acceso.png · `bash init.sh` INIT OK.
+- Siguiente: el que indique `node scripts/siguiente-feature.mjs`.
+
+### 2026-11-21 · F04 Inicio del paciente
+- `/inicio` real (`src/screens/paciente/Inicio.tsx`): fecha y saludo con avatar, mensaje nuevo del terapeuta (una vez), Plan de hoy con anillo hechos/total, minutos y autor, filas Hecho/Siguiente/Pendiente, Racha y Adherencia, tira L–D, próxima cita. Todo desde `repos` (paciente, plan vigente, sesiones, cita). Estilos en `src/index.css` (sección inicio).
+- Nuevo: `planDeHoy` (+ `semana().hechas`) con pruebas, `useCarga`, `diaSemana`, `clienteComo` en e2e.
+- `e2e/inicio.spec.ts` (6 pruebas: coherencia con BD, Siguiente, mensaje una vez, carga, vacío, error).
+- Verificación: `npm run e2e -- inicio smoke` 34/34 · `npm run captura -- /inicio inicio` comparada con 02_inicio_paciente.png (+ inicio-mensaje.png) · `bash init.sh` INIT OK (31 unitarias).
 - Siguiente: el que indique `node scripts/siguiente-feature.mjs`.

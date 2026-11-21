@@ -13,7 +13,7 @@ import {
 } from './geometria'
 import { configDesdeCalibracion, pasoAgarre } from './agarre'
 import { sparc, sparcAPuntaje, suavidadSegmento, type PuntoTrayectoria } from './suavidad'
-import { adherencia, agregarSesion, contarAgarres, racha, semana, sesionAnterior, variacionPct } from './sesion'
+import { adherencia, agregarSesion, contarAgarres, planDeHoy, racha, semana, sesionAnterior, variacionPct } from './sesion'
 import type { EventoSesion, Sesion } from '../domain/types'
 import { FiltroOneEuro } from '../tracking/oneEuro'
 
@@ -228,6 +228,29 @@ describe('adherencia, racha y semana', () => {
     expect(s[5].estado).toBe('cumplido')
     expect(s[6].estado).toBe('futuro')
     expect(s[0].estado).toBe('pendiente')
+  })
+
+  it('semana cuenta sesiones por día y marca parcial', () => {
+    const s = semana(sesiones, 2, hoy)
+    expect(s[5].hechas).toBe(1)
+    expect(s[5].estado).toBe('parcial')
+    expect(s[1].hechas).toBe(1) // martes 17
+  })
+
+  it('plan de hoy: hecho, siguiente y pendiente', () => {
+    const items = [{ juego: 'movilidad-guiada' }, { juego: 'caja-juguetes' }, { juego: 'pinza-fina' }]
+    const deHoy = [ses('m', new Date(2026, 10, 21, 9).toISOString(), { juego: 'movilidad-guiada' })]
+    expect(planDeHoy(items, deHoy, hoy).map((x) => x.estado)).toEqual(['hecho', 'siguiente', 'pendiente'])
+    // sesiones de otros días o no cerradas no cuentan
+    const otras = [
+      ses('y', new Date(2026, 10, 20, 9).toISOString(), { juego: 'movilidad-guiada' }),
+      ses('p', new Date(2026, 10, 21, 9).toISOString(), { juego: 'movilidad-guiada', estado: 'preparada' }),
+    ]
+    expect(planDeHoy(items, otras, hoy).map((x) => x.estado)).toEqual(['siguiente', 'pendiente', 'pendiente'])
+    // una sesión cubre un solo ítem aunque el juego se repita en el plan
+    const repetido = [{ juego: 'caja-juguetes' }, { juego: 'caja-juguetes' }]
+    expect(planDeHoy(repetido, sesiones, hoy).map((x) => x.estado)).toEqual(['hecho', 'siguiente'])
+    expect(planDeHoy([], sesiones, hoy)).toEqual([])
   })
 
   it('sesión anterior del mismo juego y nivel', () => {

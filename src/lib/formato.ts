@@ -36,6 +36,12 @@ export function fechaLarga(d: Date): string {
   return `${dia[0].toUpperCase()}${dia.slice(1)} ${d.getDate()} de ${MESES[d.getMonth()]}`
 }
 
+/** Día de la semana con mayúscula inicial ("Jueves"). */
+export function diaSemana(d: Date | string): string {
+  const dia = DIAS[(typeof d === 'string' ? new Date(d) : d).getDay()]
+  return `${dia[0].toUpperCase()}${dia.slice(1)}`
+}
+
 export function fechaCorta(d: Date | string): string {
   const x = typeof d === 'string' ? new Date(d) : d
   return `${x.getDate()} ${MESES_CORTOS[x.getMonth()]}`

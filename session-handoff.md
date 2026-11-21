@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F03 acceso y roles → done.
+- Última sesión: 2026-11-21, F04 inicio del paciente → done.
 - Feature en curso: ninguno.
-- Recommended Next Step: **F04 — Inicio del paciente (Prompt 2)** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F05 — Catálogo de ejercicios (Prompt 3)** (`node scripts/siguiente-feature.mjs` para el detalle).
 
 ## Archivos clave (Files)
 
@@ -25,11 +25,20 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - Cerrar sesión usa `signOut({ scope: 'local' })`: ya no revoca la cuenta demo en otros dispositivos.
 - Captura con formulario lleno: `npm run captura -- "/acceso?rol=paciente&codigo=CRM-4821" acceso-lleno --como nadie` (sin `--como nadie` la captura inyecta sesión y redirige).
 
-## Para F04 (inicio del paciente)
+## Inicio del paciente (F04, hecho)
 
-- `/inicio` provisoria en `src/screens/paciente/Inicio.tsx`: reemplazar el archivo, usar `className="pantalla con-barra"` y datos vía `repos`.
-- El smoke espera un `h1` con el título de cada ruta (`e2e/smoke.spec.ts`, lista `RUTAS_PACIENTE`): mantenerlo o ajustar.
-- Si /inicio se ve vacío, `npm run db:seed` (las fechas del seed son relativas al día en que se corre).
+- `src/screens/paciente/Inicio.tsx`: carga con `useCarga(cargarInicio, [])` + `<Estados>`; datos = `repos.pacientes.miPaciente`, `planes.vigente`, `sesiones.listar`, `citas.proxima`.
+- Funciones puras en `src/metrics/sesion.ts`: `planDeHoy(items, sesiones, hoy)` (hecho/siguiente/pendiente), `semana()` devuelve también `hechas`, `adherencia`, `racha`.
+- `src/lib/useCarga.ts` (nuevo): `useCarga(fn, deps)` → `{ estado, datos, error, recargar }`, encaja con `Estados` de `ui/piezas`. Usarlo en las demás pantallas.
+- "Siguiente" enlaza a `/sesion/<id del registro>/preparar` (p. ej. `/sesion/caja-juguetes/preparar`): F06 debe aceptar ese id de `src/games/registry.ts`.
+- Mensaje del terapeuta: se marca visto al mostrarse. Para volver a verlo en la demo: `npm run db:seed`.
+- e2e: `clienteComo('paciente')` en `e2e/ayudas.ts` da un cliente Supabase con la sesión demo (sin ingreso extra) para comparar contra la BD. Interceptar `**/rest/v1/<tabla>?*` con `page.route` sirve para probar vacío/error/carga.
+- Clases nuevas en `src/index.css` (sección inicio): `.sin-vinetas`, `.icono-caja.apagado/.info`, `.ejercicio`, `.ejercicio-nombre/-detalle`, `.tira-semana`, `.punto-dia.cumplido/.pendiente/.futuro`.
+
+## Para F05 (catálogo de ejercicios)
+
+- `/ejercicios` provisoria en `src/screens/paciente/Ejercicios.tsx`: reemplazar el archivo, `className="pantalla con-barra"`, datos vía `repos` (plan vigente para "Asignado" y nivel actual) y `JUEGOS` del registro.
+- El smoke espera un h1 "Ejercicios".
 
 ## Cuidado con
 
@@ -48,5 +57,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F04.
-3. Marcar F04 `in-progress` y seguir CLAUDE.md.
+2. `node scripts/siguiente-feature.mjs` → F05.
+3. Marcar F05 `in-progress` y seguir CLAUDE.md.

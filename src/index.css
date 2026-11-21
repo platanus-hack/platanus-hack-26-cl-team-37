@@ -223,3 +223,36 @@ input[type='range'].deslizador.sin-valor::-webkit-slider-thumb { opacity: 0.35; 
 .rol .icono-caja { width: 46px; height: 46px; }
 .entrada-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 20px; letter-spacing: 0.18em; caret-color: var(--acento); }
 .entrada-codigo::placeholder { letter-spacing: 0.18em; color: var(--texto-3); }
+
+/* ---------------------------------------------------------- inicio del paciente (F04) */
+.sin-vinetas { list-style: none; margin: 0; padding: 0; }
+.inicio { gap: 12px; }
+.inicio-cabeza { margin-bottom: 4px; align-items: center; }
+.inicio-fecha { font-size: 15px; }
+.inicio h1 { font-size: 30px; }
+.inicio-avatar { width: 56px; height: 56px; font-size: 18px; }
+.plan-hoy { display: flex; align-items: center; gap: 18px; padding: 18px 16px; border-radius: var(--radio-l); }
+.plan-hoy h2 { font-size: 22px; }
+.plan-hoy-resumen { color: var(--texto-2); font-size: 16px; margin-top: 2px; }
+.plan-hoy-autor { color: var(--texto-2); font-size: 14px; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+.anillo-cuenta { font-family: var(--titulos); font-size: 18px; color: var(--texto-2); }
+.anillo-cuenta b { font-size: 28px; color: var(--texto); }
+.ejercicio { min-height: 68px; color: var(--texto); text-decoration: none; }
+.ejercicio .icono-caja, .cita .icono-caja { width: 48px; height: 48px; }
+.ejercicio-nombre { display: block; font-family: var(--titulos); font-weight: 700; font-size: 17px; }
+.ejercicio-detalle { display: block; color: var(--texto-2); font-size: 15px; }
+.ejercicio.hecho .ejercicio-nombre { color: var(--texto-2); }
+.ejercicio .insignia { font-size: 15px; padding: 6px 12px; }
+.icono-caja.apagado { background: var(--tarjeta-2); color: var(--texto-2); }
+.icono-caja.info { background: var(--info-tenue); color: var(--info); }
+.dato-inicio { display: flex; flex-direction: column; gap: 6px; padding: 16px; }
+.dato-inicio .enorme { font-size: 28px; }
+.tira-semana { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
+.tira-semana li { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tira-semana .letra { color: var(--texto-2); font-size: 14px; }
+.tira-semana .letra.acento { color: var(--acento); font-weight: 700; }
+.punto-dia.cumplido { background: var(--exito); }
+.punto-dia.pendiente { background: var(--tarjeta-2); }
+.punto-dia.futuro { border: 1.5px dashed var(--texto-3); }
+.mensaje-nuevo { border-color: rgba(90, 176, 255, 0.4); align-items: center; }
+.mensaje-texto { font-size: 16px; margin-top: 2px; }

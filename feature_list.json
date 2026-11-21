@@ -126,7 +126,7 @@
       "dependencies": [
         "F03"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con carmen.demo muestra plan, racha, adherencia y semana coherentes con la BD",
         "Tocar 'Siguiente' lleva a /sesion/:juego/preparar",
@@ -138,7 +138,7 @@
         "npm run captura -- /inicio inicio"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21: npm run e2e -- inicio → 6/6 OK (oráculo independiente lee la BD con la sesión de carmen.demo y compara: anillo 1 de 2, filas Hecho/Siguiente, racha 2 días, adherencia 100%, tira L–D cumplido×3/pendiente/cumplido/parcial(hoy)/futuro, próxima cita con Klgo. Diego; 'Siguiente' → /sesion/caja-juguetes/preparar; mensaje del terapeuta visible con ultimo_mensaje_visto simulado < versión, RPC marcar_mensaje_visto llamado una vez con la versión, al recargar ya no aparece; estados de carga (planes demorado), vacío (planes = []) con 'Ver ejercicios' y error con Reintentar). npm run e2e -- inicio smoke → 34/34 (smoke ajustado: h1 de /inicio = /^Hola/). Unitarias nuevas: planDeHoy y semana.hechas (31/31). npm run captura -- /inicio inicio → docs/capturas/inicio.png; además docs/capturas/inicio-mensaje.png (desde el e2e). Comparada con 02_inicio_paciente.png: saludo+fecha, avatar CR amarillo, tarjeta Plan de hoy con anillo y 'Indicado por Klgo. Diego M.' con candado, filas Hecho (verde, título atenuado)/Siguiente (borde y tinte amarillo, insignia)/Pendiente, Racha 🔥 y Adherencia, tira L–D con hoy en amarillo y parcial como torta, tarjeta de cita: coinciden. Diferencias aceptadas: franja azul de datos demo; el plan demo tiene 2 ejercicios (no 3, sin Pinza fina) y los números salen de la BD (1/2, 9 min, racha 2, 100%); ícono play en contorno (Icono es de trazo) en vez de relleno. bash init.sh → INIT OK."
     },
     {
       "id": "F05",

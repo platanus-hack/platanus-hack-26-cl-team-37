@@ -5,7 +5,7 @@ import { entrarComo, vigilarErrores } from './ayudas.ts'
 const S = 'S-20261121-01'
 
 const RUTAS_PACIENTE: { ruta: string; titulo: string | RegExp; barra: boolean }[] = [
-  { ruta: '/inicio', titulo: 'Inicio', barra: true },
+  { ruta: '/inicio', titulo: /^Hola/, barra: true },
   { ruta: '/ejercicios', titulo: 'Ejercicios', barra: true },
   { ruta: '/sesion/caja/preparar', titulo: 'Preparar sesión', barra: false },
   { ruta: `/sesion/${S}/calibrar`, titulo: 'Calibración', barra: false },

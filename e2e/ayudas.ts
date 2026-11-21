@@ -64,3 +64,16 @@ export function vigilarErrores(page: Page) {
     sinErrores: () => expect(errores, 'errores de consola').toEqual([]),
   }
 }
+
+/**
+ * Cliente de Supabase con la sesión demo (misma que inyecta entrarComo, sin otro ingreso).
+ * Sirve para comparar lo que muestra una pantalla con lo que hay en la BD (con RLS del usuario).
+ */
+export async function clienteComo(como: Como) {
+  const s = JSON.parse(await sesionDe(como)) as { access_token: string }
+  return createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${s.access_token}` } },
+    realtime: { transport: WebSocket as never },
+  })
+}

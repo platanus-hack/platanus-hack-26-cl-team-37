@@ -133,7 +133,7 @@ export function racha(sesiones: Sesion[], hoy: Date): number {
 export type EstadoDia = 'cumplido' | 'parcial' | 'pendiente' | 'futuro'
 
 /** Estado de cada día de la semana actual (lunes a domingo). */
-export function semana(sesiones: Sesion[], ejerciciosPorDia: number, hoy: Date): { clave: string; estado: EstadoDia; hoy: boolean }[] {
+export function semana(sesiones: Sesion[], ejerciciosPorDia: number, hoy: Date): { clave: string; estado: EstadoDia; hoy: boolean; hechas: number }[] {
   const lunes = new Date(hoy)
   lunes.setHours(0, 0, 0, 0)
   lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7))
@@ -154,9 +154,36 @@ export function semana(sesiones: Sesion[], ejerciciosPorDia: number, hoy: Date):
     else if (n >= Math.max(1, ejerciciosPorDia)) estado = 'cumplido'
     else if (n > 0) estado = 'parcial'
     else estado = 'pendiente'
-    out.push({ clave: k, estado, hoy: k === kHoy })
+    out.push({ clave: k, estado, hoy: k === kHoy, hechas: n })
   }
   return out
+}
+
+export type EstadoEjercicio = 'hecho' | 'siguiente' | 'pendiente'
+
+/**
+ * Estado de cada ejercicio del plan de hoy. Un ejercicio está hecho si hoy hay una sesión cerrada de ese juego
+ * (cada sesión cubre un solo ítem, en orden). El primer ejercicio no hecho es el siguiente; el resto, pendientes.
+ */
+export function planDeHoy<T extends { juego: string }>(items: T[], sesiones: Sesion[], hoy: Date): { item: T; estado: EstadoEjercicio }[] {
+  const kHoy = claveDia(hoy)
+  const hechasHoy = new Map<string, number>()
+  for (const s of sesionesCerradas(sesiones)) {
+    if (claveDia(new Date(s.inicio!)) === kHoy) hechasHoy.set(s.juego, (hechasHoy.get(s.juego) ?? 0) + 1)
+  }
+  let haySiguiente = false
+  return items.map((item) => {
+    const n = hechasHoy.get(item.juego) ?? 0
+    if (n > 0) {
+      hechasHoy.set(item.juego, n - 1)
+      return { item, estado: 'hecho' as const }
+    }
+    if (!haySiguiente) {
+      haySiguiente = true
+      return { item, estado: 'siguiente' as const }
+    }
+    return { item, estado: 'pendiente' as const }
+  })
 }
 
 /** Diferencia contra la sesión anterior del mismo juego y nivel (o null si no hay). */
