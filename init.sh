@@ -52,9 +52,11 @@ paso "Configuración y secretos (solo se verifica que existan)"
 for v in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
   grep -q "^$v=." .env.local 2>/dev/null || falla "falta $v en .env.local"
 done
-for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_PASSWORD; do
-  grep -q "^$v=." .env.secrets 2>/dev/null || falla "falta $v en .env.secrets"
+for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+  grep -q "^$v=." .env.secrets 2>/dev/null || falla "falta $v en .env.secrets (pídelo por el canal privado del equipo; ver .env.example)"
 done
+# La contraseña de la base solo la necesita quien aplica migraciones (supabase db push).
+grep -q "^SUPABASE_DB_PASSWORD=." .env.secrets 2>/dev/null || echo "aviso: sin SUPABASE_DB_PASSWORD (no podrás aplicar migraciones; no afecta al resto)"
 git check-ignore -q .env.secrets && git check-ignore -q .env.local || falla ".env.* no está en .gitignore"
 grep -q '^\.env\*' .vercelignore || falla ".vercelignore no excluye .env*"
 echo "ok"

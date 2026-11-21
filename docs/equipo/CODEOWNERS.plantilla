@@ -1,0 +1,38 @@
+# PLANTILLA. Para activarla: reemplaza @P1, @P2 y @P3 por los usuarios de GitHub de cada persona
+# y copia este archivo a .github/CODEOWNERS. Si varios dueños comparten una línea, basta el visto bueno de UNO
+# (el autor del PR no cuenta), así que sirve para "que lo revise otra persona".
+
+# P1 · plataforma y calidad
+/.github/                       @P1
+/vercel.json                    @P1
+/.vercelignore                  @P1
+/src/ui/                        @P1
+/src/index.css                  @P1
+/src/data/                      @P1 @P2
+/playwright.config.ts           @P1
+/playwright.preview.config.ts   @P1
+
+# P2 · juegos existentes y funcionalidades
+/src/games/shell/               @P2
+/src/games/caja/                @P2
+/src/games/movilidad/           @P2
+/src/games/pinza/               @P2
+/src/tracking/                  @P2 @P3
+/src/metrics/                   @P2
+/src/domain/                    @P2
+/src/screens/terapeuta/         @P2
+/src/screens/sesion/            @P2
+
+# Compartido P2 / P3: solo se agregan líneas para un juego
+/src/games/registry.ts          @P2 @P3
+/src/games/Miniatura.tsx        @P2 @P3
+/src/games/shell/modulos.ts     @P2 @P3
+/e2e/ejercicios.spec.ts         @P2 @P3
+
+# Base de datos compartida = producción: cualquiera de los tres, pero otra persona distinta del autor
+/supabase/migrations/           @P1 @P2 @P3
+/scripts/seed.ts                @P1 @P2 @P3
+
+# Documentos del equipo
+/docs/equipo/                   @P1 @P2 @P3
+/CLAUDE.md                      @P1 @P2 @P3

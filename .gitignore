@@ -34,3 +34,6 @@ supabase/.temp
 .vercel
 .env*
 .certs
+
+# La plantilla de variables (solo nombres, sin valores) sí se versiona
+!.env.example

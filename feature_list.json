@@ -455,7 +455,10 @@
         "npm run captura -- /terapeuta/pacientes/<id>/plan prescripcion"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P2",
+      "rama_inicio": "linea-G",
+      "nota_hoy": "Terminar desde linea-G (migración 700001 ya aplicada). No crear planes en pacientes demo desde pruebas."
     },
     {
       "id": "F18",
@@ -499,7 +502,10 @@
         "npm run e2e -- perfil"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P2",
+      "rama_inicio": "linea-H",
+      "nota_hoy": "Terminar desde linea-H (migración 800001 ya aplicada)."
     },
     {
       "id": "F20",
@@ -545,7 +551,9 @@
         "npm test"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P2",
+      "nota_hoy": "Recorte de hoy: /depuracion mínima (fps, distancia, lateralidad, grabador) + docs/validacion.md escrito sin ejecutar. El resto, fuera de alcance."
     },
     {
       "id": "F22",
@@ -556,8 +564,7 @@
         "ref/imagenes_juegos/01_torre_de_cubos.png"
       ],
       "dependencies": [
-        "F10",
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
@@ -568,7 +575,9 @@
         "npm run e2e -- torre"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P3",
+      "rama_inicio": "linea-I"
     },
     {
       "id": "F23",
@@ -600,7 +609,7 @@
         "ref/imagenes_juegos/03_atrapa_burbujas.png"
       ],
       "dependencies": [
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
@@ -611,7 +620,9 @@
         "npm run e2e -- burbujas"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P3",
+      "rama_inicio": "linea-J"
     },
     {
       "id": "F25",
@@ -622,7 +633,7 @@
         "ref/imagenes_juegos/04_exprime_la_naranja.png"
       ],
       "dependencies": [
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
@@ -633,7 +644,9 @@
         "npm run e2e -- naranja"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P3",
+      "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
     {
       "id": "F26",
@@ -644,7 +657,7 @@
         "ref/imagenes_juegos/05_memoria_de_cartas.png"
       ],
       "dependencies": [
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
@@ -656,7 +669,9 @@
         "npm test -- giro"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P3",
+      "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
     {
       "id": "F27",
@@ -667,7 +682,7 @@
         "ref/imagenes_juegos/06_piano_de_dedos.png"
       ],
       "dependencies": [
-        "F21"
+        "F10"
       ],
       "status": "not-started",
       "acceptance": [
@@ -678,7 +693,9 @@
         "npm test -- independencia"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "",
+      "owner": "P3",
+      "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
     {
       "id": "F28",
@@ -706,7 +723,101 @@
         "curl https://manoviva-sigma.vercel.app"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "",
+      "owner": "coordinación",
+      "nota_hoy": "Hoy se cierra aunque F25–F27 no estén: lo que no llegue queda Próximamente."
+    },
+    {
+      "id": "F29",
+      "name": "CI/CD en GitHub Actions",
+      "description": "Workflows de docs/equipo/flujo-git-ci.md: verificar (tipos, lint, unitarias, build), e2e serializado contra la base compartida, despliegue a Vercel al unir a main con prueba de humo, migraciones.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Un PR muestra los checks verificar y e2e",
+        "main exige que pasen",
+        "Un merge de prueba cambia el sitio publicado",
+        "La prueba de humo falla si / no da 200 o falta el header de seguridad",
+        "Ninguna clave aparece en logs"
+      ],
+      "verify": [
+        "PR de prueba con checks verdes",
+        "curl del sitio tras el merge"
+      ],
+      "deploy": false,
+      "evidence": "",
+      "owner": "P1"
+    },
+    {
+      "id": "F30",
+      "name": "Front: vista ancha del terapeuta y pulido",
+      "description": "Dos columnas desde 900 px en pacientes, planes y prescripción; la app en computador no es un teléfono estirado. Pulido contra docs/referencia/imagenes, contraste, foco, zonas táctiles de 48 px, esqueletos de carga.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Capturas 1280x800 de /terapeuta/pacientes y /terapeuta/planes se ven intencionales",
+        "Las e2e existentes siguen en verde",
+        "Sin cambios de texto que rompan pruebas"
+      ],
+      "verify": [
+        "npm run captura con viewport ancho",
+        "npx playwright test terapeuta smoke"
+      ],
+      "deploy": false,
+      "evidence": "",
+      "owner": "P1"
+    },
+    {
+      "id": "F31",
+      "name": "Casos borde de la demo",
+      "description": "Cámara denegada, ocupada o inexistente; red cortada con mensaje claro; doble toque en Comenzar; sesión expirada; paciente sin consentimiento, sin plan o sin terapeuta. iPhone/Safari como segundo orden.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Cada caso tiene una prueba o un ítem verificado en docs/equipo/registro-P1.md",
+        "Una lista sin conexión no se muestra como \"0 sesiones\" sin avisar",
+        "Comenzar dos veces seguidas crea una sola sesión"
+      ],
+      "verify": [
+        "npx playwright test calibrar preparar offline",
+        "checklist manual en registro-P1.md"
+      ],
+      "deploy": false,
+      "evidence": "",
+      "owner": "P1"
+    },
+    {
+      "id": "F32",
+      "name": "Ficha de entrega y presentación",
+      "description": "platanus-hack-project.jsonc, project-description.md y presentación (impacto, solución, por qué es physical world) según docs/harness/encargo-final.md.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "El jsonc tiene nombre, resumen, descripción y URL de despliegue reales",
+        "La presentación existe en docs/presentacion/"
+      ],
+      "verify": [
+        "revisión de coordinación"
+      ],
+      "deploy": false,
+      "evidence": "",
+      "owner": "coordinación"
     }
   ]
 }

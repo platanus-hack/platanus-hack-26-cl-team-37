@@ -1,11 +1,16 @@
 # CLAUDE.md — ManoViva
 
 App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D en three.js y seguimiento de manos con MediaPipe.
-Se construye **de forma autónoma**: el dueño no está disponible para responder. Decide, anota y sigue.
+**Desde 2026-11-21 trabajan 3 personas en paralelo** (ver `docs/equipo/`: plan, contratos y flujo de Git). Lee `docs/equipo/README.md` antes de tocar código. Las reglas de abajo siguen valiendo, con estas diferencias para el equipo:
+- Trabajas en tu rama (`p1/…`, `p2/…`, `p3/…`) y entregas por Pull Request a `main`. **Nunca empujes directo a `main`.**
+- Solo editas tus carpetas (mapa en `docs/equipo/contratos.md` §7). Si algo ajeno te bloquea, pídelo con el formato de ese documento; no lo cambies por tu cuenta.
+- Solo marcas en `feature_list.json` las funcionalidades que te pertenecen (campo `owner`). `node scripts/siguiente-feature.mjs --owner P2` te dice cuál toca.
+- La base de datos es UNA sola y es la de producción: migraciones solo aditivas, nunca `npm run db:seed`.
+- Duda sobre un contrato o archivo compartido: pregunta al equipo. Duda de detalle dentro de lo tuyo: decide, anótalo en `docs/equipo/decisiones.md` y sigue.
 
 ## Inicio de cada sesión — Startup Workflow (antes de escribir código, en este orden)
 
-1. `pwd` debe terminar en `app hackaton/manoviva`. Si no, `cd` ahí.
+1. Ubícate en la raíz del repositorio (donde está `package.json`).
 2. `bash init.sh` → debe terminar en `INIT OK`. Si falla, arreglar la línea base antes de cualquier otra cosa.
 3. Leer `session-handoff.md` (dónde quedó la sesión anterior) y las últimas 40 líneas de `progress.md`.
 4. `node scripts/siguiente-feature.mjs` → dice qué feature toca (primera `in-progress`, si no la primera `not-started` con dependencias `done`).
@@ -33,8 +38,8 @@ Se construye **de forma autónoma**: el dueño no está disponible para responde
 
 - Secretos solo en `.env.secrets` y `.env.local` (git y Vercel los ignoran). Nunca imprimirlos, commitearlos ni ponerlos en el código cliente. La clave `service_role` solo la usan los scripts de `scripts/`.
 - Supabase: solo el proyecto `iniposctftmzxkqasikh`. Cambios de esquema = **migración nueva** en `supabase/migrations/` + `supabase db push`. Nunca editar una migración ya aplicada. Nunca borrar ni pausar proyectos.
-- Vercel: solo el proyecto `manoviva`. `vercel deploy --prod --yes` está permitido al cerrar cada fase (ver `feature_list.json`, campo `deploy`).
-- Git: solo local. Commit al terminar cada feature. Prohibido `push`, `--force`, `reset --hard` sobre trabajo no commiteado de otro feature.
+- Vercel: solo el proyecto `manoviva`. El deploy a producción lo hace la CI al unir a `main` (o P1 / coordinación); el resto no despliega a producción.
+- Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `main`. Prohibido empujar a `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
 
 ## Definición de terminado — Definition of Done (por feature)
