@@ -51,7 +51,7 @@ Un feature pasa a `done` solo si (done only when) — y nada fuera de su alcance
 1. Dejar el árbol compilando (`npm run verify`) y el repo restartable: la sesión siguiente debe poder correr `bash init.sh` limpio. Si no compila, revertir lo parcial.
 2. Actualizar `feature_list.json`, agregar entrada en `progress.md` y reescribir `session-handoff.md`.
 3. Commit: `feat(<id>): <qué>` o `wip(<id>): <qué falta>`.
-4. Cuando todos los features estén `done` o `blocked`: escribir el informe final en `progress.md` (qué funciona, qué falta, cómo probar en el teléfono) y detenerse.
+4. Cuando todos los features estén `done` o `blocked`: escribir el informe final en `progress.md` (qué funciona, qué falta, cómo probar en el teléfono), hacer la presentación de `docs/harness/encargo-final.md` y detenerse.
 
 ## Comandos
 
