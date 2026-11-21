@@ -184,7 +184,8 @@ test.describe('inicio del paciente', () => {
   test('estado de error con reintento', async ({ page }) => {
     await page.route('**/rest/v1/planes?*', (route) => route.abort('failed'))
     await page.goto('/inicio')
-    await expect(page.getByRole('alert')).toContainText('No pudimos cargar esto')
+    // supabase-js reintenta las lecturas fallidas con espera creciente: margen amplio si el equipo está cargado.
+    await expect(page.getByRole('alert')).toContainText('No pudimos cargar esto', { timeout: 25_000 })
     await page.unroute('**/rest/v1/planes?*')
     await page.getByRole('button', { name: 'Reintentar' }).click()
     await expect(planHoy(page)).toBeVisible()

@@ -135,7 +135,7 @@ test.describe('historial de Carmen (solo lectura)', () => {
     await expect(page.getByTestId('integridad')).toHaveText('Verificado')
   })
 
-  test('estados: vacío, error con reintento y sesión inexistente', async ({ page }) => {
+  test('estados: vacío y sesión inexistente', async ({ page }) => {
     test.setTimeout(60_000)
     await page.route('**/rest/v1/sesiones?*', (route) => route.fulfill({ json: [] }))
     await page.route('**/rest/v1/auditoria?*', (route) => route.fulfill({ json: [] }))
@@ -149,11 +149,8 @@ test.describe('historial de Carmen (solo lectura)', () => {
     await page.goto('/historial/S-20000101-01')
     await expect(page.getByText('No encontramos esta sesión.')).toBeVisible()
 
-    // Error de red al listar → mensaje con Reintentar.
-    await page.route('**/rest/v1/sesiones?*', (route) => route.abort())
-    await page.goto('/historial')
-    // supabase-js reintenta las lecturas fallidas con espera creciente antes de dar el error.
-    await expect(page.getByRole('button', { name: /Reintentar/ })).toBeVisible({ timeout: 25_000 })
+    // El error de red con Reintentar se prueba en inicio y preparar. Aquí no: sin conexión y sin copia local,
+    // las listas devuelven vacío a propósito (F20, uso sin conexión), así que no hay estado de error.
   })
 })
 

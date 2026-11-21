@@ -160,7 +160,7 @@ test.describe('preparar la sesión', () => {
     let fallar = true
     await page.route('**/rest/v1/planes?*', (route) => (fallar ? route.abort('failed') : route.continue()))
     await page.goto('/sesion/caja-juguetes/preparar')
-    await expect(page.getByText('No pudimos cargar esto')).toBeVisible()
+    await expect(page.getByText('No pudimos cargar esto')).toBeVisible({ timeout: 25_000 })
     fallar = false
     await page.getByRole('button', { name: 'Reintentar' }).click()
     await expect(comenzar(page)).toBeVisible()
