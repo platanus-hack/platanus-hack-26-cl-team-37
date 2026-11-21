@@ -3,5 +3,20 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!mediapipe/|assets/|favicon).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!mediapipe/|assets/|favicon).*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; style-src-elem 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://iniposctftmzxkqasikh.supabase.co wss://iniposctftmzxkqasikh.supabase.co; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" }
+      ]
+    }
+  ]
 }

@@ -61,6 +61,8 @@ export interface AuditoriaRepo {
 
 export interface ConsentimientosRepo {
   ultimo(pacienteId: string): Promise<Consentimiento | null>
+  /** Todos los consentimientos firmados (F18: descargar mis datos). */
+  listar(pacienteId: string): Promise<Consentimiento[]>
   firmar(pacienteId: string, version: string, opciones: Record<string, unknown>): Promise<Consentimiento>
 }
 
@@ -68,6 +70,8 @@ export interface AlertasRepo {
   abiertas(pacienteIds?: string[]): Promise<Alerta[]>
   /** Alertas (abiertas o revisadas) de una sesión: evita duplicar la alerta de dolor si se guarda dos veces. */
   deSesion(sesionId: string): Promise<Alerta[]>
+  /** Todas las alertas del paciente, abiertas o revisadas (F18: descargar mis datos). */
+  delPaciente(pacienteId: string): Promise<Alerta[]>
   crear(a: { pacienteId: string; sesionId: string; tipo: 'dolor'; valor: number }): Promise<void>
   revisar(id: string): Promise<void>
 }

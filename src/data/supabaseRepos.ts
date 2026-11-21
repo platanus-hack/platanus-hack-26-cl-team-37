@@ -383,6 +383,12 @@ export const supabaseRepos: Repos = {
         ? ({ id: f.id, pacienteId: f.paciente_id, version: f.version, firmadoEl: f.firmado_el, opciones: f.opciones } satisfies Consentimiento)
         : null
     },
+    async listar(pacienteId) {
+      const filas = ok(await supabase.from('consentimientos').select('*').eq('paciente_id', pacienteId).order('firmado_el', { ascending: false }))
+      return (filas ?? []).map(
+        (f: Fila) => ({ id: f.id, pacienteId: f.paciente_id, version: f.version, firmadoEl: f.firmado_el, opciones: f.opciones }) satisfies Consentimiento,
+      )
+    },
     async firmar(pacienteId, version, opciones) {
       const f = ok(await supabase.from('consentimientos').insert({ paciente_id: pacienteId, version, opciones }).select('*').single())
       return { id: f.id, pacienteId: f.paciente_id, version: f.version, firmadoEl: f.firmado_el, opciones: f.opciones }
@@ -397,6 +403,9 @@ export const supabaseRepos: Repos = {
     },
     async deSesion(sesionId) {
       return (ok(await supabase.from('alertas').select('*').eq('sesion_id', sesionId).order('creada', { ascending: false })) ?? []).map(aAlerta)
+    },
+    async delPaciente(pacienteId) {
+      return (ok(await supabase.from('alertas').select('*').eq('paciente_id', pacienteId).order('creada', { ascending: false })) ?? []).map(aAlerta)
     },
     async crear(a) {
       ok(await supabase.from('alertas').insert({ paciente_id: a.pacienteId, sesion_id: a.sesionId, tipo: a.tipo, valor: a.valor }))
