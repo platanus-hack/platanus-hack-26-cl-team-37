@@ -566,7 +566,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con grabación sintética completa torre de nivel 1 con cada mano",
         "Resumen muestra desvío por cubo"
@@ -575,7 +575,7 @@
         "npm run e2e -- torre"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: torre e2e 4/4 OK dos corridas (nivel 1 mano derecha e izquierda con desvío por cubo y /sensacion; bajar el cubo hasta meterlo en la torre y soltarlo sin caida; práctica libre con rearmado y Reiniciar); ejercicios+smoke 33/33 OK; vitest 245/245; tsc y oxlint sin errores; dueno --cambios OK. Revisión PR #19: piso de altura del cubo sostenido y al soltar, meta 0 = práctica libre, nivel 4 y fórmulas en cm de la escena (aprox.). fps 37-39 con física.",
       "owner": "P3",
       "rama_inicio": "linea-I"
     },
@@ -635,7 +635,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Soltar antes de tiempo = repetición incompleta con paso anotado",
         "grep sin 'fuerza'/'presión' en src/"
@@ -644,7 +644,7 @@
         "npm run e2e -- naranja"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: npx tsc -b, oxlint y vitest OK (22 unitarias de naranja); npm run e2e -- naranja → 4/4 (sesión real nivel 3 con incompletas en pasos 3 y 2, meta 2/2 y /sensacion; mano izquierda nivel 2; nivel 5 con Reiniciar a mitad de repetición = incompleta con paso; grep sin fuerza/presión/apretar). Captura 844x390: docs/capturas/exprime-naranja.png (tarjeta de barras ~210 px, letra 15 px legible). Revisión PR #20 atendida.",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
@@ -684,7 +684,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Bajar dos dedos a la vez no es acierto limpio y baja la independencia de ese dedo"
       ],
@@ -693,7 +693,7 @@
         "npm test -- independencia"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "tsc -b, oxlint y vitest (256 pruebas, incl. independencia, detector con dedo que no vuelve al reposo, pausa de reposo idempotente y botón de sonido en iOS) en verde; e2e piano ejercicios smoke con --workers=1: 36 pasaron, piano repetido 3 veces en verde (un fallo aislado de contador bajo carga de la máquina); captura en docs/capturas; PR #21 aprobado, ajustes de revisión aplicados",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
