@@ -1,11 +1,13 @@
 // F05 · Catálogo de ejercicios: filtros, "Asignado" según el plan vigente, nivel y "Próximamente" que no navega.
 // Sesión inyectada (entrarComo) y cliente con la misma sesión para leer la BD: sin ingresos extra.
 import { expect, test, type Page } from '@playwright/test'
-import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
+import { clienteComo, disponiblesDelRegistro, entrarComo, vigilarErrores } from './ayudas.ts'
 
 // Oráculo independiente del registro de la app (spec §8 + Prompt 3).
 const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos']
-const DISPONIBLES = ['caja-juguetes', 'movilidad-guiada', 'pinza-fina', 'exprime-naranja', 'piano-dedos', 'memoria-cartas']
+// Cuáles ya se juegan sí sale de cada src/games/<juego>/juego.ts (`disponible`): así habilitar un juego no edita este
+// archivo compartido. La lista de juegos y los filtros siguen fijos por la spec.
+const DISPONIBLES = disponiblesDelRegistro()
 const POR_FILTRO: Record<string, string[]> = {
   Pinza: ['caja-juguetes', 'torre-cubos', 'pinza-fina'],
   Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja'],
