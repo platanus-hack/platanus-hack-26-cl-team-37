@@ -1,7 +1,7 @@
 // F14 · Progreso (docs/referencia/imagenes/09_progreso.png).
 // Lee paciente, plan y sesiones vía repos; los cálculos son puros (src/metrics/progreso.ts). Solo describe datos.
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { repos } from '../../data/repos'
 import type { Plan, Sesion } from '../../domain/types'
@@ -10,6 +10,7 @@ import { entero, fechaCorta, num } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
 import { calcularProgreso, esRango, marcasFechas, RANGOS, type ProgresoCalculado, type Rango } from '../../metrics/progreso'
 import { UMBRAL_CALIDAD } from '../../metrics/sesion'
+import { Icono } from '../../ui/Icono'
 import { Estados, Vacio } from '../../ui/piezas'
 import './progreso.css'
 
@@ -45,6 +46,10 @@ export default function Progreso() {
           </button>
         ))}
       </div>
+      <Link to="/progreso/comparar" className="boton secundario chico progreso-comparar" data-testid="ir-comparar">
+        <Icono nombre="tendencia" tam={20} />
+        Comparar sesiones
+      </Link>
       <Estados r={r}>
         {(d) =>
           d.hayPaciente ? (

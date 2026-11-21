@@ -1,0 +1,138 @@
+/* F38 · Comparar sesiones en 3D. Tokens del sistema «Salud» (src/index.css); solo se agregan los dos colores de «antes» y
+   «después» y el verde de «mejor». Sin estilos en línea (CSP): todo por clases. */
+.app:has(.comparar) { max-width: 1120px; }
+.comparar {
+  --cmp-antes: #4a72c9;
+  --cmp-antes-t: #2f55a8;
+  --cmp-despues: #f0a000;
+  --cmp-despues-t: #8a5200;
+  --cmp-mejor: #17744d;
+  --cmp-mejor-fondo: #e1f3ea;
+  gap: 12px;
+}
+.comparar .antes { color: var(--cmp-antes-t); }
+.comparar .despues { color: var(--cmp-despues-t); }
+
+/* ——— Pestañas por juego ——— */
+.cmp-pestanas { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmp-pestanas .chip { display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; padding: 6px 16px; line-height: 1.2; }
+.cmp-pestanas .chip small { font-size: 13px; font-weight: 500; opacity: 0.8; }
+.cmp-pestanas .chip[aria-selected='true'] { background: var(--tinta); color: var(--sobre-tinta); }
+
+/* ——— Selectores de sesión ——— */
+.cmp-selectores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cmp-selector { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cmp-selector-etq { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--suave); }
+.cmp-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--cmp-antes); flex: none; }
+.cmp-selector.despues .cmp-punto { background: var(--cmp-despues); }
+.cmp-selector select.entrada { min-height: 48px; padding: 0 10px; font-size: 15px; text-overflow: ellipsis; }
+
+/* ——— Vista 3D ——— */
+.cmp-estadio-envoltura { display: flex; flex-direction: column; gap: 8px; }
+.cmp-estadio { position: relative; overflow: hidden; border-radius: var(--radio); height: clamp(360px, 56vh, 600px); background: radial-gradient(110% 80% at 50% 35%, #fbfbf9, #dddcd6); touch-action: none; }
+.cmp-estadio.cmp-cargando { display: grid; place-items: center; }
+.cmp-estadio canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.cmp-capa { position: absolute; pointer-events: none; }
+.cmp-capa button, .cmp-capa input { pointer-events: auto; }
+.cmp-barra { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.cmp-grupo { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 14px; background: var(--tarjeta); border: 1px solid var(--linea); }
+.cmp-opc { min-height: 40px; padding: 0 12px; border: 0; border-radius: 11px; background: transparent; color: var(--suave); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.cmp-opc[aria-pressed='true'] { background: var(--tinta); color: var(--sobre-tinta); }
+.cmp-opc.suave[aria-pressed='true'] { background: var(--pista); color: var(--tinta); }
+.cmp-girar { top: 10px; right: 10px; min-height: 40px; padding: 0 14px; border: 1px solid var(--linea); border-radius: 12px; background: var(--tarjeta); color: var(--suave); font-size: 14px; font-weight: 600; z-index: 2; }
+.cmp-girar[aria-pressed='true'] { background: var(--tinta); color: var(--sobre-tinta); }
+.cmp-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--suave); }
+
+/* etiquetas proyectadas desde el 3D: nunca capturan toque (eso rompía el giro) */
+.cmp-etiquetas { inset: 0; overflow: hidden; z-index: 1; }
+.cmp-etiquetas, .cmp-etiquetas * { pointer-events: none !important; }
+.cmp-etq { position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap; }
+.cmp-etq .nom { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #fff; background: var(--cmp-antes-t); }
+.cmp-etq.despues .nom { background: var(--cmp-despues-t); }
+.cmp-etq .val { display: block; margin-top: 3px; font: 600 22px/1.1 var(--cifras); font-variant-numeric: tabular-nums; color: var(--cmp-antes-t); text-shadow: 0 0 10px #fff, 0 0 4px #fff; }
+.cmp-etq.despues .val { color: var(--cmp-despues-t); }
+.cmp-etq .det { display: block; font-size: 12px; color: var(--suave); text-shadow: 0 0 8px #fff; }
+.cmp-etq.chica { transform: translate(-50%, -50%); }
+.cmp-etq.chica .val { margin: 0; padding: 1px 6px; border-radius: 6px; font: 700 12px var(--letra); background: rgba(255, 255, 255, 0.88); text-shadow: none; }
+
+.cmp-titulo { left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 12px; padding: 8px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(8px); border: 1px solid var(--linea); }
+.cmp-titulo .que { font-weight: 600; font-size: 15px; }
+.cmp-titulo .cifras { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--cifras); font-size: 22px; font-variant-numeric: tabular-nums; }
+.cmp-titulo .cifras b { font-weight: 600; }
+
+.cmp-reproductor { left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.86); backdrop-filter: blur(8px); border: 1px solid var(--linea); }
+.cmp-reproductor.oculto { display: none; }
+.cmp-reproductor input[type='range'] { flex: 1; min-width: 0; accent-color: var(--tinta); }
+.cmp-reproductor .tiempo { min-width: 44px; text-align: right; font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+.cmp-play { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--tinta); color: var(--sobre-tinta); display: grid; place-items: center; flex: none; }
+
+.cmp-escala { right: 12px; top: 60px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--suave); }
+.cmp-escala .grad { width: 10px; height: 110px; border-radius: 6px; background: linear-gradient(to bottom, #ef4444, #fb923c, #facc15, #a3e635, #38bdf8); }
+
+.cmp-pie-vista { display: grid; gap: 2px; padding: 0 4px; }
+.cmp-fuente { font-size: 14px; font-weight: 600; }
+.cmp-nota { font-size: 13px; color: var(--texto-3); }
+.cmp-aviso { font-size: 13px; color: var(--texto-3); padding: 0 4px; }
+
+/* ——— Indicadores ——— */
+.cmp-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cmp-kpi { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 0; }
+.cmp-kpi-nombre { color: var(--suave); font-size: 14px; line-height: 1.25; }
+.cmp-kpi-valores { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-family: var(--cifras); font-variant-numeric: tabular-nums; }
+.cmp-kpi-valores .antes { font-size: 16px; font-weight: 400; }
+.cmp-kpi-valores .flecha { color: var(--control); }
+.cmp-kpi-valores .despues { font-size: 28px; font-weight: 400; line-height: 1; letter-spacing: -0.02em; }
+.cmp-delta { display: inline-block; padding: 3px 9px; border-radius: 9px; font-size: 13px; font-weight: 700; background: var(--pista); color: var(--suave); }
+.cmp-delta.mejor { background: var(--cmp-mejor-fondo); color: var(--cmp-mejor); }
+
+/* ——— Paneles ——— */
+.cmp-paneles { display: grid; gap: 12px; align-items: start; }
+.cmp-panel { padding: 16px 18px; }
+.cmp-panel h2 { font-size: 16px; }
+.cmp-barras { display: flex; flex-direction: column; gap: 12px; margin: 12px 0 0; }
+.cmp-barra-fila { display: grid; grid-template-columns: 78px 1fr 54px; gap: 10px; align-items: center; }
+.cmp-barra-nombre { font-size: 14px; color: var(--suave); }
+.cmp-barras-par { display: grid; gap: 3px; }
+.cmp-pista { display: block; height: 8px; border-radius: 999px; background: var(--pista); overflow: hidden; }
+.cmp-pista span { display: block; height: 100%; border-radius: 999px; }
+.cmp-pista .antes { background: var(--cmp-antes); }
+.cmp-pista .despues { background: var(--cmp-despues); }
+.cmp-barra-num { display: flex; flex-direction: column; align-items: flex-end; font-family: var(--cifras); font-variant-numeric: tabular-nums; }
+.cmp-barra-num b { font-size: 15px; font-weight: 600; }
+.cmp-barra-num small { font-size: 12px; }
+.cmp-chips-met { margin-top: 10px; }
+.cmp-chips-met .chip { background: var(--pista); }
+.cmp-chips-met .chip[aria-pressed='true'] { background: var(--tinta); }
+.cmp-chips-met .chip { min-height: 38px; padding: 0 12px; font-size: 14px; }
+.cmp-grafico { width: 100%; height: auto; display: block; margin-top: 8px; overflow: visible; }
+.cmp-grafico .g-grilla { stroke: var(--linea); stroke-width: 1; }
+.cmp-grafico .g-eje { fill: var(--suave); font-size: 13px; font-family: var(--cifras); }
+.cmp-grafico .g-linea { stroke: var(--control); stroke-width: 2; stroke-linejoin: round; }
+.cmp-grafico .g-punto { fill: var(--control); }
+.cmp-grafico .g-aro { stroke-width: 3; stroke: var(--cmp-antes); }
+.cmp-grafico .despues .g-aro { stroke: var(--cmp-despues); }
+.cmp-grafico .g-valor { font-size: 14px; font-weight: 700; font-family: var(--cifras); fill: var(--cmp-antes-t); }
+.cmp-grafico .despues .g-valor { fill: var(--cmp-despues-t); }
+.cmp-grafico .g-barra { fill: var(--cmp-antes); }
+.cmp-grafico .despues .g-barra { fill: var(--cmp-despues); }
+
+.cmp-tira { display: grid; gap: 8px; margin-top: 12px; }
+.cmp-tira-fila { display: grid; grid-template-columns: 62px 1fr; gap: 10px; align-items: center; font-size: 14px; font-weight: 600; }
+.cmp-bloques { display: flex; gap: 3px; height: 24px; }
+.cmp-bloques span { flex-basis: 0; min-width: 6px; border-radius: 5px; }
+.cmp-bloques .dentro { background: var(--cmp-mejor); opacity: 0.85; }
+.cmp-bloques .fuera { background: var(--dolor); }
+.cmp-bloques .resto { background: transparent; min-width: 0; }
+
+@media (min-width: 760px) {
+  .cmp-kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .cmp-paneles { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+  .cmp-selectores { max-width: 560px; }
+  .cmp-estadio { height: clamp(480px, 62vh, 680px); }
+}
+@media (max-width: 600px) {
+  .cmp-etq .det { display: none; }
+  .cmp-etq .val { font-size: 18px; }
+  .cmp-etq .nom { font-size: 11px; padding: 2px 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .cmp-pista span { transition: none; } }

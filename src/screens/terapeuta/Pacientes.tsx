@@ -89,6 +89,10 @@ function Contenido({ d, hoy }: { d: DatosPanel; hoy: Date }) {
           {visibles.map((f) => (
             <li key={f.paciente.id}>
               <FilaPacienteVista f={f} />
+              <Link className="ter-comparar" to={`/terapeuta/pacientes/${f.paciente.id}/comparar`} aria-label={`Comparar sesiones de ${f.paciente.nombre}`} data-testid="comparar-paciente">
+                <Icono nombre="tendencia" tam={18} />
+                Comparar sesiones
+              </Link>
             </li>
           ))}
         </ul>
