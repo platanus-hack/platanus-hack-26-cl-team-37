@@ -41,6 +41,6 @@ describe('exportar datos', () => {
     expect(filas.some((f) => f.startsWith('plan,v1,items,"[{'))).toBe(true)
   })
   it('nombre de archivo con fecha', () => {
-    expect(nombreArchivo('csv', new Date(2026, 10, 2))).toBe('manoviva-mis-datos-2026-11-02.csv')
+    expect(nombreArchivo('csv', new Date(2026, 10, 2))).toBe('kuwu-mis-datos-2026-11-02.csv')
   })
 })

@@ -1,20 +1,16 @@
-// Piezas propias del sistema de diseño «Salud» (artefacto «Design System» de ManoViva): la marca, el arco de la semana
+// Piezas propias de la app sobre el brandbook (brandbook/README.md): la marca, el arco de la semana
 // (la firma), el anillo chico y la tarjeta Ahora con la escena real del juego. Solo usan tokens de src/index.css.
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { escenaDe } from './escenas'
+import logoHorizontal from '../../brandbook/logos/kuwu-horizontal.svg'
 import './salud.css'
 
-/** El símbolo del repo sobre amarillo, junto a la palabra. */
+/** El logo horizontal del brandbook (brandbook/logos/kuwu-horizontal.svg, sin recolorear): símbolo y nombre. */
 export function Marca() {
   return (
     <span className="marca">
-      <span className="marca-simbolo" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M4 12V5M7 12V2.5M10 12V4.5" />
-        </svg>
-      </span>
-      ManoViva
+      <img className="marca-logo" src={logoHorizontal} alt="Kuwü" width={100} height={28} />
     </span>
   )
 }
@@ -100,9 +96,9 @@ export function ArcoSemana({ hechas, total, dias }: { hechas: number; total: num
 }
 
 /** La cosa principal de la pantalla: la escena real del juego a sangre, la etiqueta Ahora y el título sobre un velo. */
-export function Ahora({ juego, nombre, detalle, to }: { juego: string; nombre: string; detalle: string; to: string }) {
+export function Ahora({ juego, nombre, detalle, to, accion }: { juego: string; nombre: string; detalle: string; to: string; accion?: ReactNode }) {
   const escena = escenaDe(juego)
-  return (
+  const tarjeta = (
     <Link className="ahora" to={to} data-estado="siguiente" aria-label={`Ahora: ${nombre}, ${detalle}`}>
       {escena && <img src={escena} alt="" />}
       <span className="etiqueta-ahora">Ahora</span>
@@ -111,5 +107,13 @@ export function Ahora({ juego, nombre, detalle, to }: { juego: string; nombre: s
         <span className="ahora-detalle">{detalle}</span>
       </span>
     </Link>
+  )
+  // Con acción (escritorio): la escena arriba y el botón debajo, en la misma tarjeta (igual que la ficha de preparar).
+  if (!accion) return tarjeta
+  return (
+    <section className="tarjeta ahora-tarjeta" aria-label={`Ahora: ${nombre}`}>
+      {tarjeta}
+      <div className="ahora-accion">{accion}</div>
+    </section>
   )
 }

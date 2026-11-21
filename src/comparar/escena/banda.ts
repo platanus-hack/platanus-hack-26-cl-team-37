@@ -2,6 +2,7 @@
 // marcado. Mano REAL (poses 'reposo' y 'pico' de cada mano, con `centro`) cuando existe; si no, manos modelo.
 // «Carga aprox.»: estimación a partir de la banda y la cámara; nunca se muestra como fuerza ni presión.
 import type { PoseClave, Sesion } from '../../domain/types'
+import { KUWU, kuwuNum } from '../../ui/paleta'
 import { fechaCorta, num } from '../../lib/formato'
 import { camaraAEscena, poseModelo, type V3 } from '../mano'
 import { crearMano } from './manoMesh'
@@ -14,7 +15,8 @@ export interface DatosBanda {
 }
 
 const FILA = 520
-const RAMPA = ['#38bdf8', '#a3e635', '#facc15', '#fb923c', '#ef4444']
+// carga baja → alta con la paleta (brandbook): azul, menta, amarillo, rojo
+const RAMPA = [KUWU.azul, KUWU.menta, KUWU.amarillo, KUWU.rojo]
 const NUDILLOS = [5, 9, 13, 17]
 /** Las manos se dibujan este tanto más grandes que en la realidad (las distancias entre ellas sí van a escala): si no, no se ven. */
 const HS = 1.8
@@ -63,7 +65,7 @@ export function montarBanda(m: Motor, d: DatosBanda): EscenaJuego {
     const real = Boolean(pico)
     const manos = [crearMano(m.colores[k], { escala: esc * HS }), crearMano(m.colores[k], { escala: esc * HS })]
     manos.forEach((x) => raizS.add(x.g))
-    const matBanda = new THREE.MeshPhysicalMaterial({ color: 0x38bdf8, roughness: 0.5, clearcoat: 0.3, emissive: 0x000000 })
+    const matBanda = new THREE.MeshPhysicalMaterial({ color: kuwuNum('azul'), roughness: 0.5, clearcoat: 0.3, emissive: 0x000000 })
     const tramos = [0, 1].map(() => {
       const t = new THREE.Mesh(new THREE.BufferGeometry(), matBanda)
       t.castShadow = true

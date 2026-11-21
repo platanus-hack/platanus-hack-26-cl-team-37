@@ -5,8 +5,8 @@
 .juego-girar .juego-girar-ayuda { max-width: 300px; }
 
 .girar-anim { overflow: visible; }
-.girar-cuerpo { fill: rgba(255, 255, 255, 0.06); stroke: var(--texto); }
-.girar-pantalla { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+.girar-cuerpo { fill: color-mix(in srgb, var(--kuwu-crema) 6%, transparent); stroke: var(--texto); }
+.girar-pantalla { fill: var(--acento-tenue); }
 .girar-camara { fill: var(--texto); }
 .girar-flecha { stroke: var(--acento); opacity: 0; }
 
@@ -26,9 +26,9 @@
 /* La pantalla se ilumina cuando el teléfono queda horizontal: "así está bien". */
 .girar-pantalla { animation: girar-pantalla 2.6s ease-in-out infinite; }
 @keyframes girar-pantalla {
-  0%, 50% { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+  0%, 50% { fill: var(--acento-tenue); }
   60%, 85% { fill: var(--exito); }
-  100% { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+  100% { fill: var(--acento-tenue); }
 }
 
 @media (prefers-reduced-motion: reduce) {

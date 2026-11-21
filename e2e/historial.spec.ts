@@ -203,7 +203,7 @@ test.describe('exportar (paciente de PRUEBA: escribe en Auditoría)', () => {
       const dPdf = page.waitForEvent('download')
       await page.getByRole('button', { name: 'Exportar PDF' }).click()
       const pdf = await dPdf
-      expect(pdf.suggestedFilename()).toBe(`manoviva-${ids[1]}.pdf`)
+      expect(pdf.suggestedFilename()).toBe(`kuwu-${ids[1]}.pdf`)
       const bytesPdf = await leer(pdf)
       expect(bytesPdf.subarray(0, 5).toString()).toBe('%PDF-')
       const txtPdf = bytesPdf.toString('latin1')
@@ -217,7 +217,7 @@ test.describe('exportar (paciente de PRUEBA: escribe en Auditoría)', () => {
       page.on('download', (d) => bajadas.push(d))
       await page.getByRole('button', { name: 'CSV', exact: true }).click()
       await expect.poll(() => bajadas.length, { timeout: 15_000 }).toBe(2)
-      expect(bajadas.map((d) => d.suggestedFilename())).toEqual([`manoviva-${ids[1]}-sesiones.csv`, `manoviva-${ids[1]}-eventos.csv`])
+      expect(bajadas.map((d) => d.suggestedFilename())).toEqual([`kuwu-${ids[1]}-sesiones.csv`, `kuwu-${ids[1]}-eventos.csv`])
       const csvSes = (await leer(bajadas[0])).toString('utf8')
       expect(csvSes.charCodeAt(0)).toBe(0xfeff)
       const lineas = csvSes.slice(1).trimEnd().split('\r\n')
@@ -238,7 +238,7 @@ test.describe('exportar (paciente de PRUEBA: escribe en Auditoría)', () => {
       const dPer = page.waitForEvent('download')
       await exp.getByTestId('exportar-periodo-pdf').click()
       const per = await dPer
-      expect(per.suggestedFilename()).toMatch(/^manoviva-historial-\d{4}-\d{2}-\d{2}\.pdf$/)
+      expect(per.suggestedFilename()).toMatch(/^kuwu-historial-\d{4}-\d{2}-\d{2}\.pdf$/)
       const txtPer = (await leer(per)).toString('latin1')
       expect(txtPer).toContain(ids[0])
       expect(txtPer).toContain(ids[1])

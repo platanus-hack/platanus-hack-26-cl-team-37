@@ -15,6 +15,7 @@
 // Todo son estimaciones de cámara ("aprox."): el antebrazo se supone quieto y los giros hacia o desde la cámara son los
 // menos precisos.
 import * as THREE from 'three'
+import { KUWU, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -48,10 +49,10 @@ import {
 } from './logica'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
-const COLOR_ACENTO = 0xffc83d
-const COLOR_OK = 0x4fd1a1
-const COLOR_AVANCE = 0x5ab0ff
-const COLOR_AVISO = 0xff8a3d
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_OK = kuwuNum('menta')
+const COLOR_AVANCE = kuwuNum('azul')
+const COLOR_AVISO = kuwuNum('rojo')
 
 const ETIQUETA_POSE: Record<FaseMuneca, string> = { flexion: 'flexion-max', extension: 'extension-max', radial: 'radial-max', cubital: 'cubital-max' }
 /** Ángulo (°) mínimo y ganancia mínima para volver a guardar la pose de un máximo. */
@@ -208,9 +209,9 @@ export const crearMuneca: CrearJuego = () => {
 
   function construirEscena(c: ContextoJuego) {
     // Mano fantasma: placa tenue + los tres ejes de la mano neutra (radial, largo, lado de la palma).
-    const placa = new THREE.Mesh(geo(new THREE.BoxGeometry(0.56, 1.0, 0.03).translate(0, 0.52, 0)), material(0xdde6ee, 0.14))
+    const placa = new THREE.Mesh(geo(new THREE.BoxGeometry(0.56, 1.0, 0.03).translate(0, 0.52, 0)), material(kuwuNum('azul-suave'), 0.14))
     placa.renderOrder = 1
-    fantasma.add(placa, eje(COLOR_AVANCE, 'x', 0.7), eje(0xdde6ee, 'y', 1.05), eje(COLOR_ACENTO, 'z', 0.7))
+    fantasma.add(placa, eje(COLOR_AVANCE, 'x', 0.7), eje(kuwuNum('azul-suave'), 'y', 1.05), eje(COLOR_ACENTO, 'z', 0.7))
     fantasma.matrixAutoUpdate = false
     fantasma.visible = false
 
@@ -335,7 +336,7 @@ export const crearMuneca: CrearJuego = () => {
     g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
-    const texto = (t: string, x: number, y: number, align: CanvasTextAlign, fuente: string, color = '#ffffff') => {
+    const texto = (t: string, x: number, y: number, align: CanvasTextAlign, fuente: string, color = KUWU.blanco) => {
       g.font = fuente
       g.textAlign = align
       g.lineJoin = 'round'
@@ -363,23 +364,23 @@ export const crearMuneca: CrearJuego = () => {
     }
     if (!neutro) {
       texto('Posición neutra', W / 2, 18, 'center', FUENTE_TITULO)
-      barra(34, progresoNeutro, '#5ab0ff', `Quieta ${num(progresoNeutro * 2, 1)} / 2 s`)
-      texto('Mano recta, dedos arriba', W / 2, 82, 'center', FUENTE_AVISO, '#cfd8e0')
-      texto('Valores aprox.', W / 2, 108, 'center', FUENTE_AVISO, '#9fb0bf')
+      barra(34, progresoNeutro, KUWU.azul, `Quieta ${num(progresoNeutro * 2, 1)} / 2 s`)
+      texto('Mano recta, dedos arriba', W / 2, 82, 'center', FUENTE_AVISO, KUWU['noche-texto-2'])
+      texto('Valores aprox.', W / 2, 108, 'center', FUENTE_AVISO, KUWU.control)
     } else if (!ir) {
       texto(`${CORTO_FASE[fase]} ${falloT > 0 ? 'no alcanzada' : 'lograda'}`, W / 2, 18, 'center', FUENTE_TITULO)
-      barra(34, 1, falloT > 0 ? '#ff8a3d' : '#4fd1a1', falloT > 0 ? 'Sigue con la siguiente' : '¡Bien!')
-      texto('Vuelve a la posición neutra', W / 2, 82, 'center', FUENTE_AVISO, '#cfd8e0')
-      texto('Valores aprox.', W / 2, 108, 'center', FUENTE_AVISO, '#9fb0bf')
+      barra(34, 1, falloT > 0 ? KUWU.rojo : KUWU.menta, falloT > 0 ? 'Sigue con la siguiente' : '¡Bien!')
+      texto('Vuelve a la posición neutra', W / 2, 82, 'center', FUENTE_AVISO, KUWU['noche-texto-2'])
+      texto('Valores aprox.', W / 2, 108, 'center', FUENTE_AVISO, KUWU.control)
     } else {
       const sobre = v != null && v >= objetivo
       texto(`${CORTO_FASE[fase]} · objetivo ${objetivo}°`, W / 2, 18, 'center', FUENTE_TITULO)
-      barra(34, (v ?? 0) / objetivo, aviso ? '#ff8a3d' : sobre ? '#4fd1a1' : '#ffc83d', v == null ? 'Ahora —' : `Ahora ${Math.max(0, Math.round(v))}° aprox.`)
-      barra(68, sost / nivel.sostenerMs, '#4fd1a1', `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, nivel.sostenerMs % 1000 ? 2 : 0)} s`)
+      barra(34, (v ?? 0) / objetivo, aviso ? KUWU.rojo : sobre ? KUWU.menta : KUWU.amarillo, v == null ? 'Ahora —' : `Ahora ${Math.max(0, Math.round(v))}° aprox.`)
+      barra(68, sost / nivel.sostenerMs, KUWU.menta, `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, nivel.sostenerMs % 1000 ? 2 : 0)} s`)
       if (aviso) {
-        texto('Puede ser el antebrazo:', W / 2, 112, 'center', FUENTE_AVISO, '#ffb27a')
-        texto('mantenlo quieto', W / 2, 128, 'center', FUENTE_AVISO, '#ffb27a')
-      } else texto('Valores aprox.', W / 2, 118, 'center', FUENTE_AVISO, '#9fb0bf')
+        texto('Puede ser el antebrazo:', W / 2, 112, 'center', FUENTE_AVISO, KUWU.rojo)
+        texto('mantenlo quieto', W / 2, 128, 'center', FUENTE_AVISO, KUWU.rojo)
+      } else texto('Valores aprox.', W / 2, 118, 'center', FUENTE_AVISO, KUWU.control)
     }
     texGuia.needsUpdate = true
   }

@@ -65,12 +65,12 @@ export async function generarPdf(d: DatosPdf): Promise<Blob> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' })
   const ancho = doc.internal.pageSize.getWidth()
   const alto = doc.internal.pageSize.getHeight()
-  doc.setProperties({ title: d.titulo, subject: 'Exportación ManoViva', creator: 'ManoViva' })
+  doc.setProperties({ title: d.titulo, subject: 'Exportación Kuwü', creator: 'Kuwü' })
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
   doc.setTextColor(...COLOR_TEXTO)
-  doc.text('ManoViva', MARGEN, 16)
+  doc.text('Kuwü', MARGEN, 16)
   doc.setFontSize(13)
   doc.text(d.titulo, MARGEN, 24)
 

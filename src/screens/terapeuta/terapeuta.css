@@ -5,7 +5,7 @@
 /* F34: salir del panel (mín. 44 px de toque, sin estirarse a lo ancho) */
 .terapeuta .ter-salir { width: auto; min-height: 44px; padding: 0 14px; margin-right: 10px; gap: 6px; flex: none; }
 .ter-indicadores .tarjeta { padding: 14px 16px; }
-.ter-cifra { font-family: var(--titulos); font-weight: 700; font-size: 28px; line-height: 1.1; }
+.ter-cifra { font-family: var(--titulos); font-weight: 800; font-size: 28px; line-height: 1.1; }
 .ter-cifra.alerta { color: var(--alerta); }
 .ter-etiqueta { color: var(--texto-2); font-size: 15px; margin-top: 4px; }
 
@@ -15,8 +15,8 @@
 
 .ter-paciente { display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--texto); text-decoration: none; min-height: 72px; }
 a.ter-paciente:active { background: var(--tarjeta-2); }
-.ter-paciente.con-alerta { border-color: rgba(255, 138, 92, 0.45); }
-.ter-paciente .avatar { width: 44px; height: 44px; font-size: 15px; }
+.ter-paciente.con-alerta { border-color: color-mix(in srgb, var(--kuwu-rojo) 45%, transparent); }
+.ter-paciente .avatar { width: 44px; height: 44px; font-size: 15px; background: var(--tarjeta-2); } /* sobre la tarjeta blanca, el avatar blanco no se veía */
 .ter-textos { display: flex; flex-direction: column; gap: 3px; }
 .ter-nombre { font-family: var(--titulos); font-size: 16px; }
 .ter-sub { color: var(--texto-2); font-size: 14px; }
@@ -28,3 +28,8 @@ a.ter-paciente:active { background: var(--tarjeta-2); }
 .ter-enlace { color: var(--texto); text-decoration: none; }
 .ter-config .stepper { flex: none; }
 .ter-config .ter-sub { display: block; }
+
+/* ——— Escritorio (≥ 1024 px): la lista de pacientes en dos columnas. */
+@media (min-width: 1024px) {
+  .ter-lista { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+}

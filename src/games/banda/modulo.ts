@@ -11,6 +11,7 @@
 // repeticion_incompleta si un tramo de tensión no llegó al 25 %. Poses: 'reposo' (ambas manos al marcarlo) y 'pico'
 // (ambas manos, valor = estiramiento en cm, queda la de mayor valor).
 import * as THREE from 'three'
+import { KUWU, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -32,7 +33,7 @@ import {
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 const NUDILLOS = [5, 9, 13, 17]
-const COLOR_OK = '#4fd1a1'
+const COLOR_OK = KUWU.menta
 
 /** ms mínimos entre dos poses 'pico' guardadas (cada una copia 21 puntos por mano). */
 const POSE_CADA_MS = 100
@@ -141,7 +142,7 @@ export const crearBanda: CrearJuego = () => {
   }
 
   function construirEscena(c: ContextoJuego) {
-    matBanda = material(0x3d8fe0, { roughness: 0.4, emissive: 0x0b2a55, emissiveIntensity: 0.5 })
+    matBanda = material(kuwuNum('azul'), { roughness: 0.4, emissive: kuwuNum('marino'), emissiveIntensity: 0.5 })
     const cilindro = geo(new THREE.CylinderGeometry(1, 1, 1, 10, 1))
     for (let i = 0; i < 2; i++) {
       const h = new THREE.Mesh(cilindro, matBanda)
@@ -161,7 +162,7 @@ export const crearBanda: CrearJuego = () => {
       grupo.add(e)
     }
     // Marcador del largo en reposo: línea tenue con una marca en cada punta.
-    const matMarca = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false })
+    const matMarca = new THREE.MeshBasicMaterial({ color: kuwuNum('blanco'), transparent: true, opacity: 0.4, depthWrite: false })
     materiales.push(matMarca)
     const linea = new THREE.Mesh(cilindro, matMarca)
     const marcaA = new THREE.Mesh(esfera, matMarca)
@@ -221,7 +222,7 @@ export const crearBanda: CrearJuego = () => {
     g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
-    const texto = (t: string, x: number, y: number, align: CanvasTextAlign, fuente: string, color = '#ffffff') => {
+    const texto = (t: string, x: number, y: number, align: CanvasTextAlign, fuente: string, color = KUWU.blanco) => {
       g.font = fuente
       g.textAlign = align
       g.lineJoin = 'round'
@@ -257,7 +258,7 @@ export const crearBanda: CrearJuego = () => {
       g.fillRect(xm - 1.5, yBarra - 7, 3, 7)
       g.fillRect(xm - 1.5, yBarra + h, 3, 7)
       texto(`Carga aprox. ${num(kg ?? 0, 1)} kg`, W / 2, 68, 'center', FUENTE_TEXTO)
-      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : 'es una estimación', W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? '#ffc83d' : 'rgba(255,255,255,0.7)')
+      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : 'es una estimación', W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? KUWU.amarillo : 'rgba(255,255,255,0.7)')
     } else if (fase === 'buscando-reposo') {
       barra(prog, COLOR_OK, `Reposo ${num(prog * (REPOSO_MS / 1000), 1)} / ${num(REPOSO_MS / 1000, 0)} s`)
       texto('Banda recién tensa,', W / 2, 66, 'center', FUENTE_TEXTO)

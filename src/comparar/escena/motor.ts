@@ -2,6 +2,7 @@
 // Este archivo (y todo src/comparar/escena/) solo se carga cuando se abre la pantalla Comparar: three.js, OrbitControls y
 // RoomEnvironment quedan en su propio chunk, fuera del bundle principal.
 import * as THREE from 'three'
+import { KUWU } from '../../ui/paleta'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
@@ -144,9 +145,9 @@ export function crearMotor(host: HTMLElement, capaEtiquetas: HTMLElement): Motor
   escena.add(raiz)
 
   const colores = {
-    antes: cssColor(host, '--cmp-antes', '#4a72c9'),
-    despues: cssColor(host, '--cmp-despues', '#f0a000'),
-    gris: cssColor(host, '--suave', '#5f5f59'),
+    antes: cssColor(host, '--cmp-antes', KUWU.azul),
+    despues: cssColor(host, '--cmp-despues', KUWU.amarillo),
+    gris: cssColor(host, '--suave', KUWU.suave),
   }
 
   const etiquetas: HTMLElement[] = []

@@ -2,12 +2,12 @@
    «después» y el verde de «mejor». Sin estilos en línea (CSP): todo por clases. */
 .app:has(.comparar) { max-width: 1120px; }
 .comparar {
-  --cmp-antes: #4a72c9;
-  --cmp-antes-t: #2f55a8;
-  --cmp-despues: #f0a000;
-  --cmp-despues-t: #8a5200;
-  --cmp-mejor: #17744d;
-  --cmp-mejor-fondo: #e1f3ea;
+  --cmp-antes: var(--kuwu-azul);
+  --cmp-antes-t: var(--kuwu-marino); /* los pasteles no son texto (brandbook): marino */
+  --cmp-despues: var(--kuwu-amarillo);
+  --cmp-despues-t: var(--kuwu-marino);
+  --cmp-mejor: var(--kuwu-marino);
+  --cmp-mejor-fondo: var(--kuwu-menta-suave);
   gap: 12px;
 }
 .comparar .antes { color: var(--cmp-antes-t); }
@@ -29,7 +29,7 @@
 
 /* ——— Vista 3D ——— */
 .cmp-estadio-envoltura { display: flex; flex-direction: column; gap: 8px; }
-.cmp-estadio { position: relative; overflow: hidden; border-radius: var(--radio); height: clamp(360px, 56vh, 600px); background: radial-gradient(110% 80% at 50% 35%, #fbfbf9, #dddcd6); touch-action: none; }
+.cmp-estadio { position: relative; overflow: hidden; border-radius: var(--radio); height: clamp(360px, 56vh, 600px); background: radial-gradient(110% 80% at 50% 35%, var(--kuwu-blanco), var(--kuwu-pista)); touch-action: none; }
 .cmp-estadio.cmp-cargando { display: grid; place-items: center; }
 .cmp-estadio canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .cmp-capa { position: absolute; pointer-events: none; }
@@ -47,11 +47,11 @@
 .cmp-etiquetas { inset: 0; overflow: hidden; z-index: 1; }
 .cmp-etiquetas, .cmp-etiquetas * { pointer-events: none !important; }
 .cmp-etq { position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap; }
-.cmp-etq .nom { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #fff; background: var(--cmp-antes-t); }
-.cmp-etq.despues .nom { background: var(--cmp-despues-t); }
-.cmp-etq .val { display: block; margin-top: 3px; font: 600 22px/1.1 var(--cifras); font-variant-numeric: tabular-nums; color: var(--cmp-antes-t); text-shadow: 0 0 10px #fff, 0 0 4px #fff; }
+.cmp-etq .nom { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--kuwu-marino); background: var(--cmp-antes); }
+.cmp-etq.despues .nom { background: var(--cmp-despues); }
+.cmp-etq .val { display: block; margin-top: 3px; font: 600 22px/1.1 var(--cifras); font-variant-numeric: tabular-nums; color: var(--cmp-antes-t); text-shadow: 0 0 10px var(--kuwu-blanco), 0 0 4px var(--kuwu-blanco); }
 .cmp-etq.despues .val { color: var(--cmp-despues-t); }
-.cmp-etq .det { display: block; font-size: 12px; color: var(--suave); text-shadow: 0 0 8px #fff; }
+.cmp-etq .det { display: block; font-size: 12px; color: var(--suave); text-shadow: 0 0 8px var(--kuwu-blanco); }
 .cmp-etq.chica { transform: translate(-50%, -50%); }
 .cmp-etq.chica .val { margin: 0; padding: 1px 6px; border-radius: 6px; font: 700 12px var(--letra); background: rgba(255, 255, 255, 0.88); text-shadow: none; }
 
@@ -67,7 +67,7 @@
 .cmp-play { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--tinta); color: var(--sobre-tinta); display: grid; place-items: center; flex: none; }
 
 .cmp-escala { right: 12px; top: 60px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--suave); }
-.cmp-escala .grad { width: 10px; height: 110px; border-radius: 6px; background: linear-gradient(to bottom, #ef4444, #fb923c, #facc15, #a3e635, #38bdf8); }
+.cmp-escala .grad { width: 10px; height: 110px; border-radius: 6px; background: linear-gradient(to bottom, var(--kuwu-rojo), var(--kuwu-amarillo), var(--kuwu-menta), var(--kuwu-azul)); }
 
 .cmp-pie-vista { display: grid; gap: 2px; padding: 0 4px; }
 .cmp-fuente { font-size: 14px; font-weight: 600; }
@@ -120,7 +120,7 @@
 .cmp-tira-fila { display: grid; grid-template-columns: 62px 1fr; gap: 10px; align-items: center; font-size: 14px; font-weight: 600; }
 .cmp-bloques { display: flex; gap: 3px; height: 24px; }
 .cmp-bloques span { flex-basis: 0; min-width: 6px; border-radius: 5px; }
-.cmp-bloques .dentro { background: var(--cmp-mejor); opacity: 0.85; }
+.cmp-bloques .dentro { background: var(--kuwu-menta); }
 .cmp-bloques .fuera { background: var(--dolor); }
 .cmp-bloques .resto { background: transparent; min-width: 0; }
 

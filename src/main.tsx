@@ -1,8 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '../brandbook/paleta.css'
+import '../brandbook/primitivas.css'
 import './fuentes.css'
 import './index.css'
 import './pwa.css'
+import './escritorio.css'
 import App from './App.tsx'
 import { actualizarSola } from './lib/actualizacion'
 

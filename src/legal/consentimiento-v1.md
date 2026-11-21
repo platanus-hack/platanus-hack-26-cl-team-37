@@ -1,10 +1,10 @@
 # Consentimiento informado (versión 1.0)
 
-> TEXTO PROVISORIO. Este borrador lo escribió el equipo técnico como marcador de posición: la clínica debe reemplazarlo por su texto legal definitivo antes de usar ManoViva con pacientes reales. Al cambiar el texto, sube la versión en `src/legal/consentimiento.ts` (así cada paciente deberá firmar de nuevo).
+> TEXTO PROVISORIO. Este borrador lo escribió el equipo técnico como marcador de posición: la clínica debe reemplazarlo por su texto legal definitivo antes de usar Kuwü con pacientes reales. Al cambiar el texto, sube la versión en `src/legal/consentimiento.ts` (así cada paciente deberá firmar de nuevo).
 
-## Qué es ManoViva
+## Qué es Kuwü
 
-ManoViva es una aplicación de apoyo a tu rehabilitación de mano. Te propone juegos y ejercicios definidos por tu terapeuta y mide cómo los realizas usando la cámara del teléfono. No entrega diagnósticos ni reemplaza la evaluación de tu terapeuta.
+Kuwü es una aplicación de apoyo a tu rehabilitación de mano. Te propone juegos y ejercicios definidos por tu terapeuta y mide cómo los realizas usando la cámara del teléfono. No entrega diagnósticos ni reemplaza la evaluación de tu terapeuta.
 
 ## Qué se analiza y qué se guarda
 
@@ -27,4 +27,4 @@ ManoViva es una aplicación de apoyo a tu rehabilitación de mano. Te propone ju
 
 ## Tu aceptación
 
-Declaro que leí este documento, que entiendo cómo se usan mis datos y que acepto usar ManoViva en estas condiciones.
+Declaro que leí este documento, que entiendo cómo se usan mis datos y que acepto usar Kuwü en estas condiciones.
