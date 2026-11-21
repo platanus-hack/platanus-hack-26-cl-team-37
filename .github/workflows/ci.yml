@@ -7,8 +7,8 @@
 #   rama-base         en PR hacia main: solo se acepta desde dev (o una rama hotfix/… en emergencias).
 #   e2e               Playwright contra la base de DESARROLLO (Supabase manoviva-dev), uno a la vez en todo el repo.
 #   vista-previa      deploy por PR en el proyecto de Vercel de desarrollo y comentario con la URL.
-#   desplegar-dev     al unir a dev: deploy a https://manoviva-dev.vercel.app (base de desarrollo).
-#   desplegar         al unir a main: deploy a https://manoviva-sigma.vercel.app (producción).
+#   desplegar-dev     al unir a dev: deploy a https://manoviva-dev.vercel.app (base de desarrollo). Solo exige verificar.
+#   desplegar         al unir a main: deploy a https://manoviva-sigma.vercel.app (producción). Exige verificar y e2e.
 #
 # Sin secretos, los jobs que los necesitan se omiten (no fallan) y el resumen de la corrida dice qué falta.
 # Secretos (Settings → Secrets and variables → Actions, o `gh secret set NOMBRE`):
@@ -241,12 +241,12 @@ jobs:
           fi
 
   desplegar-dev:
-    needs: [verificar, e2e]
-    # e2e omitido (sin secretos de Supabase) no frena el deploy; e2e fallido sí.
+    # Desarrollo es donde se prueba: se despliega con verificar en verde, sin esperar al e2e (que corre en paralelo
+    # y se ve en la misma corrida). Producción sí exige el e2e.
+    needs: verificar
     if: >-
-      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/dev' &&
-      needs.verificar.result == 'success' && needs.verificar.outputs.vercel_dev == 'true' &&
-      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
+      github.event_name == 'push' && github.ref == 'refs/heads/dev' &&
+      needs.verificar.outputs.vercel_dev == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
