@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Icono } from './Icono'
+import './salud.css'
 
 // ---------------------------------------------------------- estados de pantalla
 export function Cargando({ texto = 'Cargando…' }: { texto?: string }) {
@@ -58,14 +59,14 @@ export function Estados<T>({ r, children, cargando, vacio }: { r: { estado: stri
 export function Encabezado({ titulo, subtitulo, atras, derecha }: { titulo: ReactNode; subtitulo?: ReactNode; atras?: string | true; derecha?: ReactNode }) {
   const nav = useNavigate()
   return (
-    <header className="encabezado">
+    <header className={atras ? 'encabezado con-atras' : 'encabezado'}>
       {atras && (
         <button className="boton-icono" aria-label="Volver" onClick={() => (atras === true ? nav(-1) : nav(atras))}>
           <Icono nombre="atras" />
         </button>
       )}
       <div className="textos">
-        <h1 style={{ fontSize: atras ? 20 : 26 }}>{titulo}</h1>
+        <h1>{titulo}</h1>
         {subtitulo && <p className="subtitulo">{subtitulo}</p>}
       </div>
       {derecha}
@@ -190,7 +191,7 @@ export function Anillo({ valor, tam = 64, grosor = 7, color = 'var(--acento)', c
   return (
     <div style={{ position: 'relative', width: tam, height: tam, flex: 'none' }}>
       <svg width={tam} height={tam} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-        <circle cx={tam / 2} cy={tam / 2} r={r} stroke="#2c3c4b" strokeWidth={grosor} fill="none" />
+        <circle cx={tam / 2} cy={tam / 2} r={r} stroke="var(--pista)" strokeWidth={grosor} fill="none" />
         <circle cx={tam / 2} cy={tam / 2} r={r} stroke={color} strokeWidth={grosor} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>{children}</div>

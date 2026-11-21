@@ -76,12 +76,12 @@ function esperado(d: Awaited<ReturnType<typeof datosBD>>) {
   return { estados, racha, adherencia, semana, hechos: estados.filter((e) => e === 'hecho').length }
 }
 
-const planHoy = (p: Page) => p.getByRole('heading', { level: 2, name: 'Plan de hoy' })
+const planHoy = (p: Page) => p.getByRole('heading', { level: 2, name: 'Hoy' })
 
 test.describe('inicio del paciente', () => {
   test.beforeEach(async ({ context }) => entrarComo(context, 'paciente'))
 
-  test('plan, racha, adherencia y semana coinciden con la BD', async ({ page }) => {
+  test('arco de la semana, plan de hoy y cita coinciden con la BD', async ({ page }) => {
     const bd = await datosBD()
     const e = esperado(bd)
     test.info().annotations.push({ type: 'esperado', description: JSON.stringify(e) })
@@ -92,34 +92,38 @@ test.describe('inicio del paciente', () => {
 
     const total = bd.plan.items.length
     const min = bd.plan.items.reduce((a, it) => a + it.duracionMin, 0)
-    await expect(page.getByLabel(`${e.hechos} de ${total} ejercicios hechos`)).toBeVisible()
-    await expect(page.getByText(`${total} ejercicios · ${min} min`)).toBeVisible()
+    await expect(page.getByText(new RegExp(`^${total} ejercicios?, ${min} minutos\\.`))).toBeVisible()
     await expect(page.getByText(/Indicado por Klgo\. Diego/)).toBeVisible()
 
-    const filas = page.getByRole('list', { name: 'Ejercicios de hoy' }).locator('[data-estado]')
+    // La tarjeta Ahora (el siguiente) y las filas de lo hecho y lo que viene: un elemento por ejercicio del plan.
+    const filas = page.getByRole('main').locator('[data-estado]')
     await expect(filas).toHaveCount(total)
-    for (let i = 0; i < total; i++) await expect(filas.nth(i)).toHaveAttribute('data-estado', e.estados[i])
+    for (const estado of ['hecho', 'siguiente', 'pendiente'] as const)
+      await expect(page.getByRole('main').locator(`[data-estado="${estado}"]`)).toHaveCount(e.estados.filter((x) => x === estado).length)
 
-    await expect(page.getByTestId('racha')).toHaveText(new RegExp(`^${e.racha} ${e.racha === 1 ? 'día' : 'días'}`))
-    await expect(page.getByTestId('adherencia')).toHaveText(`${e.adherencia}%`)
+    // Arco de la semana: días cumplidos de las sesiones indicadas.
+    const cumplidos = e.semana.filter((x) => x === 'cumplido').length
+    const porSemana = bd.plan.sesiones_por_semana
+    await expect(page.getByRole('img', { name: `${cumplidos} de ${porSemana} ${porSemana === 1 ? 'sesión' : 'sesiones'} esta semana` })).toBeVisible()
+    await expect(page.getByTestId('sesiones-semana')).toHaveText(String(cumplidos))
 
     const dias = page.getByRole('region', { name: 'Esta semana' }).getByRole('listitem')
     await expect(dias).toHaveCount(7)
-    for (let i = 0; i < 7; i++) await expect(dias.nth(i)).toHaveAttribute('data-estado', e.semana[i])
-    await expect(page.locator('.tira-semana li[data-hoy]')).toHaveCount(1)
+    for (let i = 0; i < 7; i++) await expect(dias.nth(i)).toHaveAttribute('data-dia', e.semana[i] === 'cumplido' ? 'hecha' : 'pendiente')
+    await expect(page.getByRole('region', { name: 'Esta semana' }).locator('li[aria-current="date"]')).toHaveCount(1)
 
     await expect(page.getByRole('region', { name: 'Próxima cita' })).toContainText('Control con Klgo. Diego')
     await page.waitForLoadState('networkidle')
     v.sinErrores()
   })
 
-  test("tocar 'Siguiente' lleva a /sesion/:juego/preparar", async ({ page }) => {
+  test("tocar la tarjeta 'Ahora' lleva a /sesion/:juego/preparar", async ({ page }) => {
     const bd = await datosBD()
     const e = esperado(bd)
     const i = e.estados.indexOf('siguiente')
     test.skip(i < 0, 'el plan de hoy ya está completo en la BD demo (npm run db:seed lo repone)')
     await page.goto('/inicio')
-    const siguiente = page.getByRole('link', { name: /Siguiente/ })
+    const siguiente = page.getByRole('link', { name: /^Ahora:/ })
     await expect(siguiente).toHaveCount(1)
     await siguiente.click()
     await expect(page).toHaveURL(new RegExp(`/sesion/${bd.plan.items[i].juego}/preparar$`))
