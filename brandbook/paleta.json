@@ -18,7 +18,7 @@
     },
     "amarillo": {
       "hex": "#ffd66b",
-      "uso": "Pastel primario. Plan del día, destacados, subrayado de la marca.",
+      "uso": "Pastel primario. Plan del día, destacados, lo que avanza, subrayado de la marca.",
       "contraste_con_marino": 10.46
     },
     "azul": {
@@ -37,8 +37,81 @@
       "contraste_con_marino": 14.57
     }
   },
+  "derivados": {
+    "linea": {
+      "hex": "#e5e0da",
+      "uso": "Bordes y separadores (marino 12 % sobre crema).",
+      "contraste_con_crema": 1.25
+    },
+    "pista": {
+      "hex": "#f0eae3",
+      "uso": "Pistas de barras, deslizadores e interruptores apagados (marino 7 %).",
+      "contraste_con_crema": 1.14
+    },
+    "control": {
+      "hex": "#87868c",
+      "uso": "Bordes de controles y líneas de referencia; no es color de texto (marino 55 %).",
+      "contraste_con_crema": 3.45
+    },
+    "suave": {
+      "hex": "#545663",
+      "uso": "Texto secundario (marino 78 %).",
+      "contraste_con_crema": 6.95
+    },
+    "tenue": {
+      "hex": "#666771",
+      "uso": "Texto terciario y notas (marino 70 %).",
+      "contraste_con_crema": 5.36
+    },
+    "amarillo-suave": {
+      "hex": "#ffedc1",
+      "uso": "Relleno de tarjetas destacadas (amarillo 35 % sobre crema).",
+      "contraste_con_crema": 1.11
+    },
+    "menta-suave": {
+      "hex": "#d8f0dc",
+      "uso": "Relleno de avisos de éxito (menta 35 %).",
+      "contraste_con_crema": 1.15
+    },
+    "azul-suave": {
+      "hex": "#dde9f4",
+      "uso": "Relleno de avisos informativos (azul 30 %).",
+      "contraste_con_crema": 1.18
+    },
+    "alerta": {
+      "hex": "#d1363c",
+      "uso": "Dolor y error: bordes, íconos y fondo de avisos de error (con texto blanco).",
+      "contraste_con_crema": 4.66
+    },
+    "alerta-texto": {
+      "hex": "#c4282e",
+      "uso": "Dolor y error como texto, sobre crema, blanco o alerta-fondo.",
+      "contraste_con_crema": 5.44
+    },
+    "alerta-fondo": {
+      "hex": "#fdeceb",
+      "uso": "Fondo de tarjetas de dolor o error.",
+      "contraste_con_crema": 1.09
+    },
+    "noche": {
+      "hex": "#1a1d2a",
+      "uso": "Tema de cámara y juego: fondo detrás del video y de la escena (marino oscurecido).",
+      "contraste_con_crema": 16.01
+    },
+    "noche-borde": {
+      "hex": "#3e4151",
+      "uso": "Tema de cámara y juego: pistas y bordes sobre marino.",
+      "contraste_con_crema": 9.65
+    },
+    "noche-texto-2": {
+      "hex": "#bdbaba",
+      "uso": "Tema de cámara y juego: texto secundario en crema atenuada.",
+      "contraste_con_crema": 1.84
+    }
+  },
   "reglas": [
     "El texto siempre va en marino (o en crema sobre marino). Los pasteles no se usan como color de texto.",
-    "No se permiten colores fuera de esta paleta en la UI."
+    "Excepciones de texto: suave y tenue (texto secundario), alerta-texto (dolor y error) y noche-texto-2 (sobre marino).",
+    "No se permiten colores fuera de esta paleta (base y derivados) en la UI."
   ]
 }

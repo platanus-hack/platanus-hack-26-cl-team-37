@@ -20,7 +20,8 @@
   .pieza .nombre { padding: 8px 12px; font-size: 13px; font-weight: 700; border-top: 1.5px solid #24283b1a; background: var(--kuwu-blanco); }
   .paleta { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .color { border-radius: 18px; padding: 70px 12px 10px; border: 1.5px solid #24283b1a; font-size: 13px; font-weight: 700; }
-  .tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+  @media (max-width: 600px) { .envoltura { padding: 24px 16px 40px; } }
   .tipo { background: var(--kuwu-blanco); border-radius: 20px; padding: 18px 20px; border: 1.5px solid #24283b1a; }
 </style>
 </head>
@@ -60,21 +61,34 @@
     <div class="pieza"><div class="lienzo" style="gap:14px;display:flex"><img src="iconos/favicon.svg" alt="" style="width:16px" /><img src="iconos/favicon.svg" alt="" style="width:32px" /><img src="iconos/favicon.svg" alt="" style="width:64px" /></div><div class="nombre">favicon.svg · 16 / 32 / 64 px</div></div>
   </div>
 
+  <h2>Íconos PNG (exportados con herramientas/exportar_png.mjs)</h2>
+  <div class="grilla">
+    <div class="pieza"><div class="lienzo"><img src="iconos/icono-512.png" alt="" style="width:120px;border-radius:26px" /></div><div class="nombre">icono-512.png</div></div>
+    <div class="pieza"><div class="lienzo"><img src="iconos/icono-192.png" alt="" style="width:96px;border-radius:20px" /></div><div class="nombre">icono-192.png</div></div>
+    <div class="pieza"><div class="lienzo"><img src="iconos/apple-touch-icon-180.png" alt="" style="width:90px;border-radius:20px" /></div><div class="nombre">apple-touch-icon-180.png</div></div>
+    <div class="pieza"><div class="lienzo"><img src="iconos/favicon-32.png" alt="" style="width:32px" /></div><div class="nombre">favicon-32.png</div></div>
+  </div>
+
   <h2>Paleta</h2>
   <div class="paleta" id="paleta"></div>
+  <h2>Derivados (neutros, avisos y tema de cámara)</h2>
+  <div class="paleta" id="derivados"></div>
 
   <h2>Tipografía</h2>
   <div class="tipos">
     <div class="tipo"><div style="font-weight:900;font-size:40px;line-height:1.1">Juega con tus manos</div><p style="margin-top:6px">Nunito 900 · títulos grandes</p></div>
     <div class="tipo"><div style="font-weight:800;font-size:26px">Plan de hoy · 2 juegos</div><p style="margin-top:6px">Nunito 800 · títulos y botones</p></div>
     <div class="tipo"><div style="font-weight:600;font-size:17px">Pon la mano dentro del marco y mantenla abierta.</div><p style="margin-top:6px">Nunito 600 · texto de interfaz</p></div>
-    <div class="tipo"><div style="font-weight:800;font-size:34px">12,5 cm · 87 %</div><p style="margin-top:6px">Nunito 800 · cifras destacadas. Nunito <b>no</b> tiene cifras tabulares: para tablas y contadores en vivo, usar Archivo (ver README).</p></div>
+    <div class="tipo"><div style="font-weight:800;font-size:34px">12,5 cm · 87 %</div><p style="margin-top:6px">Nunito 800 · cifras destacadas y contadores en vivo: sus diez dígitos tienen el mismo ancho en todos los pesos, así que no "bailan".</p></div>
   </div>
 </div>
 <script>
   fetch('paleta.json').then((r) => r.json()).then((p) => {
-    document.getElementById('paleta').innerHTML = Object.entries(p.colores).map(([n, c]) =>
-      `<div class="color" style="background:${c.hex};color:${n === 'marino' ? '#fff9f0' : '#24283b'}">${n}<br>${c.hex}</div>`).join('')
+    const oscuros = ['marino', 'noche', 'noche-borde', 'suave', 'tenue', 'control', 'alerta', 'alerta-texto']
+    const fichas = (grupo) => Object.entries(grupo).map(([n, c]) =>
+      `<div class="color" style="background:${c.hex};color:${oscuros.includes(n) ? 'var(--kuwu-crema)' : 'var(--kuwu-marino)'}">${n}<br>${c.hex}</div>`).join('')
+    document.getElementById('paleta').innerHTML = fichas(p.colores)
+    document.getElementById('derivados').innerHTML = fichas(p.derivados)
   }).catch(() => {
     document.getElementById('paleta').textContent = 'Abre esta vista con un servidor local para ver la paleta (o mira paleta.css).'
   })

@@ -1,19 +1,16 @@
-// Piezas propias del sistema de diseño «Salud» (artefacto «Design System» de ManoViva): la marca, el arco de la semana
+// Piezas propias de la app sobre el brandbook (brandbook/README.md): la marca, el arco de la semana
 // (la firma), el anillo chico y la tarjeta Ahora con la escena real del juego. Solo usan tokens de src/index.css.
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { escenaDe } from './escenas'
+import simbolo from '../../brandbook/logos/simbolo.svg'
 import './salud.css'
 
-/** El símbolo del repo sobre amarillo, junto a la palabra. */
+/** El símbolo del brandbook (brandbook/logos/simbolo.svg, sin recolorear) junto al nombre de la app. */
 export function Marca() {
   return (
     <span className="marca">
-      <span className="marca-simbolo" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M4 12V5M7 12V2.5M10 12V4.5" />
-        </svg>
-      </span>
+      <img className="marca-simbolo" src={simbolo} alt="" width={28} height={28} />
       ManoViva
     </span>
   )

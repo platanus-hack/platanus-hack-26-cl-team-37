@@ -8,6 +8,7 @@ import { useAuth, type DatosIngreso } from '../../auth/contexto'
 import type { Rol } from '../../domain/types'
 import { Icono, LogoMano } from '../../ui/Icono'
 import { BannerDemo } from '../../ui/piezas'
+import simboloSobreAmarillo from '../../../brandbook/logos/simbolo-sobre-amarillo.svg'
 
 /** Cuentas demo ficticias (docs/manoviva-spec.md §9). */
 const DEMO = {
@@ -78,7 +79,8 @@ export default function Acceso() {
       <main className="pantalla acceso">
         <header className="acceso-cabeza">
           <div className="logo">
-            <LogoMano tam={52} />
+            {/* Símbolo del brandbook en su variante sobre amarillo (los nodos amarillos pasan a blanco). */}
+            <img src={simboloSobreAmarillo} alt="" width={52} height={52} />
           </div>
           <h1>ManoViva</h1>
           <p className="tenue">Rehabilitación que se juega</p>

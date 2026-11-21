@@ -45,6 +45,7 @@ import {
   type NivelCartas,
   type Tablero,
 } from './logica'
+import { kuwuNum } from '../../ui/paleta'
 
 /** Cuánto se ven abiertas dos cartas distintas antes de volver a taparse (ms). */
 export const VER_NO_PAR_MS = 1300
@@ -56,8 +57,8 @@ export const REARMAR_MS = 1500
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_CARTAS[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
-const COLOR_ACENTO = 0xffc83d
-const COLOR_OK = 0x4fd1a1
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_OK = kuwuNum('menta')
 const COLORES_FIGURA = ['#f5b82e', '#e0453a', '#3fb88a', '#f28c28', '#8a6bd6', '#3aa0e0']
 const FONDOS_CARA = ['#eef3f7', '#f4efe6', '#e9f3ee', '#eef0fa', '#f6ece8', '#e8f2f6']
 

@@ -1,11 +1,11 @@
-/* Piezas del sistema de diseño «Salud» (src/ui/salud.tsx). Solo tokens de src/index.css.
+/* Piezas propias de la app (src/ui/salud.tsx). Solo tokens de src/index.css (que apuntan al brandbook).
    El amarillo es lo que avanza y va solo de relleno; el rojo es dolor o revisar; el resto, tinta y grises. */
 
 /* ——— Encabezado con marca ——— */
 .encabezado-marca { display: grid; gap: 20px; padding: 4px 4px 0; }
 .encabezado-marca-barra { display: flex; align-items: center; justify-content: space-between; min-height: var(--toque); }
-.marca { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta); font-weight: 600; font-size: 17px; }
-.marca-simbolo { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--amarillo); color: var(--sobre-amarillo); }
+.marca { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta); font-weight: 800; font-size: 17px; }
+.marca-simbolo { display: block; width: 28px; height: 28px; flex: none; } /* sobre crema o blanco, como pide el brandbook */
 .avatar-marca { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--pildora); background: var(--tarjeta); color: var(--tinta); font-size: 14px; font-weight: 600; }
 .titulo-pantalla { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; color: var(--tinta); margin: 0; text-wrap: balance; }
 
@@ -29,7 +29,7 @@
 /* ——— Ahora: la escena del juego con el título encima ——— */
 .ahora { position: relative; display: block; overflow: hidden; height: 214px; border-radius: 24px; background: var(--tinta); color: var(--sobre-tinta); text-decoration: none; }
 .ahora img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.ahora::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(to top, rgba(10, 12, 16, 0.72), rgba(10, 12, 16, 0)); }
+.ahora::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(to top, color-mix(in srgb, var(--kuwu-noche) 72%, transparent), transparent); }
 .etiqueta-ahora { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 5px 11px; border-radius: var(--pildora); background: var(--amarillo); color: var(--sobre-amarillo); font-size: 14px; font-weight: 600; }
 .ahora-texto { position: absolute; z-index: 1; left: 20px; right: 20px; bottom: 16px; display: grid; gap: 2px; }
 .ahora-nombre { font: 600 22px / 1.15 var(--letra); letter-spacing: -0.01em; }

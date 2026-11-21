@@ -25,8 +25,8 @@ export default defineConfig({
         scope: '/',
         id: '/',
         display: 'standalone',
-        background_color: '#0f1720',
-        theme_color: '#0f1720',
+        background_color: '#fff9f0', // --kuwu-crema (brandbook)
+        theme_color: '#fff9f0', // --kuwu-crema (brandbook)
         icons: [
           { src: '/iconos/icono-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/iconos/icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

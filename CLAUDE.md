@@ -22,7 +22,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - **Decidir sin preguntar** (salvo los contratos compartidos). Ante una ambigüedad dentro de lo tuyo: elegir la opción más simple que cumpla el prompt y la imagen, anotarla en `docs/equipo/decisiones.md` y seguir.
 - **Bloqueos.** Si algo exige al humano (teléfono real, cuenta de pago, dato legal): marcar `blocked` con `blocked_reason`, dejar la parte automatizable hecha y pasar al siguiente feature desbloqueado. Nunca quedarse esperando.
 - **3 intentos.** Si la misma verificación falla 3 veces con enfoques distintos: revertir a lo último verde (`git stash` o `git checkout -- <archivos>`), marcar `blocked` con el error exacto y seguir.
-- **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2. Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
+- **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2 para la estructura y el contenido; colores, tipografía e íconos salen siempre del [brandbook](brandbook/) (ver «Estilos»). Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
 - **Datos:** las pantallas usan `repos` (`src/data/repos.ts`), nunca `supabase` directo.
 - **Juegos:** three.js directo (sin React Three Fiber), Rapier solo si el juego mueve objetos. Siguen el contrato de `docs/manoviva-spec.md` §7.
 - **Sin cámara disponible:** todo juego y flujo debe poder probarse con la fuente de manos `sintetica` o `grabacion` (`?fuente=`).
@@ -45,8 +45,11 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 
 ## Estilos
 
-Se define un [brandbook](brandbook/).
-Al implementar UI o features de front end se deben respetar las primitivas css definidas, colores y fonts de forma obligatoria. La única excepción es el uso de un componente para cuyo estilo no se encuentra definido en el brandbook. 
+El [brandbook](brandbook/README.md) es obligatorio para toda UI y front end:
+- **Colores:** solo los de `brandbook/paleta.css` (base y derivados). En CSS se usan los tokens de `src/index.css` (`--fondo`, `--tinta`, `--alerta`…), que apuntan a `--kuwu-*`; en lienzos y three.js, `src/ui/paleta.ts` (`KUWU`, `kuwuAlfa`, `kuwuNum`). Nada de hex sueltos; transparencias con `color-mix()` sobre un color de la paleta. Si falta un color, se agrega en `brandbook/herramientas/generar_brandbook.py`, se regenera y recién ahí se usa.
+- **Tipografía:** Nunito (`--letra`; en lienzos `fuenteKuwu()`), también para cifras.
+- **Logo e íconos:** los SVG de `brandbook/logos/` y `brandbook/iconos/` en la variante que corresponde al fondo, sin recolorear.
+- Excepciones: un componente cuyo estilo el brandbook no define, y el color natural de los objetos de las escenas 3D (fruta, madera, cubos). Los acentos de interfaz dentro del juego sí usan la paleta.
 
 ## Definición de terminado — Definition of Done (por feature)
 

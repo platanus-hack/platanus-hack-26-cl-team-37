@@ -1,8 +1,8 @@
-/* Archivo (cifras del sistema de diseño) y Poppins y DM Sans autoalojadas (public/fuentes/, solo subconjunto latino: cubre español). Sin Google Fonts: la app
-   funciona sin conexión y no se contacta a terceros. Licencia OFL. */
-/* Archivo, de Omnibus-Type (OFL 1.1), de @fontsource-variable/archivo 5.3.0: variable de peso 100–900, solo latino. Las cifras finas del sistema. */
-@font-face { font-family: 'Archivo Variable'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./ui/fuentes/archivo-latin.woff2') format('woff2-variations'); }
-/* Poppins y DM Sans siguen declaradas: el lienzo del juego de movilidad todavía dibuja con Poppins. */
+/* Fuentes autoalojadas (sin Google Fonts: la app funciona sin conexión y no contacta a terceros). Licencia OFL.
+   Nunito es la única fuente de la interfaz (brandbook/README.md §5): textos, títulos y cifras. Sus diez dígitos tienen el
+   mismo ancho en todos los pesos, así que los números en vivo no "bailan". Subconjunto latino de brandbook/tipografia/Nunito[wght].ttf. */
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 200 1000; font-display: swap; src: url('./ui/fuentes/nunito-latin.woff2') format('woff2-variations'); }
+/* Poppins y DM Sans solo dibujan los letreros de la oficina 3D (marca del evento dentro de la escena, no interfaz de ManoViva). */
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fuentes/poppins-600-latin.woff2') format('woff2'); }
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fuentes/poppins-700-latin.woff2') format('woff2'); }
 @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fuentes/dm-sans-latin.woff2') format('woff2'); }

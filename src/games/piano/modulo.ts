@@ -40,6 +40,7 @@ import {
   type NivelPiano,
 } from './logica'
 import './piano.css'
+import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 const PUNTA: Record<Dedo, number> = { pulgar: 4, indice: 8, medio: 12, anular: 16, menique: 20 }
@@ -58,8 +59,8 @@ const POOL_NOTAS = 10
 /** La tecla del dedo pedido late desde este tiempo antes de la línea (ms). */
 const AVISO_TECLA_MS = 900
 
-const COLOR_OK = 0x4fd1a1
-const COLOR_PERDIDA = 0x8da0b3
+const COLOR_OK = kuwuNum('menta')
+const COLOR_PERDIDA = kuwuNum('control')
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_PIANO[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
@@ -267,21 +268,21 @@ export const crearPiano: CrearJuego = () => {
     const W = L.width
     const H = L.height
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.92)'
+    g.fillStyle = kuwuAlfa('noche', 0.92)
     g.beginPath()
     g.roundRect(4, 4, W - 8, H - 8, 26)
     g.fill()
-    g.fillStyle = '#ffffff'
-    g.font = '700 27px system-ui, sans-serif'
+    g.fillStyle = KUWU.crema
+    g.font = fuenteKuwu(800, 27)
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.fillText(texto, W / 2, frac == null ? H / 2 : 33)
     if (frac != null) {
-      g.fillStyle = 'rgba(255,255,255,0.18)'
+      g.fillStyle = kuwuAlfa('crema', 0.18)
       g.beginPath()
       g.roundRect(40, 62, W - 80, 14, 7)
       g.fill()
-      g.fillStyle = '#ffc83d'
+      g.fillStyle = KUWU.amarillo
       g.beginPath()
       g.roundRect(40, 62, Math.max(14, (W - 80) * frac), 14, 7)
       g.fill()

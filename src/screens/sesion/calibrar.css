@@ -18,8 +18,8 @@
     content: ''; position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
     width: calc(var(--col) + 24px);
   }
-  .calibrar .calibrar-vista::before { left: 0; background: linear-gradient(90deg, rgba(10, 16, 22, 0.82) 70%, rgba(10, 16, 22, 0)); }
-  .calibrar .calibrar-vista::after { right: 0; background: linear-gradient(270deg, rgba(10, 16, 22, 0.82) 70%, rgba(10, 16, 22, 0)); }
+  .calibrar .calibrar-vista::before { left: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--kuwu-noche) 82%, transparent) 70%, transparent); }
+  .calibrar .calibrar-vista::after { right: 0; background: linear-gradient(270deg, color-mix(in srgb, var(--kuwu-noche) 82%, transparent) 70%, transparent); }
 
   /* Columna izquierda: título, fuente y la indicación del paso. */
   .calibrar .calibrar-vista > .calibrar-cabeza {

@@ -1,4 +1,6 @@
-"""Genera el brandbook de Kuwü (logos SVG, paleta y vista previa) desde la geometría aprobada en la ronda 8.
+"""Genera el brandbook de Kuwü (logos SVG, íconos SVG, paleta CSS/JSON y copia de la fuente) desde la geometría aprobada en la ronda 8.
+
+No genera `vista-previa.html` (se edita a mano) ni los PNG de `iconos/` (los exporta `herramientas/exportar_png.mjs`).
 
 Uso: python -I generar_brandbook.py <ruta a Nunito[wght].ttf> <ruta a OFL.txt> <carpeta de salida>
 
@@ -199,14 +201,42 @@ guardar(I / "icono-app.svg", svg(512, 512, simbolo(**COLOR, seg=6, borde=3.8, dx
 guardar(I / "icono-app-una-tinta.svg", svg(512, 512, simbolo(**UNA_TINTA_MARINO_FONDO, seg=6, borde=3.8, dx=dx, dy=dy, escala=esc), "Kuwü", fondo=P["marino"]))
 
 # ---------- Paleta ----------
+# Base: los 7 colores de la marca.
 PALETA = [
     ("crema", P["crema"], "Fondo principal de la app y de los íconos."),
     ("marino", P["marino"], "Tinta: todo el texto, segmentos y bordes del logo, botones principales y fondo de la versión a una tinta."),
     ("rojo", P["rojo"], "Pastel primario. Nodos, tarjetas de juego, acentos."),
-    ("amarillo", P["amarillo"], "Pastel primario. Plan del día, destacados, subrayado de la marca."),
+    ("amarillo", P["amarillo"], "Pastel primario. Plan del día, destacados, lo que avanza, subrayado de la marca."),
     ("azul", P["azul"], "Pastel primario. Nodos, tarjetas de juego, información."),
     ("menta", P["menta"], "Éxito y progreso (como relleno; el texto encima va en marino)."),
     ("blanco", P["blanco"], "Tarjetas sobre fondo crema; relleno de nodos en versiones reducida y sobre amarillo."),
+]
+
+
+def mezcla(a, b, t):
+    """t de `a` + (1 - t) de `b`, en sRGB. Los derivados salen solo de colores de la paleta."""
+    va = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    vb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x * t + y * (1 - t)):02x}" for x, y in zip(va, vb))
+
+
+# Derivados (consolidación con el sistema «Salud» de la app): neutros, rellenos suaves, alerta y tema de cámara.
+NEGRO = "#000000"
+DERIVADOS = [
+    ("linea", mezcla(P["marino"], P["crema"], 0.12), "Bordes y separadores (marino 12 % sobre crema)."),
+    ("pista", mezcla(P["marino"], P["crema"], 0.07), "Pistas de barras, deslizadores e interruptores apagados (marino 7 %)."),
+    ("control", mezcla(P["marino"], P["crema"], 0.55), "Bordes de controles y líneas de referencia; no es color de texto (marino 55 %)."),
+    ("suave", mezcla(P["marino"], P["crema"], 0.78), "Texto secundario (marino 78 %)."),
+    ("tenue", mezcla(P["marino"], P["crema"], 0.70), "Texto terciario y notas (marino 70 %)."),
+    ("amarillo-suave", mezcla(P["amarillo"], P["crema"], 0.35), "Relleno de tarjetas destacadas (amarillo 35 % sobre crema)."),
+    ("menta-suave", mezcla(P["menta"], P["crema"], 0.35), "Relleno de avisos de éxito (menta 35 %)."),
+    ("azul-suave", mezcla(P["azul"], P["crema"], 0.30), "Relleno de avisos informativos (azul 30 %)."),
+    ("alerta", "#d1363c", "Dolor y error: bordes, íconos y fondo de avisos de error (con texto blanco)."),
+    ("alerta-texto", "#c4282e", "Dolor y error como texto, sobre crema, blanco o alerta-fondo."),
+    ("alerta-fondo", "#fdeceb", "Fondo de tarjetas de dolor o error."),
+    ("noche", mezcla(P["marino"], NEGRO, 0.72), "Tema de cámara y juego: fondo detrás del video y de la escena (marino oscurecido)."),
+    ("noche-borde", mezcla(P["marino"], P["crema"], 0.88), "Tema de cámara y juego: pistas y bordes sobre marino."),
+    ("noche-texto-2", mezcla(P["crema"], P["marino"], 0.70), "Tema de cámara y juego: texto secundario en crema atenuada."),
 ]
 
 
@@ -224,13 +254,17 @@ def contraste(a, b):
 guardar(SALIDA / "paleta.json", json.dumps({
     "marca": "Kuwü",
     "colores": {n: {"hex": h, "uso": u, "contraste_con_marino": round(contraste(h, P["marino"]), 2)} for n, h, u in PALETA},
+    "derivados": {n: {"hex": h, "uso": u, "contraste_con_crema": round(contraste(h, P["crema"]), 2)} for n, h, u in DERIVADOS},
     "reglas": [
         "El texto siempre va en marino (o en crema sobre marino). Los pasteles no se usan como color de texto.",
-        "No se permiten colores fuera de esta paleta en la UI.",
+        "Excepciones de texto: suave y tenue (texto secundario), alerta-texto (dolor y error) y noche-texto-2 (sobre marino).",
+        "No se permiten colores fuera de esta paleta (base y derivados) en la UI.",
     ],
 }, ensure_ascii=False, indent=2) + "\n")
-css = ["/* Paleta Kuwü (brandbook). Todo elemento de UI usa solo estos colores. */", ":root {"]
+css = ["/* Paleta Kuwü (brandbook). Todo elemento de UI usa solo estos colores. Generado por herramientas/generar_brandbook.py. */", ":root {"]
 css += [f"  --kuwu-{n}: {h}; /* {u} */" for n, h, u in PALETA]
+css += ["  /* Derivados */"]
+css += [f"  --kuwu-{n}: {h}; /* {u} */" for n, h, u in DERIVADOS]
 css += ["}", ""]
 guardar(SALIDA / "paleta.css", "\n".join(css))
 
@@ -241,4 +275,5 @@ for origen, destino in ((FUENTE, SALIDA / "tipografia" / "Nunito[wght].ttf"), (L
         shutil.copy(origen, destino)
 
 print("contrastes con marino:", {n: round(contraste(h, P["marino"]), 2) for n, h, _ in PALETA})
+print("derivados, contraste con crema:", {n: round(contraste(h, P["crema"]), 2) for n, h, _ in DERIVADOS})
 print("archivos:", sorted(str(p.relative_to(SALIDA)) for p in SALIDA.rglob("*") if p.is_file()))

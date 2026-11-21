@@ -1,10 +1,25 @@
-/* Paleta Kuwü (brandbook). Todo elemento de UI usa solo estos colores. */
+/* Paleta Kuwü (brandbook). Todo elemento de UI usa solo estos colores. Generado por herramientas/generar_brandbook.py. */
 :root {
   --kuwu-crema: #fff9f0; /* Fondo principal de la app y de los íconos. */
   --kuwu-marino: #24283b; /* Tinta: todo el texto, segmentos y bordes del logo, botones principales y fondo de la versión a una tinta. */
   --kuwu-rojo: #ff9b93; /* Pastel primario. Nodos, tarjetas de juego, acentos. */
-  --kuwu-amarillo: #ffd66b; /* Pastel primario. Plan del día, destacados, subrayado de la marca. */
+  --kuwu-amarillo: #ffd66b; /* Pastel primario. Plan del día, destacados, lo que avanza, subrayado de la marca. */
   --kuwu-azul: #8ec5ff; /* Pastel primario. Nodos, tarjetas de juego, información. */
   --kuwu-menta: #8fe0b8; /* Éxito y progreso (como relleno; el texto encima va en marino). */
   --kuwu-blanco: #ffffff; /* Tarjetas sobre fondo crema; relleno de nodos en versiones reducida y sobre amarillo. */
+  /* Derivados */
+  --kuwu-linea: #e5e0da; /* Bordes y separadores (marino 12 % sobre crema). */
+  --kuwu-pista: #f0eae3; /* Pistas de barras, deslizadores e interruptores apagados (marino 7 %). */
+  --kuwu-control: #87868c; /* Bordes de controles y líneas de referencia; no es color de texto (marino 55 %). */
+  --kuwu-suave: #545663; /* Texto secundario (marino 78 %). */
+  --kuwu-tenue: #666771; /* Texto terciario y notas (marino 70 %). */
+  --kuwu-amarillo-suave: #ffedc1; /* Relleno de tarjetas destacadas (amarillo 35 % sobre crema). */
+  --kuwu-menta-suave: #d8f0dc; /* Relleno de avisos de éxito (menta 35 %). */
+  --kuwu-azul-suave: #dde9f4; /* Relleno de avisos informativos (azul 30 %). */
+  --kuwu-alerta: #d1363c; /* Dolor y error: bordes, íconos y fondo de avisos de error (con texto blanco). */
+  --kuwu-alerta-texto: #c4282e; /* Dolor y error como texto, sobre crema, blanco o alerta-fondo. */
+  --kuwu-alerta-fondo: #fdeceb; /* Fondo de tarjetas de dolor o error. */
+  --kuwu-noche: #1a1d2a; /* Tema de cámara y juego: fondo detrás del video y de la escena (marino oscurecido). */
+  --kuwu-noche-borde: #3e4151; /* Tema de cámara y juego: pistas y bordes sobre marino. */
+  --kuwu-noche-texto-2: #bdbaba; /* Tema de cámara y juego: texto secundario en crema atenuada. */
 }

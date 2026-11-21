@@ -51,6 +51,7 @@ import {
   type NivelBurbujas,
   type V3,
 } from './logica'
+import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 
@@ -63,9 +64,9 @@ export const POP_MS = 700
 const N_GOTAS = 10
 const N_EFECTOS = 3
 
-const COLOR_ACENTO = 0xffc83d
-const COLOR_OK = 0x4fd1a1
-const COLOR_AVISO = 0xffa24d
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_OK = kuwuNum('menta')
+const COLOR_AVISO = kuwuNum('rojo')
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_BURBUJAS[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
@@ -138,13 +139,13 @@ function texturaMasUno(): THREE.CanvasTexture {
   c.width = 256
   c.height = 128
   const g = c.getContext('2d')!
-  g.font = '800 96px system-ui, sans-serif'
+  g.font = fuenteKuwu(900, 96)
   g.textAlign = 'center'
   g.textBaseline = 'middle'
   g.lineWidth = 10
-  g.strokeStyle = 'rgba(15,20,26,0.7)'
+  g.strokeStyle = kuwuAlfa('noche', 0.7)
   g.strokeText('+1', 128, 70)
-  g.fillStyle = '#4fd1a1'
+  g.fillStyle = KUWU.menta
   g.fillText('+1', 128, 70)
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace

@@ -36,13 +36,14 @@ import {
   type NivelNaranja,
   type PasoNaranja,
 } from './logica'
+import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 const COLOR_EXPRIMIDA = new THREE.Color(0xc2570f)
 
 const COLOR_NARANJA = 0xf08a24
-const COLOR_ACENTO = 0xffc83d
-const COLOR_OK = 0x4fd1a1
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_OK = kuwuNum('menta')
 
 /** Posición del vaso en la mesa. */
 const VASO = { x: 0, z: -0.5 }
@@ -113,8 +114,8 @@ const MARGEN_GUIA = 14
 /** Distancia de la tarjeta a la cámara (unidades de escena). */
 const DIST_GUIA = 5
 
-const FUENTE_BARRA = '700 15px Poppins, "DM Sans", system-ui, sans-serif'
-const FUENTE_MARCA = '700 14px Poppins, "DM Sans", system-ui, sans-serif'
+const FUENTE_BARRA = fuenteKuwu(800, 15)
+const FUENTE_MARCA = fuenteKuwu(800, 14)
 
 export const crearNaranja: CrearJuego = () => {
   let ctx: ContextoJuego | null = null
@@ -321,11 +322,11 @@ export const crearNaranja: CrearJuego = () => {
     const H = ALTO_GUIA
     g.setTransform(resolucionGuia, 0, 0, resolucionGuia, 0, 0)
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.92)'
+    g.fillStyle = kuwuAlfa('noche', 0.92)
     g.beginPath()
     g.roundRect(1, 1, W - 2, H - 2, 16)
     g.fill()
-    g.strokeStyle = 'rgba(255,255,255,0.22)'
+    g.strokeStyle = kuwuAlfa('crema', 0.22)
     g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
@@ -335,16 +336,16 @@ export const crearNaranja: CrearJuego = () => {
       g.textAlign = align
       g.lineJoin = 'round'
       g.lineWidth = 2.5
-      g.strokeStyle = 'rgba(10,16,22,0.9)'
+      g.strokeStyle = kuwuAlfa('noche', 0.9)
       g.strokeText(t, x, y)
-      g.fillStyle = '#ffffff'
+      g.fillStyle = KUWU.crema
       g.fillText(t, x, y)
     }
     const x = 10
     const w = W - 2 * x
     const h = 32
     const barra = (y: number, frac: number, color: string, etiqueta: string) => {
-      g.fillStyle = 'rgba(255,255,255,0.14)'
+      g.fillStyle = kuwuAlfa('crema', 0.14)
       g.beginPath()
       g.roundRect(x, y, w, h, h / 2)
       g.fill()
@@ -358,9 +359,9 @@ export const crearNaranja: CrearJuego = () => {
     }
     // Barra de cierre de puño: la marca del nivel es una raya con su número encima (la etiqueta de la barra no la toca).
     const yCierre = 28
-    barra(yCierre, (cierre ?? 0) / 100, sobre ? '#4fd1a1' : '#ffc83d', cierre == null ? 'Cierre —' : `Cierre ${Math.round(cierre)} %`)
+    barra(yCierre, (cierre ?? 0) / 100, sobre ? KUWU.menta : KUWU.amarillo, cierre == null ? 'Cierre —' : `Cierre ${Math.round(cierre)} %`)
     const xMarca = x + w * (nivel.umbral / 100)
-    g.fillStyle = '#ffffff'
+    g.fillStyle = KUWU.crema
     g.fillRect(xMarca - 1.5, yCierre - 4, 3, h + 8)
     g.font = FUENTE_MARCA
     const textoMarca = `marca ${nivel.umbral} %`
@@ -368,7 +369,7 @@ export const crearNaranja: CrearJuego = () => {
     const cx = Math.min(W - 6 - anchoMarca / 2, Math.max(6 + anchoMarca / 2, xMarca))
     texto(textoMarca, cx, 14, 'center', FUENTE_MARCA)
     // Barra de tiempo sostenido.
-    barra(72, prog, '#4fd1a1', `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, 0)} s`)
+    barra(72, prog, KUWU.menta, `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, 0)} s`)
     texGuia.needsUpdate = true
   }
 
