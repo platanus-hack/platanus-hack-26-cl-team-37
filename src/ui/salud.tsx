@@ -96,9 +96,9 @@ export function ArcoSemana({ hechas, total, dias }: { hechas: number; total: num
 }
 
 /** La cosa principal de la pantalla: la escena real del juego a sangre, la etiqueta Ahora y el título sobre un velo. */
-export function Ahora({ juego, nombre, detalle, to }: { juego: string; nombre: string; detalle: string; to: string }) {
+export function Ahora({ juego, nombre, detalle, to, accion }: { juego: string; nombre: string; detalle: string; to: string; accion?: ReactNode }) {
   const escena = escenaDe(juego)
-  return (
+  const tarjeta = (
     <Link className="ahora" to={to} data-estado="siguiente" aria-label={`Ahora: ${nombre}, ${detalle}`}>
       {escena && <img src={escena} alt="" />}
       <span className="etiqueta-ahora">Ahora</span>
@@ -107,5 +107,13 @@ export function Ahora({ juego, nombre, detalle, to }: { juego: string; nombre: s
         <span className="ahora-detalle">{detalle}</span>
       </span>
     </Link>
+  )
+  // Con acción (escritorio): la escena arriba y el botón debajo, en la misma tarjeta (igual que la ficha de preparar).
+  if (!accion) return tarjeta
+  return (
+    <section className="tarjeta ahora-tarjeta" aria-label={`Ahora: ${nombre}`}>
+      {tarjeta}
+      <div className="ahora-accion">{accion}</div>
+    </section>
   )
 }

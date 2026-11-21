@@ -99,14 +99,29 @@
   .app.con-nav .encabezado-marca-barra { display: contents; }
   .app.con-nav .encabezado-marca .marca { display: none; }
   .app.con-nav .encabezado-marca .titulo-pantalla { order: -1; }
-  /* Inicio en dos columnas: la semana y el plan de hoy a la izquierda, «Ahora» a la derecha. */
-  .pantalla.inicio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 20px; }
-  .pantalla.inicio > * { grid-column: 1 / -1; }
-  .pantalla.inicio > .semana, .pantalla.inicio > .lista-hoy { grid-column: 1; }
-  .pantalla.inicio > .ahora { grid-column: 2; grid-row: span 2; align-self: stretch; min-height: 320px; }
-  /* Catálogo de ejercicios en dos columnas. */
-  .catalogo { padding: 4px 24px; }
-  .catalogo ul { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
-  .catalogo li .catalogo-fila { border-top: 1px solid var(--linea); }
-  .catalogo li:nth-child(-n + 2) .catalogo-fila { border-top: 0; }
+  /* Inicio en dos columnas independientes (Inicio.tsx las arma en escritorio): la semana y el plan de hoy a la
+     izquierda, «Ahora» con «Empezar» a la derecha. */
+  .inicio-columnas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .inicio-izq { display: flex; flex-direction: column; gap: 18px; }
+  /* Tarjeta Ahora con «Empezar» debajo de la escena (misma forma que la ficha de preparar). */
+  .ahora-tarjeta { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .ahora-tarjeta > .ahora { height: auto; aspect-ratio: 4 / 3; border-radius: 0; }
+  .ahora-accion { padding: 18px 22px 22px; }
+  /* Catálogo de ejercicios: cada juego es una tarjeta propia, en una grilla de dos columnas con espacio entre ellas
+     (en móvil sigue siendo una lista dentro de una sola tarjeta). */
+  .tarjeta.catalogo { padding: 0; border: 0; border-radius: 0; background: none; }
+  .catalogo ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .catalogo li { display: flex; }
+  .catalogo li + li .catalogo-fila { border-top: 0; }
+  .catalogo-fila { flex: 1; gap: 18px; min-height: 120px; padding: 18px 20px; border: 1px solid transparent; border-radius: var(--radio); background: var(--tarjeta); }
+  .catalogo-miniatura { width: 112px; height: 84px; border-radius: var(--radio-s); }
+  .catalogo-miniatura.dibujo svg { width: 64px; height: 64px; }
+  .catalogo-textos { gap: 4px; }
+  .catalogo-textos b { font-size: 18px; font-weight: 800; }
+  a.catalogo-fila:focus-visible { outline-offset: 2px; }
+}
+
+/* Con puntero: la tarjeta de un ejercicio disponible se marca al pasar el cursor. */
+@media (min-width: 1024px) and (hover: hover) {
+  a.catalogo-fila:hover { border-color: var(--control); }
 }

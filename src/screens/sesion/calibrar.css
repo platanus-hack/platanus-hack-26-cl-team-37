@@ -1,9 +1,10 @@
 /* Calibración en horizontal (teléfono apoyado, pantalla completa). Prueba en teléfono 2026-11-21: con el layout
    vertical la app quedaba en una columna de 520 px al centro y la indicación y el chequeo tapaban la cámara y la mano.
    Aquí: ancho completo, indicaciones a la izquierda, chequeo a la derecha y el centro libre para la mano.
-   Solo agrega reglas para horizontal bajo (teléfonos); el layout vertical de src/index.css no cambia. */
+   Solo agrega reglas para horizontal bajo (teléfonos) y para escritorio (≥ 1024 px, src/ui/vista.ts), que usa el mismo
+   diseño a pantalla completa con medidas más grandes (bloque de abajo); el layout vertical de src/index.css no cambia. */
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 600px), (min-width: 1024px) {
   .app:has(> .calibrar) { max-width: none; }
 
   .calibrar .calibrar-vista {
@@ -56,4 +57,24 @@
 
   /* Avisos de permiso / sin cámara: centrados y con scroll, sin pasar bajo las columnas. */
   .calibrar .calibrar-vista > .calibrar-problema { top: 10px; left: 50%; right: auto; width: min(520px, 92vw); transform: translateX(-50%); max-height: calc(100% - 20px); z-index: 3; }
+}
+
+/* Escritorio: la misma disposición a pantalla completa, con columnas más anchas y letra de tamaño normal
+   (las medidas de arriba están pensadas para un teléfono en horizontal de ~390 px de alto). */
+@media (min-width: 1024px) {
+  .calibrar .calibrar-vista { --col: clamp(260px, 24vw, 360px); }
+  .calibrar .calibrar-vista > .calibrar-cabeza { padding: 28px 0 0 calc(28px + var(--izq)); gap: 10px; }
+  .calibrar .calibrar-cabeza h1 { font-size: 30px; }
+  .calibrar .calibrar-camara { padding: 7px 14px; font-size: 14px; }
+  .calibrar .calibrar-vista > .calibrar-indicacion { top: 132px; left: calc(28px + var(--izq)); gap: 10px; }
+  .calibrar .calibrar-pildora { font-size: 19px; padding: 14px 20px; border-radius: 18px; }
+  .calibrar .calibrar-pildora.lista { font-size: 21px; padding: 16px 22px; }
+  .calibrar .calibrar-consejo { font-size: 16px; }
+  .calibrar .calibrar-vista > .calibrar-marco { top: 28px; bottom: 28px; left: calc(var(--col) + 56px + var(--izq)); right: calc(var(--col) + 56px + var(--der)); border-radius: 28px; }
+  .calibrar .calibrar-vista > .calibrar-chequeo { top: 28px; right: calc(28px + var(--der)); max-height: calc(100% - 56px); padding: 14px 18px 18px; gap: 4px; border-radius: 22px; }
+  .calibrar .calibrar-fila { gap: 14px; min-height: 40px; font-size: 16px; }
+  .calibrar .calibrar-fila strong { font-size: 16px; }
+  .calibrar .calibrar-nota { font-size: 13px; }
+  .calibrar .calibrar-icono { width: 28px; height: 28px; }
+  .calibrar .calibrar-vista > .calibrar-problema { top: 28px; width: min(560px, 60vw); max-height: calc(100% - 56px); }
 }
