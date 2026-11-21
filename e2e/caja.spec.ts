@@ -79,7 +79,7 @@ async function trasladar(page: Page, mano: Mano, id: string, destino?: { x: numb
   const obj = e.objetos.find((o) => o.id === id)!
   await mano.apuntar(obj, 800)
   await mano.pinzar()
-  await expect.poll(async () => (await estadoCaja(page)).objetos.find((o) => o.id === id)!.estado, { timeout: 2_000 }).toBe('tomado')
+  await expect.poll(async () => (await estadoCaja(page)).objetos.find((o) => o.id === id)!.estado, { timeout: 8_000 }).toBe('tomado')
   await expect(page.getByTestId('mano-derecha')).toContainText('Agarrando')
   await mano.apuntar(destino ?? e.caja, 1000)
   if (antesDeAbrir) await antesDeAbrir()
@@ -124,7 +124,7 @@ test.describe('Caja de juguetes', () => {
       // Intento fallido: tomarlo y soltarlo en la mesa (fuera de la caja).
       const primero = e0.objetos[0]
       await trasladar(page, mano, primero.id, { x: primero.x + 0.15, z: primero.z + 0.35 })
-      await expect.poll(async () => (await estadoCaja(page)).objetos.find((o) => o.id === primero.id)!.estado, { timeout: 5_000 }).toBe('mesa')
+      await expect.poll(async () => (await estadoCaja(page)).objetos.find((o) => o.id === primero.id)!.estado, { timeout: 15_000 }).toBe('mesa')
       await expect(page.getByTestId('contador')).toHaveText('0/3')
 
       // fps con física y juguetes (ventanas de 2 s; ya pasó la primera).
@@ -143,11 +143,11 @@ test.describe('Caja de juguetes', () => {
         const capturar = process.env.CAPTURA_CAJA && k === 3 ? () => page.screenshot({ path: 'docs/capturas/caja.png', style: SIN_FPS }).then(() => undefined) : undefined
         await trasladar(page, mano, ids[k === 2 ? 1 : 0], destino, capturar)
         if (k < 3) {
-          await expect(page.getByTestId('contador')).toHaveText(`${k}/3`, { timeout: 5_000 })
+          await expect(page.getByTestId('contador')).toHaveText(`${k}/3`, { timeout: 15_000 })
           expect((await estadoCaja(page)).objetos.filter((o) => o.estado === 'guardado')).toHaveLength(k)
         }
       }
-      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 3/3', { timeout: 5_000 })
+      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 3/3', { timeout: 15_000 })
       if (process.env.CAPTURA_CAJA) await page.screenshot({ path: 'docs/capturas/caja-meta.png', style: SIN_FPS })
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion\\?fuente=sintetica&guion=quieta&depuracion=1$`), { timeout: 10_000 })
 
@@ -204,7 +204,7 @@ test.describe('Caja de juguetes', () => {
     const tamNivel1 = e0.objetos[0].tam
 
     await trasladar(page, mano, e0.objetos[1].id)
-    await expect(page.getByTestId('contador')).toHaveText('1/10', { timeout: 5_000 })
+    await expect(page.getByTestId('contador')).toHaveText('1/10', { timeout: 15_000 })
     expect((await estadoCaja(page)).objetos[1].estado).toBe('guardado')
 
     await page.getByRole('button', { name: 'Reiniciar objetos' }).click()

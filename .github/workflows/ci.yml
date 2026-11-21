@@ -168,7 +168,8 @@ jobs:
         run: npm run verify:db
 
       - name: e2e
-        run: npx playwright test --workers=2 --retries=1
+        # 1 solo proceso: las pruebas comparten el paciente de prueba (privacidad, flujo, historial, offline…) y se pisan en paralelo.
+        run: npx playwright test --workers=1 --retries=1
 
       - name: e2e sin conexión (build + preview)
         run: npm run e2e:offline
