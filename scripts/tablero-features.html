@@ -22,7 +22,7 @@
   label.chip { display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; user-select: none; background: #fff; }
   .punto { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   #estado-carga { color: var(--muted); font-size: 12px; }
-  #estado-carga.error { color: var(--blocked); font-weight: 600; }
+  #estado-carga.error { color: var(--blocked); font-weight: 600; max-width: 520px; }
   main { display: grid; grid-template-columns: 1fr 360px; gap: 12px; padding: 12px 16px; }
   .caja { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
   #lienzo { position: relative; height: 70vh; overflow: hidden; cursor: grab; }
@@ -64,6 +64,7 @@
   <div class="grupo">
     <button id="recargar" title="Volver a leer feature_list.json (tecla R)">⟳ Recargar</button>
     <label class="chip"><input type="checkbox" id="auto" /> auto cada 5 s</label>
+    <button id="abrir" hidden title="Elegir feature_list.json del disco (para abrir este .html sin servidor)">📂 Abrir JSON…</button>
     <span id="estado-carga">—</span>
   </div>
   <div class="grupo" id="filtro-estado"><b>Estado</b></div>
@@ -122,24 +123,78 @@ let features = [], porId = new Map(), hijos = new Map(), anterior = new Map(), f
 let posiciones = new Map(), primeraVez = true
 
 // ---------- Carga ----------
+// Fuentes, en orden: archivo elegido a mano (sirve abriendo el .html con doble clic) o HTTP.
+// Por HTTP prueba varias rutas para funcionar con nuestro servidor, Live Server o `python -m http.server`
+// lanzados desde la raíz o desde scripts/.
+const RUTAS = ['feature_list.json', '../feature_list.json', '/feature_list.json']
+let manejador = null // FileSystemFileHandle (Chrome/Edge): se relee en cada recarga
+let rutaBuena = null
+
+async function leerTexto() {
+  if (manejador) return (await manejador.getFile()).text()
+  if (location.protocol === 'file:') throw new Error('SIN_SERVIDOR')
+  const errores = []
+  for (const ruta of rutaBuena ? [rutaBuena, ...RUTAS] : RUTAS) {
+    try {
+      const r = await fetch(ruta + '?t=' + Date.now(), { cache: 'no-store' })
+      if (r.status === 404) { errores.push(ruta + ' → 404'); continue }
+      if (!r.ok) throw new Error((await r.text()).slice(0, 120))
+      rutaBuena = ruta
+      return r.text()
+    } catch (e) {
+      if (e instanceof TypeError) throw new Error('SIN_SERVIDOR') // servidor caído
+      throw e
+    }
+  }
+  throw new Error('No encontré feature_list.json (' + errores.join(', ') + ')')
+}
+
 async function cargar() {
   const est = $('#estado-carga')
+  let texto
   try {
-    const r = await fetch('feature_list.json?t=' + Date.now(), { cache: 'no-store' })
-    if (!r.ok) throw new Error(await r.text())
-    const texto = await r.text()
-    const datos = JSON.parse(texto)
-    est.className = ''
-    est.textContent = 'actualizado ' + new Date().toLocaleTimeString('es-CL')
-    if (texto === firmaAnterior) return
-    firmaAnterior = texto
-    procesar(datos.features)
+    texto = await leerTexto()
   } catch (e) {
     est.className = 'error'
-    est.textContent = location.protocol === 'file:'
-      ? 'Abre con: node scripts/tablero-features.mjs'
-      : 'Error al leer feature_list.json (¿JSON a medio editar?): ' + e.message.slice(0, 80)
+    est.textContent = e.message === 'SIN_SERVIDOR'
+      ? (location.protocol === 'file:' ? 'Abierto como archivo: usa «Abrir JSON…» o corre ' : 'El servidor no responde. Corre ') + 'node scripts/tablero-features.mjs'
+      : e.message
+    $('#abrir').hidden = false
+    return
   }
+  let datos
+  try {
+    datos = JSON.parse(texto)
+    if (!Array.isArray(datos.features)) throw new Error('no tiene "features"')
+  } catch (e) {
+    est.className = 'error'
+    est.textContent = 'feature_list.json no es JSON válido (¿edición a medias?): ' + e.message.slice(0, 100) + ' — se mantiene la última versión buena'
+    return
+  }
+  est.className = ''
+  est.textContent = 'actualizado ' + new Date().toLocaleTimeString('es-CL') + (manejador ? ' (archivo local)' : '')
+  if (texto === firmaAnterior) return
+  firmaAnterior = texto
+  procesar(datos.features)
+}
+
+async function abrirArchivo() {
+  if (window.showOpenFilePicker) {
+    try {
+      ;[manejador] = await showOpenFilePicker({ types: [{ description: 'feature_list.json', accept: { 'application/json': ['.json'] } }] })
+    } catch { return } // canceló
+    return cargar()
+  }
+  // Navegadores sin File System Access (Safari/Firefox): carga única, sin recarga en vivo
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' })
+  inp.onchange = async () => {
+    const f = inp.files[0]
+    if (!f) return
+    manejador = { getFile: async () => f }
+    await cargar()
+    $('#estado-carga').textContent += ' · este navegador no permite releer el archivo: vuelve a abrirlo para ver cambios'
+  }
+  inp.click()
 }
 
 function procesar(lista) {
@@ -429,6 +484,7 @@ function programarAuto() {
   if (ui.auto) temporizador = setInterval(cargar, 5000)
 }
 $('#recargar').addEventListener('click', cargar)
+$('#abrir').addEventListener('click', abrirArchivo)
 $('#auto').addEventListener('change', (e) => { ui.auto = e.target.checked; guardar(); programarAuto() })
 document.addEventListener('keydown', (e) => { if (e.key === 'r' && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey) cargar() })
 
