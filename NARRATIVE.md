@@ -14,12 +14,12 @@ Esto puede afectar a…
 ## Números en Chile
 215.144 accidentes laborales con días perdidos en Chile en 2025. ~Balance SUSESO 2025
 
-1 de cada 3 accidentes en el trabajo en Chile afectan a manos y dedos. ~SUSESO, ACHS, IST. Esto genera un promedio de 20 dias de trabajo perdidos por accidentes laborales, y 46 dias en promedio en trastornos musculoesqueléticos. ~SUSESO 2025
+1 de cada 3 accidentes en el trabajo en Chile afectan a manos y dedos. ~SUSESO, ACHS, IST. Esto genera un promedio de 20 días de trabajo perdidos por accidentes laborales, y 46 días en promedio en trastornos musculoesqueléticos. ~SUSESO 2025
 
-En promedio, una persona que recibe terapia de mano guiada por un terapeuta con feedback en su casa puede volver al trabajo 18 dias antes en comparación a una persona que recibe ejercicios en una hoja impresa.
+**Hipótesis (sin fuente todavía, no usar como dato en el pitch):** una persona que recibe terapia de mano guiada por un terapeuta con feedback en su casa podría volver al trabajo unos 18 días antes que una persona que recibe ejercicios en una hoja impresa.
 
 # ¿Cómo los vamos a ayudar?
-- Con una app asequible con una barrera de entrada baja: Solo necesita un dispositivo inteligente con una camara (un celular).
+- Con una app asequible con una barrera de entrada baja: Solo necesita un dispositivo inteligente con una cámara (un celular).
 - Añadiendo dinamismo y feedback instantáneo: Un médico tratante puede ajustar el plan de rehabilitación antes de tener que asistir a un control.
 - Facilitando la constancia en la rutina de rehabilitación.
 
