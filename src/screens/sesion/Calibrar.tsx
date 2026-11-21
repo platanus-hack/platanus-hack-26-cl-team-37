@@ -17,6 +17,7 @@ import {
   chequeoDistancia,
   chequeoLuz,
   elegirMano,
+  esperaCalibracion,
   estadoPinza,
   medidasMano,
   numeroPaso,
@@ -85,19 +86,36 @@ interface Vista {
   confianza: number | null
   largoCm: number | null
   fps: number
+  /** Solo para el modo depuración (?debug=1). */
+  debug: DatosDebug | null
   /** Cercanía pulgar–índice (para guiar el paso 3). */
   pinza: 'junta' | 'casi' | 'lejos' | null
 }
 
-const VISTA_INICIAL: Vista = { paso: 'abierta', repeticiones: 0, progreso: 0, hayMano: false, puntos: 0, dentro: false, luminancia: null, distanciaCm: null, confianza: null, largoCm: null, fps: 0, pinza: null }
+interface DatosDebug {
+  apertura: number | null
+  /** Mín/máx de la apertura en los últimos MS_VENTANA_DEBUG ms (cuadros con mano, dentro o no del marco). */
+  aperturaMin: number | null
+  aperturaMax: number | null
+  pinzaCm: number | null
+  pinzaVistaCm: number | null
+  cerrada: boolean
+  espera: string
+  lado: string | null
+  confianza: number | null
+}
+
+const VISTA_INICIAL: Vista = { paso: 'abierta', repeticiones: 0, progreso: 0, hayMano: false, puntos: 0, dentro: false, luminancia: null, distanciaCm: null, confianza: null, largoCm: null, fps: 0, pinza: null, debug: null }
 const MS_REFRESCO = 150
 const MS_CONTINUAR = 2000
+const MS_VENTANA_DEBUG = 3000
 const NOMBRE_FUENTE = { camara: 'Cámara frontal', sintetica: 'Mano simulada', grabacion: 'Grabación' } as const
 
 function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: number | null }) {
   const nav = useNavigate()
   const { search } = useLocation()
   const { fuente, estado } = useFuenteManos(search)
+  const debug = new URLSearchParams(search).has('debug')
   const raiz = useRef<HTMLDivElement>(null)
   const fondo = useRef<HTMLDivElement>(null)
   const lienzo = useRef<HTMLCanvasElement>(null)
@@ -127,6 +145,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
     if (!fuente) return
     const estimador = new EstimadorDistancia({ largoReglaCm })
     let ultimo = -Infinity
+    let ventana: { t: number; a: number }[] = []
     return fuente.alCuadro((c) => {
       const lz = lienzo.current
       const r = raiz.current
@@ -139,12 +158,16 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       const rect = { x: m.left - caja.left, y: m.top - caja.top, ancho: m.width, alto: m.height }
       const puntos = mano ? puntosDentro(mano.landmarks.map((p) => aVista(p, c, { ancho: caja.width, alto: caja.height })), rect) : 0
       const dentro = !!mano && puntos === mano.landmarks.length
-      const med = mano ? medidasMano(mano, largoReglaCm) : { apertura: 0, pinzaCm: 0, largoCm: 0 }
+      const med = mano ? medidasMano(mano, largoReglaCm, c) : { apertura: 0, pinzaCm: 0, pinzaVistaCm: null, largoCm: 0 }
       const antes = calib.current
       const e = avanzarCalibracion(antes, { t: c.t, mano: !!mano, dentro, ...med, confianza: mano?.confianza ?? 0, fps: fuente.fps })
       calib.current = e
       if (e.paso === 'lista' && antes.paso !== 'lista') alCompletar.current()
       const distanciaCm = mano ? (estimador.estimar(mano, c.ancho, c.alto, c.t)?.cm ?? null) : null
+      if (debug) {
+        if (mano) ventana.push({ t: c.t, a: med.apertura })
+        ventana = ventana.filter((v) => c.t - v.t <= MS_VENTANA_DEBUG)
+      }
       if (e.paso === antes.paso && c.t - ultimo < MS_REFRESCO) return
       ultimo = c.t
       setVista({
@@ -160,9 +183,22 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
         largoCm: e.n > 0 ? e.sumaLargo / e.n : mano ? med.largoCm : null,
         fps: fuente.fps,
         pinza: mano ? estadoPinza(med) : null,
+        debug: debug
+          ? {
+              apertura: mano ? med.apertura : null,
+              aperturaMin: ventana.length ? Math.min(...ventana.map((v) => v.a)) : null,
+              aperturaMax: ventana.length ? Math.max(...ventana.map((v) => v.a)) : null,
+              pinzaCm: mano ? med.pinzaCm : null,
+              pinzaVistaCm: mano ? med.pinzaVistaCm : null,
+              cerrada: e.cerrada,
+              espera: esperaCalibracion(e),
+              lado: mano?.lado ?? null,
+              confianza: mano?.confianza ?? null,
+            }
+          : null,
       })
     })
-  }, [fuente, largoReglaCm, sesion.parametros.mano])
+  }, [fuente, largoReglaCm, sesion.parametros.mano, debug])
 
   // Guarda la línea base en la Sesion (vía repos) al completar el paso 3, o al tocar Reintentar.
   async function guardar() {
@@ -258,6 +294,8 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
             </span>
           </div>
 
+          {vista.debug && <PanelDebug v={vista} d={vista.debug} />}
+
           <section className="calibrar-chequeo" aria-label="Lista de chequeo">
             <Fila nombre="Iluminación" nivel={luz.nivel} valor={luz.texto} />
             <Fila nombre="Distancia" nivel={distancia.nivel} valor={vista.distanciaCm == null ? '—' : `${entero(vista.distanciaCm)} cm aprox.`} />
@@ -284,6 +322,37 @@ function textoIndicacion(v: Vista, estado: EstadoSeguimiento): string {
   if (v.paso === 'abierta') return 'Mantén la mano abierta'
   if (v.paso === 'abrir-cerrar') return `Abre y cierra la mano · ${v.repeticiones}/${UMBRALES.repeticiones}`
   return 'Junta el pulgar y el índice'
+}
+
+/** Panel del modo depuración (?debug=1): valores crudos para ajustar umbrales con manos reales. */
+function PanelDebug({ v, d }: { v: Vista; d: DatosDebug }) {
+  const n2 = (x: number | null) => num(x, 2)
+  const filas: [string, string][] = [
+    ['paso', `${numeroPaso(v.paso)} · ${v.paso}`],
+    ['espera', d.espera],
+    ['apertura', n2(d.apertura)],
+    ['mín/máx 3 s', `${n2(d.aperturaMin)} / ${n2(d.aperturaMax)}`],
+    ['cerrada', d.cerrada ? 'sí' : 'no'],
+    ['reps', `${v.repeticiones}/${UMBRALES.repeticiones}`],
+    ['pinza 3D', d.pinzaCm == null ? '—' : `${num(d.pinzaCm)} cm`],
+    ['pinza vista', d.pinzaVistaCm == null ? '—' : `${num(d.pinzaVistaCm)} cm`],
+    ['marco', `${v.puntos}/21 ${v.dentro ? '✓' : '✗'}`],
+    ['mano', d.lado ? `${d.lado} · ${pctCorto(d.confianza)}` : '—'],
+    ['fps', entero(v.fps)],
+  ]
+  return (
+    <div
+      className="mono"
+      data-testid="debug"
+      style={{ top: 150, right: 6, maxWidth: 190, padding: '6px 8px', borderRadius: 10, background: 'rgba(0, 0, 0, 0.72)', color: '#fff', fontSize: 12, lineHeight: 1.35, pointerEvents: 'none', zIndex: 3 }}
+    >
+      {filas.map(([k, val]) => (
+        <div key={k} data-campo={k}>
+          <span style={{ opacity: 0.65 }}>{k}:</span> {val}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function Fila({ nombre, nivel, valor, nota }: { nombre: string; nivel: NivelChequeo; valor: string; nota?: string }) {
