@@ -2,11 +2,14 @@
 // La mano sintética se lleva a la burbuja objetivo en lazo cerrado: el juego publica la posición del objetivo y la de la
 // palma (window.__manoviva.juego.estado()) y la prueba corrige la pose hasta que la palma queda dentro de la burbuja.
 // - Sesión REAL, nivel 1, meta 3, mano derecha: la mano a medio abrir sobre la burbuja NO la revienta (intento_cerrado y
-//   la pista lo recuerda); abierta del todo sí. Meta 3/3, eventos, métricas (extensión, alcance, reacción, mapa de zonas)
+//   la pista lo recuerda); abierta del todo sí. Meta 3/3, eventos, métricas (extensión, alcance, tiempo por burbuja, mapa de zonas)
 //   y /sensacion. Mide el fps. Con CAPTURA_BURBUJAS=1 guarda docs/capturas/atrapa-burbujas.png.
 // - Sesión REAL con mano IZQUIERDA (lado: 'izquierda'): lo mismo, y el resumen guarda alcance y zonas de la izquierda.
-// - Sesión REAL nivel 5 (3 s de vida) con el plan limitando la zona a 'derecha': todas las burbujas aparecen a la derecha,
-//   una que se deja sin tocar expira (expirada) y aparece otra.
+// - Alcance máximo: solo cuenta el de cada burbuja reventada y solo de la mano de la sesión: una segunda mano sobre la
+//   burbuja no la revienta ni suma, y mover la mano lejos (acomodar el teléfono, bajarla) no infla el alcance.
+// - Sesión REAL nivel 5 (3 s de vida) con el parámetro `zona: 'derecha'` INYECTADO directo en los parámetros de la sesión
+//   (el editor de planes de P2 todavía no lo ofrece): todas las burbujas aparecen a la derecha, una que se deja sin tocar
+//   expira (expirada) y aparece otra.
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
 import { HORIZONTAL, crearSesion, esperarFase, juego, limpiar, parametros, type Ventana } from './juegos.ts'
@@ -119,7 +122,7 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
       await expect(page.getByText('Abre bien la mano y toca la burbuja amarilla')).toBeVisible()
       await expect(page.getByText('Extensión de dedos')).toBeVisible()
       await expect(page.getByText('Alcance máximo')).toBeVisible()
-      await expect(page.getByText('Tiempo de reacción')).toBeVisible()
+      await expect(page.getByText('Tiempo por burbuja')).toBeVisible()
       await expect(page.getByTestId('contador')).toHaveText('0/3')
       // La primera burbuja espera a que se fije el reposo de la mano (1 s con la mano a la vista).
       await expect.poll(async () => (await estado(page)).objetivo !== null, { timeout: 8_000 }).toBe(true)
@@ -140,6 +143,8 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
       expect(e.dentro[lado]).toBe(true)
       expect(e.extension[lado]!).toBeLessThan(80)
       expect(e.contador).toBe(0)
+      expect(e.alcanceMax, 'sin burbujas reventadas no hay alcance máximo, aunque la mano ya se movió').toBe(0)
+      await expect(page.getByTestId('vivo-alcance')).not.toContainText('cm')
       await expect(page.getByTestId('pista')).toContainText('Abre más la mano', { timeout: 3_000 })
       await expect(page.getByTestId(`mano-${lado}`)).toContainText('Alcanzando')
       await page.waitForTimeout(800)
@@ -148,7 +153,7 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
       // Bien abierta, en la misma burbuja: revienta (la palma sigue dentro, solo se abren los dedos).
       await poner(page, { ...media, apertura: 1 }, lado)
       await expect(page.getByTestId('contador')).toHaveText('1/3', { timeout: 5_000 })
-      await expect(page.getByTestId('vivo-reaccion')).toContainText(' s')
+      await expect(page.getByTestId('vivo-tiempoBurbuja')).toContainText(' s')
       await expect(page.getByTestId('vivo-extension')).toContainText('%')
       const zona1 = (await estado(page)).zonaPct
 
@@ -185,7 +190,7 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
       expect(g.intentosCerrados).toBeGreaterThanOrEqual(1)
       expect(g.extensionMedia).toBeGreaterThanOrEqual(80) // extensión de dedos al tocar
       expect(g.extensionMin).toBeGreaterThanOrEqual(80)
-      expect(g.tiempoReaccion).toBeGreaterThan(0.3)
+      expect(g.tiempoBurbuja).toBeGreaterThan(0.3)
       expect(g.alcanceMax).toBeGreaterThan(3) // cm aprox., desde el reposo hasta la burbuja
       expect(g[`alcanceMax${cap(lado)}`]).toBeGreaterThan(3)
       expect(g[`alcanceMax${cap(otra)}`]).toBeNull() // la otra mano no se vio
@@ -206,6 +211,8 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
         expect(r.datos.tiempoMs).toBeGreaterThan(300)
         expect(typeof r.datos.alcanceCm).toBe('number')
       }
+      // El alcance máximo del resumen sale SOLO de los eventos 'reventada'.
+      expect(g.alcanceMax).toBeCloseTo(Math.max(...rev.map((r) => r.datos.alcanceCm as number)), 1)
       const mostradas = evs.filter((x) => x.tipo === 'objetivo_mostrado')
       expect(mostradas).toHaveLength(3)
       for (const m of mostradas) expect(m.datos).toMatchObject({ radio: 0.55, vidaMs: 0 })
@@ -223,7 +230,7 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
   })
 }
 
-test('nivel 5 (3 s) con la zona limitada por el plan a la derecha: todo aparece a la derecha y una burbuja sin tocar expira', async ({ page, context }) => {
+test('nivel 5 (3 s) con el parámetro zona inyectado en la sesión (el plan aún no lo ofrece): todo aparece a la derecha y una burbuja sin tocar expira', async ({ page, context }) => {
   test.setTimeout(120_000)
   await entrarComo(context, 'paciente')
   const desde = new Date(Date.now() - 5_000).toISOString()
@@ -263,6 +270,64 @@ test('nivel 5 (3 s) con la zona limitada por el plan a la derecha: todo aparece 
     expect(ex.length).toBeGreaterThanOrEqual(1)
     expect(ex[0].datos.tiempoMs).toBeGreaterThanOrEqual(2900)
     for (const m of evs.filter((x) => x.tipo === 'objetivo_mostrado')) expect(m.datos.x).toBeGreaterThanOrEqual(0)
+    v.sinErrores()
+  } finally {
+    limpiar(desde, id)
+  }
+})
+
+test('alcance máximo: una segunda mano sobre la burbuja no cuenta y mover la mano lejos no infla el alcance; solo vale el de las burbujas reventadas', async ({ page, context }) => {
+  test.setTimeout(120_000)
+  await entrarComo(context, 'paciente')
+  const desde = new Date(Date.now() - 5_000).toISOString()
+  let id = ''
+  try {
+    id = await crearSesion('atrapa-burbujas', 5, 1, 1, 'paciente', { parametros: { ...parametros(5, 1, 1), mano: 'derecha' } })
+    const v = vigilarErrores(page)
+    await sesionDelLado(page, 'derecha', id)
+    await expect.poll(async () => (await estado(page)).objetivo !== null, { timeout: 8_000 }).toBe(true)
+    await enReposo(page, 'derecha')
+    await salirDeLaBurbuja(page, 'derecha')
+    const o = (await estado(page)).objetivo!
+
+    // La mano izquierda (no es la de la sesión) aparece abierta justo sobre la burbuja y se queda ahí.
+    await page.evaluate(
+      ([po, pi]) => {
+        const f = (globalThis as unknown as Ventana).__manoviva!.fuente as unknown as { guion: { manos: { lado: string; poses: object[] }[] }; cargarGuion(g: object): void }
+        const der = f.guion.manos[0]
+        f.cargarGuion({ ...f.guion, manos: [der, { lado: 'izquierda', poses: [{ ...der.poses[0], ...(po as object), ...(pi as object), t: 0 }] }] })
+      },
+      [{ apertura: 1 }, poseDe(o)] as const,
+    )
+    await page.waitForTimeout(1800)
+    let e = await estado(page)
+    expect(e.palma.izquierda, 'la mano que no es de la sesión se ignora').toBeUndefined()
+    expect(e.contador).toBe(0)
+    expect(e.intentosCerrados).toBe(0)
+    expect(e.alcanceMax).toBe(0)
+
+    // La mano de la sesión se aleja mucho (acomoda el teléfono, la baja al regazo): sin burbuja reventada no hay alcance.
+    await poner(page, { apertura: 1, x: 0.95, y: 0.95, distanciaCm: 50 }, 'derecha')
+    await page.waitForTimeout(1200)
+    e = await estado(page)
+    expect(e.contador).toBe(0)
+    expect(e.alcanceMax, 'mover la mano no es alcance').toBe(0)
+    await expect(page.getByTestId('vivo-alcance')).not.toContainText('cm')
+
+    // Reventar la burbuja: ahora sí, y solo con el alcance de ese momento.
+    await alObjetivo(page, 'derecha', 1)
+    await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion`), { timeout: 10_000 })
+    const sb = await clienteComo('paciente')
+    const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
+    const g = s.metricas.juego
+    const evs = (await sb.from('eventos_sesion').select('*').eq('sesion_id', id).order('seq')).data!
+    const rev = evs.filter((x) => x.tipo === 'reventada')
+    expect(rev).toHaveLength(1)
+    expect(rev.every((r) => r.mano === 'derecha')).toBe(true)
+    expect(g.burbujas).toBe(1)
+    expect(g.alcanceMax).toBeCloseTo(rev[0].datos.alcanceCm as number, 1)
+    expect(g.alcanceMaxDerecha).toBeCloseTo(rev[0].datos.alcanceCm as number, 1)
+    expect(g.alcanceMaxIzquierda).toBeNull()
     v.sinErrores()
   } finally {
     limpiar(desde, id)

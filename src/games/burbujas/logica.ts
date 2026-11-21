@@ -9,7 +9,10 @@
 // - Zona de aparición: caja alrededor de la posición de reposo de la mano que crece con los aciertos, con tope por nivel
 //   y limitada por el plan (`zona`: derecha | izquierda | altura-media | altura-baja | altura-alta).
 // - Mapa de zonas: cuadrícula COLUMNAS × FILAS (x × altura) por mano; se guarda como máscara de bits (número).
-// - Alcance: desplazamiento de la muñeca desde el reposo en cm (modelo pinhole con la distancia estimada; aprox.).
+// - Alcance: desplazamiento de la muñeca desde el reposo en cm (modelo pinhole con la distancia estimada; aprox.). La
+//   métrica "alcance máximo" solo toma el de cada burbuja reventada y solo de las manos de la sesión.
+// - Tiempo por burbuja: desde que aparece hasta que se revienta (incluye la animación de entrada, el sostén y los intentos).
+// - Aciertos %: reventadas / (reventadas + burbujas con intento cerrado o agotadas que nunca se reventaron).
 import type { FlexionDedos, LadoMano } from '../../domain/types'
 
 export interface V3 {
@@ -362,6 +365,11 @@ export class Reposo {
   get listo() {
     return this.t >= this.ms
   }
+  /** Olvida el reposo: se vuelve a promediar la próxima vez que se vea la mano (p. ej. tras perderla). */
+  reiniciar() {
+    this.t = this.n = this.nd = 0
+    this.sx = this.sy = this.sz = this.mx = this.my = this.sd = 0
+  }
   /** Un cuadro con la mano a la vista (`dtMs` ms): palma en la escena y muñeca en la imagen. */
   agregar(dtMs: number, palma: V3, muneca: MunecaImagen) {
     if (this.listo) return
@@ -386,14 +394,52 @@ export class Reposo {
   }
 }
 
+/** Tiempo sin ver la mano (ms) a partir del cual se descarta su reposo y se vuelve a medir al reaparecer. */
+export const PERDIDA_REPOSO_MS = 500
+
+/**
+ * Seguimiento del desplazamiento de UNA mano de la sesión: reposo (primer segundo con la mano a la vista) y alcance actual
+ * (mediana de 5 cuadros). Si la mano se pierde más de PERDIDA_REPOSO_MS (la baja al regazo, sale del cuadro), el reposo se
+ * descarta y se vuelve a fijar cuando reaparece: lo que pase entre medio no cuenta como alcance.
+ * Este alcance es el valor "en vivo"; la métrica del resumen solo toma el de cada burbuja reventada (AgregadoBurbujas).
+ */
+export class AlcanceMano {
+  readonly reposo: Reposo
+  private ventana = new VentanaMediana(5)
+  private perdidoMs = 0
+  /** Desplazamiento actual (cm aprox.) o null si no hay reposo / no se ve la mano. */
+  actual: number | null = null
+  constructor(reposoMs = 1000) {
+    this.reposo = new Reposo(reposoMs)
+  }
+  /** Un cuadro con la mano a la vista. `aspecto` = alto / ancho de la imagen. */
+  vista(dtMs: number, palma: V3, muneca: MunecaImagen, aspecto = 0.75): number | null {
+    this.perdidoMs = 0
+    this.reposo.agregar(dtMs, palma, muneca)
+    const r0 = this.reposo.muneca
+    this.actual = r0 ? this.ventana.agregar(alcanceCm(r0, muneca, aspecto)) : null
+    return this.actual
+  }
+  /** Un cuadro sin ver la mano. */
+  perdida(dtMs: number) {
+    this.perdidoMs += dtMs
+    this.ventana.reiniciar()
+    this.actual = null
+    if (this.perdidoMs >= PERDIDA_REPOSO_MS) this.reposo.reiniciar()
+  }
+}
+
 // ── Agregados ─────────────────────────────────────────────────────────────────────────────────────
 
 export interface Reventada {
   mano: LadoMano
   extension: number
   tiempoMs: number
+  /** Desplazamiento de la muñeca desde el reposo al tocar la burbuja (cm aprox.). */
   alcanceCm: number
   celda: number
+  /** Número de la burbuja (el mismo de los eventos). */
+  numero: number
 }
 
 const redondear = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d
@@ -401,17 +447,12 @@ const media = (v: number[]) => (v.length ? v.reduce((s, x) => s + x, 0) / v.leng
 
 export class AgregadoBurbujas {
   readonly reventadas: Reventada[] = []
+  /** Eventos 'intento_cerrado' y 'expirada' (conteos de eventos). */
   intentosCerrados = 0
   expiradas = 0
-  private alcance: Record<LadoMano, number> = { derecha: 0, izquierda: 0 }
-  private vistas: Record<LadoMano, boolean> = { derecha: false, izquierda: false }
   private celdas: Record<LadoMano, Set<number>> = { derecha: new Set(), izquierda: new Set() }
-
-  /** Desplazamiento de la muñeca en un cuadro (cm). */
-  alcanzar(mano: LadoMano, cm: number) {
-    this.vistas[mano] = true
-    this.alcance[mano] = Math.max(this.alcance[mano], cm)
-  }
+  /** Burbujas (por número) con al menos un intento cerrado o que se agotaron. */
+  private falladas = new Set<number>()
 
   /** Zona que esa mano alcanzó (reventó o llegó con la mano sin abrir). */
   zona(mano: LadoMano, celda: number) {
@@ -423,8 +464,38 @@ export class AgregadoBurbujas {
     this.zona(r.mano, r.celda)
   }
 
+  /** La palma llegó a la burbuja `numero` con los dedos sin abrir. */
+  intentoCerrado(mano: LadoMano, celda: number, numero: number) {
+    this.intentosCerrados++
+    this.falladas.add(numero)
+    this.zona(mano, celda)
+  }
+
+  /** La burbuja `numero` se agotó sin reventarse. */
+  agotada(numero: number) {
+    this.expiradas++
+    this.falladas.add(numero)
+  }
+
+  /**
+   * Alcance máximo (cm aprox.) de una mano: SOLO el desplazamiento de la muñeca al reventar una burbuja (evento
+   * 'reventada'). No cuenta lo que haga la mano entre burbujas, ni la otra mano, ni la mano bajada al regazo.
+   */
+  alcanceDe(mano: LadoMano): number | null {
+    const v = this.reventadas.filter((r) => r.mano === mano).map((r) => r.alcanceCm)
+    return v.length ? Math.max(...v) : null
+  }
+
   get alcanceMax(): number {
-    return Math.max(this.alcance.derecha, this.alcance.izquierda)
+    return Math.max(0, this.alcanceDe('derecha') ?? 0, this.alcanceDe('izquierda') ?? 0)
+  }
+
+  /** Burbujas que fallaron: con intento cerrado o agotadas Y nunca reventadas (un intento seguido de un acierto no castiga). */
+  get burbujasFalladas(): number {
+    const reventadas = new Set(this.reventadas.map((r) => r.numero))
+    let n = 0
+    for (const k of this.falladas) if (!reventadas.has(k)) n++
+    return n
   }
 
   mascara(mano: LadoMano): number {
@@ -435,19 +506,22 @@ export class AgregadoBurbujas {
     const n = this.reventadas.length
     const ext = this.reventadas.map((r) => r.extension)
     const tiempos = this.reventadas.map((r) => r.tiempoMs / 1000)
-    const intentos = n + this.intentosCerrados + this.expiradas
-    const alcanceDe = (m: LadoMano) => (this.vistas[m] ? redondear(this.alcance[m]) : null)
-    const pctZonas = (m: LadoMano) => (this.vistas[m] ? redondear((100 * celdasDeMascara(this.mascara(m)).length) / CELDAS, 0) : null)
+    const intentos = n + this.burbujasFalladas
+    const alcanceMano = (m: LadoMano) => {
+      const a = this.alcanceDe(m)
+      return a == null ? null : redondear(a)
+    }
+    const pctZonas = (m: LadoMano) => (this.celdas[m].size ? redondear((100 * celdasDeMascara(this.mascara(m)).length) / CELDAS, 0) : null)
     const m = media(ext)
     const t = media(tiempos)
     return {
       burbujas: n,
       extensionMedia: m == null ? null : redondear(m, 0),
       extensionMin: n ? redondear(Math.min(...ext), 0) : null,
-      alcanceMax: this.vistas.derecha || this.vistas.izquierda ? redondear(this.alcanceMax) : null,
-      alcanceMaxDerecha: alcanceDe('derecha'),
-      alcanceMaxIzquierda: alcanceDe('izquierda'),
-      tiempoReaccion: t == null ? null : redondear(t, 2),
+      alcanceMax: n ? redondear(this.alcanceMax) : null,
+      alcanceMaxDerecha: alcanceMano('derecha'),
+      alcanceMaxIzquierda: alcanceMano('izquierda'),
+      tiempoBurbuja: t == null ? null : redondear(t, 2),
       intentosCerrados: this.intentosCerrados,
       expiradas: this.expiradas,
       precision: intentos ? redondear((100 * n) / intentos, 0) : null,

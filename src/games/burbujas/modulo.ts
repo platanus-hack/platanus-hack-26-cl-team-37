@@ -13,21 +13,26 @@
 //
 // Eventos: objetivo_mostrado {x,y,z,celda,radio,vidaMs,zonaPct}, reventada {mano, extension, tiempoMs, alcanceCm, celda},
 // intento_cerrado {mano, extensionMax}, expirada {tiempoMs}. Mide: extensión al tocar, alcance máximo por mano (cm aprox.,
-// muñeca desde el reposo), tiempo de reacción y el mapa de zonas alcanzadas por mano (máscara de bits en el resumen).
+// muñeca desde el reposo, SOLO el de cada burbuja reventada y solo de las manos de la sesión; el reposo se vuelve a medir
+// si la mano se pierde y reaparece), tiempo por burbuja y el mapa de zonas alcanzadas por mano (máscara de bits en el resumen).
+// Solo las manos de la sesión (`lados`) revientan burbujas y cuentan para la meta (como movilidad): en una sesión de una
+// mano, la otra mano se ignora.
+//
+// `zona` y `umbralExtensionPct` del plan: el código los lee si vienen en los parámetros de la sesión, pero HOY el editor de
+// planes (P2) no los ofrece ni están en ParametrosSesion: en la práctica siempre rigen los valores por defecto (sin límite
+// de zona, umbral 80 %). Lo prueba el e2e inyectando el parámetro directo en la sesión; ver docs/equipo/registro-P3.md.
 import * as THREE from 'three'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import {
   AgregadoBurbujas,
+  AlcanceMano,
   HOLGURA_TOQUE,
   NIVELES_BURBUJAS,
   REPOSO_DEFECTO,
-  Reposo,
   UMBRAL_EXTENSION_DEFECTO,
-  VentanaMediana,
   AVISO_MS,
-  alcanceCm,
   celdaDe,
   extensionPct,
   factorZona,
@@ -185,17 +190,14 @@ export const crearBurbujas: CrearJuego = () => {
   let cajaActual: Caja3 | null = null
   let avisoHasta = -Infinity
   let ultimoTiempoS: number | null = null
-  let alcanceVivo = 0
   const rng = () => Math.random()
 
-  const reposo: Record<LadoMano, Reposo> = { derecha: new Reposo(), izquierda: new Reposo() }
-  const ventana: Record<LadoMano, VentanaMediana> = { derecha: new VentanaMediana(5), izquierda: new VentanaMediana(5) }
+  const rastro: Record<LadoMano, AlcanceMano> = { derecha: new AlcanceMano(), izquierda: new AlcanceMano() }
   const ext: Partial<Record<LadoMano, number>> = {}
   const dentro: Partial<Record<LadoMano, boolean>> = {}
   const palmas: Partial<Record<LadoMano, V3>> = {}
   const toque: Record<LadoMano, EstadoToque> = { derecha: toqueInicial(), izquierda: toqueInicial() }
   const armado: Record<LadoMano, boolean> = { derecha: false, izquierda: false }
-  const alcanceMano: Partial<Record<LadoMano, number>> = {}
 
   // Escena
   const grupo = new THREE.Group()
@@ -315,7 +317,7 @@ export const crearBurbujas: CrearJuego = () => {
 
   /** Centro de la zona de aparición: el reposo de la mano que toca el turno (o su posición actual / el centro). */
   function centroDeZona(lado: LadoMano): V3 | null {
-    const r = reposo[lado].palma
+    const r = rastro[lado].reposo.palma
     if (r) return r
     const p = palmaVisible(lado)
     if (p) return p
@@ -362,8 +364,9 @@ export const crearBurbujas: CrearJuego = () => {
     if (!c || !o) return
     const tiempoMs = Math.max(1, reloj - o.t0)
     const celda = celdaDe(o.pos)
-    const alcance = alcanceMano[lado] ?? 0
-    agregado.reventada({ mano: lado, extension, tiempoMs, alcanceCm: alcance, celda })
+    // Alcance al tocar la burbuja: la única fuente de la métrica "alcance máximo".
+    const alcance = rastro[lado].actual ?? 0
+    agregado.reventada({ mano: lado, extension, tiempoMs, alcanceCm: alcance, celda, numero: nObjetivos })
     contador++
     ultimoTiempoS = tiempoMs / 1000
     c.registrar('reventada', { mano: lado, objeto: 'burbuja', datos: { extension: Math.round(extension), tiempoMs: Math.round(tiempoMs), alcanceCm: rnd(alcance, 1), celda, numero: nObjetivos } })
@@ -377,7 +380,7 @@ export const crearBurbujas: CrearJuego = () => {
     const c = ctx
     const o = objetivo
     if (!c || !o) return
-    agregado.expiradas++
+    agregado.agotada(nObjetivos)
     c.registrar('expirada', { mano: ladoEsperado(), objeto: 'burbuja', datos: { tiempoMs: Math.round(reloj - o.t0), celda: celdaDe(o.pos), numero: nObjetivos } })
     objetivo = null
     esperaMs = ESPERA_SIGUIENTE_MS
@@ -426,7 +429,7 @@ export const crearBurbujas: CrearJuego = () => {
       extension: { ...ext },
       dentro: { ...dentro },
       palma: { ...palmas },
-      reposoListo: { derecha: reposo.derecha.listo, izquierda: reposo.izquierda.listo },
+      reposoListo: { derecha: rastro.derecha.reposo.listo, izquierda: rastro.izquierda.reposo.listo },
       caja: cajaActual,
       zonaPct: Math.round(factorActual * 100),
       limiteZona: limiteTxt,
@@ -454,20 +457,20 @@ export const crearBurbujas: CrearJuego = () => {
     tiposEvento: ['objetivo_mostrado', 'reventada', 'intento_cerrado', 'expirada'],
     metricasVivo: [
       { id: 'extension', nombre: 'Extensión de dedos', unidad: '%', formula: 'promedio de la flexión MCP+PIP de los cuatro dedos, normalizado entre el puño y la mano abierta de la calibración (100 % = mano abierta)', aprox: true, mejor: 'mayor' },
-      { id: 'alcance', nombre: 'Alcance máximo', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca desde la posición de reposo (primer segundo con la mano a la vista), con la escala de la calibración', aprox: true, mejor: 'mayor' },
-      { id: 'reaccion', nombre: 'Tiempo de reacción', unidad: 's', formula: 'tiempo desde que aparece la burbuja objetivo hasta que se revienta, de la última', mejor: 'menor' },
+      { id: 'alcance', nombre: 'Alcance máximo', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca, desde su posición de reposo, medido al reventar una burbuja (solo las manos de la sesión; el reposo se vuelve a medir si la mano se pierde y reaparece)', aprox: true, mejor: 'mayor' },
+      { id: 'tiempoBurbuja', nombre: 'Tiempo por burbuja', unidad: 's', formula: 'tiempo desde que aparece la burbuja objetivo hasta que se revienta, de la última (incluye la animación de entrada y los intentos con la mano sin abrir)', mejor: 'menor' },
     ],
     metricasResumen: [
       { id: 'extensionMedia', nombre: 'Extensión de dedos al tocar', unidad: '%', formula: 'promedio de la extensión de los cuatro dedos (MCP+PIP, normalizada entre el puño y la mano abierta) en cada burbuja reventada', aprox: true, mejor: 'mayor', corto: 'Extensión al tocar' },
-      { id: 'alcanceMax', nombre: 'Alcance máximo', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca desde la posición de reposo (aprox., cm), de las dos manos', aprox: true, mejor: 'mayor' },
-      { id: 'tiempoReaccion', nombre: 'Tiempo de reacción', unidad: 's', formula: 'promedio de (burbuja reventada − burbuja mostrada)', decimales: 1, mejor: 'menor', corto: 'Reacción' },
-      { id: 'alcanceMaxDerecha', nombre: 'Alcance máximo, mano derecha', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca derecha desde su reposo (aprox., cm)', aprox: true, mejor: 'mayor', corto: 'Alcance derecha' },
-      { id: 'alcanceMaxIzquierda', nombre: 'Alcance máximo, mano izquierda', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca izquierda desde su reposo (aprox., cm)', aprox: true, mejor: 'mayor', corto: 'Alcance izquierda' },
+      { id: 'alcanceMax', nombre: 'Alcance máximo', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca desde su posición de reposo (aprox., cm), medido solo al reventar una burbuja y solo con las manos de la sesión', aprox: true, mejor: 'mayor' },
+      { id: 'tiempoBurbuja', nombre: 'Tiempo por burbuja', unidad: 's', formula: 'promedio de (burbuja reventada − burbuja mostrada); incluye la animación de entrada (~0,3 s), el sostén de 0,12 s y los intentos con la mano sin abrir', decimales: 1, mejor: 'menor', corto: 'Por burbuja' },
+      { id: 'alcanceMaxDerecha', nombre: 'Alcance máximo, mano derecha', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca derecha desde su reposo al reventar una burbuja (aprox., cm)', aprox: true, mejor: 'mayor', corto: 'Alcance derecha', tarjeta: false },
+      { id: 'alcanceMaxIzquierda', nombre: 'Alcance máximo, mano izquierda', unidad: 'cm', formula: 'mayor desplazamiento de la muñeca izquierda desde su reposo al reventar una burbuja (aprox., cm)', aprox: true, mejor: 'mayor', corto: 'Alcance izquierda', tarjeta: false },
       { id: 'burbujas', nombre: 'Burbujas reventadas', unidad: '', formula: "eventos 'reventada'", mejor: 'mayor' },
       { id: 'intentosCerrados', nombre: 'Intentos con la mano sin abrir', unidad: '', formula: "eventos 'intento_cerrado' (la palma llegó a la burbuja con los dedos bajo el umbral de extensión)", mejor: 'menor' },
       { id: 'expiradas', nombre: 'Burbujas que se agotaron', unidad: '', formula: "eventos 'expirada' (se acabó la vida de la burbuja)", mejor: 'menor' },
       { id: 'extensionMin', nombre: 'Extensión mínima al tocar', unidad: '%', formula: 'menor extensión con la que se reventó una burbuja', aprox: true, mejor: 'mayor', tarjeta: false },
-      { id: 'precision', nombre: 'Aciertos', unidad: '%', formula: 'reventadas / (reventadas + intentos con la mano sin abrir + agotadas)', mejor: 'mayor', tarjeta: false },
+      { id: 'precision', nombre: 'Aciertos', unidad: '%', formula: 'reventadas / (reventadas + burbujas con intento con la mano sin abrir o agotadas que no se reventaron); un intento seguido de reventar la misma burbuja no cuenta como fallo', mejor: 'mayor', tarjeta: false },
       { id: 'zonasDerechaPct', nombre: 'Zonas alcanzadas, mano derecha', unidad: '%', formula: 'celdas de la cuadrícula 5×3 (ancho × altura) donde la mano derecha tocó una burbuja, sobre 15', mejor: 'mayor', tarjeta: false },
       { id: 'zonasIzquierdaPct', nombre: 'Zonas alcanzadas, mano izquierda', unidad: '%', formula: 'celdas de la cuadrícula 5×3 (ancho × altura) donde la mano izquierda tocó una burbuja, sobre 15', mejor: 'mayor', tarjeta: false },
       { id: 'zonasDerecha', nombre: 'Mapa de zonas, mano derecha', unidad: '', formula: 'máscara de bits de la cuadrícula 5×3 (bit = fila × 5 + columna; fila 0 = abajo, columna 0 = izquierda de la pantalla)', tarjeta: false },
@@ -482,7 +485,8 @@ export const crearBurbujas: CrearJuego = () => {
       nivel = nivelBurbujas(c.parametros.nivel)
       const mano = c.parametros.mano
       lados = mano === 'ambas' ? [...LADOS] : [mano === 'izquierda' ? 'izquierda' : 'derecha']
-      // Opciones del plan que no están en el tipo de ParametrosSesion (campos opcionales que puede traer el ítem del plan).
+      // Opciones del plan que NO están en ParametrosSesion ni en el editor de planes (P2) todavía: si algún día llegan, ya
+      // funcionan; hoy rigen los valores por defecto (ver registro-P3.md).
       const extra = c.parametros as unknown as { zona?: string | null; umbralExtensionPct?: number | null }
       limiteTxt = extra.zona ?? null
       limite = limiteDeZona(limiteTxt)
@@ -514,11 +518,11 @@ export const crearBurbujas: CrearJuego = () => {
       reloj += dtMs
       anim += dt
 
-      // Medidas por mano: extensión, palma, reposo y alcance.
+      // Medidas por mano: extensión, palma, reposo y alcance. Solo las manos de la sesión (`lados`): la otra se ignora.
       const vistas = new Set<LadoMano>()
       for (const m of manos) {
         const lado = m.lado
-        if (vistas.has(lado)) continue
+        if (!lados.includes(lado) || vistas.has(lado)) continue
         const med = c.medidas(lado)
         if (!med || !c.manos.visible(lado)) continue
         vistas.add(lado)
@@ -526,15 +530,7 @@ export const crearBurbujas: CrearJuego = () => {
         ext[lado] = ext[lado] == null ? nueva : ext[lado]! * 0.4 + nueva * 0.6
         const p = c.manos.palma(lado)
         palmas[lado] = { x: p.x, y: p.y, z: p.z }
-        const muneca = { x: med.muneca.x, y: med.muneca.y, distanciaCm: med.distanciaCm }
-        reposo[lado].agregar(dtMs, palmas[lado]!, muneca)
-        const r0 = reposo[lado].muneca
-        if (r0) {
-          const a = ventana[lado].agregar(alcanceCm(r0, muneca, aspecto))
-          alcanceMano[lado] = a
-          agregado.alcanzar(lado, a)
-          alcanceVivo = agregado.alcanceMax
-        }
+        rastro[lado].vista(dtMs, palmas[lado]!, { x: med.muneca.x, y: med.muneca.y, distanciaCm: med.distanciaCm }, aspecto)
       }
       for (const l of LADOS) {
         if (!vistas.has(l)) {
@@ -542,7 +538,7 @@ export const crearBurbujas: CrearJuego = () => {
           delete palmas[l]
           dentro[l] = false
           toque[l] = toqueInicial()
-          ventana[l].reiniciar()
+          rastro[l].perdida(dtMs)
         }
       }
 
@@ -551,7 +547,7 @@ export const crearBurbujas: CrearJuego = () => {
           esperaMs -= dtMs
           if (nObjetivos === 0) {
             // Primera burbuja: espera el reposo de la mano (o se rinde pasado un rato, p. ej. sin mano a la vista).
-            if (reposo[ladoEsperado()].listo || reloj >= ESPERA_INICIAL_MS) nuevoObjetivo()
+            if (rastro[ladoEsperado()].reposo.listo || reloj >= ESPERA_INICIAL_MS) nuevoObjetivo()
           } else if (esperaMs <= 0) nuevoObjetivo()
         } else {
           const o = objetivo
@@ -573,8 +569,7 @@ export const crearBurbujas: CrearJuego = () => {
               break
             }
             if (r.evento === 'intento_cerrado') {
-              agregado.intentosCerrados++
-              agregado.zona(l, celdaDe(o.pos))
+              agregado.intentoCerrado(l, celdaDe(o.pos), nObjetivos)
               avisoHasta = reloj + AVISO_MS
               c.registrar('intento_cerrado', { mano: l, objeto: 'burbuja', datos: { extensionMax: Math.round(r.estado.extMax), umbral, numero: nObjetivos } })
             }
@@ -604,8 +599,9 @@ export const crearBurbujas: CrearJuego = () => {
         pista,
         vivo: {
           extension: e == null ? null : Math.round(e),
-          alcance: agregado.alcanceMax > 0 || reposo.derecha.listo || reposo.izquierda.listo ? rnd(alcanceVivo, 1) : null,
-          reaccion: ultimoTiempoS == null ? null : rnd(ultimoTiempoS, 1),
+          // Alcance máximo de la sesión: solo el de las burbujas reventadas (null hasta la primera).
+          alcance: agregado.reventadas.length ? rnd(agregado.alcanceMax, 1) : null,
+          tiempoBurbuja: ultimoTiempoS == null ? null : rnd(ultimoTiempoS, 1),
         },
       }
     },
@@ -613,7 +609,8 @@ export const crearBurbujas: CrearJuego = () => {
     muestra() {
       const e = extPrincipal()
       const p = ctx?.manoPrincipal()
-      return { extension: e == null ? null : Math.round(e), alcanceCm: p && alcanceMano[p] != null ? rnd(alcanceMano[p] as number, 1) : null }
+      const a = p && lados.includes(p) ? rastro[p].actual : null
+      return { extension: e == null ? null : Math.round(e), alcanceCm: a == null ? null : rnd(a, 1) }
     },
 
     reiniciar() {

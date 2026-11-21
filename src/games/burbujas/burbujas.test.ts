@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { flexionTodos } from '../../metrics/geometria'
 import { manoSintetica } from '../../tracking/sintetica'
+import { tarjetasResumen } from '../../metrics/resumen'
 import { JUEGOS } from '../registry'
+import { crearBurbujas } from './modulo'
 import {
   AgregadoBurbujas,
+  AlcanceMano,
   CELDAS,
   CERRADO_MS,
   FACTOR_INICIAL,
   HOLD_MS,
   NIVELES_BURBUJAS,
+  PERDIDA_REPOSO_MS,
   Reposo,
   UMBRAL_EXTENSION_DEFECTO,
   VentanaMediana,
@@ -278,21 +282,72 @@ describe('Atrapa burbujas: mapa de zonas y alcance', () => {
   })
 })
 
+describe('Atrapa burbujas: alcance solo al reventar y reposo tras perder la mano', () => {
+  const M = (x: number, y = 0.5) => ({ x, y, distanciaCm: 50 })
+  const P = { x: 0, y: 1, z: 0 }
+
+  it('el reposo se descarta al perder la mano un rato y se vuelve a medir al reaparecer', () => {
+    const r = new Reposo(1000)
+    for (let i = 0; i < 20; i++) r.agregar(50, P, M(0.2))
+    expect(r.listo).toBe(true)
+    r.reiniciar()
+    expect(r.listo).toBe(false)
+    expect(r.muneca).toBeNull()
+    for (let i = 0; i < 20; i++) r.agregar(50, P, M(0.9))
+    expect(r.muneca!.x).toBeCloseTo(0.9, 6)
+  })
+  it('AlcanceMano: sin reposo no hay alcance; con reposo, crece con el desplazamiento', () => {
+    const a = new AlcanceMano(1000)
+    expect(a.vista(50, P, M(0.5))).toBeNull()
+    for (let i = 0; i < 20; i++) a.vista(50, P, M(0.5))
+    for (let i = 0; i < 5; i++) a.vista(50, P, M(0.7))
+    expect(a.actual!).toBeCloseTo(12.5, 0)
+  })
+  it('una pérdida corta conserva el reposo; una larga lo descarta y el alcance se mide desde donde reaparece', () => {
+    const a = new AlcanceMano(1000)
+    for (let i = 0; i < 25; i++) a.vista(50, P, M(0.5))
+    a.perdida(100)
+    expect(a.reposo.listo).toBe(true)
+    expect(a.actual).toBeNull()
+    // La mano se baja al regazo (otro lugar del cuadro) y reaparece: el reposo se vuelve a fijar ahí.
+    for (let t = 0; t < PERDIDA_REPOSO_MS; t += 100) a.perdida(100)
+    expect(a.reposo.listo).toBe(false)
+    for (let i = 0; i < 25; i++) a.vista(50, P, M(0.95, 0.95))
+    expect(a.reposo.listo).toBe(true)
+    expect(a.actual!).toBeCloseTo(0, 1) // sin reposo nuevo habría dado decenas de cm de "alcance" falso
+  })
+  it('una mano distinta entrando al cuadro no infla el alcance: solo cuentan las burbujas reventadas', () => {
+    const ag = new AgregadoBurbujas()
+    const derecha = new AlcanceMano(1000)
+    for (let i = 0; i < 25; i++) derecha.vista(50, P, M(0.45))
+    // Durante la sesión la mano baja al regazo y reaparece lejos: el alcance "en vivo" sube mucho pero NO se guarda solo.
+    for (let t = 0; t < 1000; t += 100) derecha.perdida(100)
+    for (let i = 0; i < 25; i++) derecha.vista(50, P, M(0.95, 0.95))
+    expect(ag.alcanceMax).toBe(0)
+    expect(ag.resumen().alcanceMax).toBeNull()
+    // Se revienta una burbuja con la mano a 8 cm de su reposo: eso es lo único que cuenta.
+    ag.reventada({ mano: 'derecha', extension: 90, tiempoMs: 1500, alcanceCm: 8, celda: 3, numero: 1 })
+    expect(ag.resumen()).toMatchObject({ alcanceMax: 8, alcanceMaxDerecha: 8, alcanceMaxIzquierda: null })
+  })
+  it('sin reventadas el resumen no trae alcance, aunque se hayan visto manos', () => {
+    const ag = new AgregadoBurbujas()
+    ag.intentoCerrado('derecha', 4, 1)
+    ag.agotada(2)
+    expect(ag.resumen()).toMatchObject({ burbujas: 0, alcanceMax: null, alcanceMaxDerecha: null, alcanceMaxIzquierda: null })
+  })
+})
+
 describe('Atrapa burbujas: agregados del resumen', () => {
   it('sin datos: todo nulo salvo los conteos', () => {
     const r = new AgregadoBurbujas().resumen()
-    expect(r).toMatchObject({ burbujas: 0, extensionMedia: null, alcanceMax: null, tiempoReaccion: null, precision: null, zonasDerecha: 0, zonasIzquierda: 0, alcanceMaxDerecha: null, alcanceMaxIzquierda: null })
+    expect(r).toMatchObject({ burbujas: 0, extensionMedia: null, alcanceMax: null, tiempoBurbuja: null, precision: null, zonasDerecha: 0, zonasIzquierda: 0, alcanceMaxDerecha: null, alcanceMaxIzquierda: null, zonasDerechaPct: null })
   })
-  it('promedia extensión y reacción, separa alcance y zonas por mano y calcula la precisión', () => {
+  it('promedia extensión y tiempo por burbuja, separa alcance (al reventar) y zonas por mano y calcula los aciertos', () => {
     const a = new AgregadoBurbujas()
-    a.alcanzar('derecha', 12.3)
-    a.alcanzar('derecha', 30.04)
-    a.alcanzar('derecha', 20)
-    a.alcanzar('izquierda', 8)
-    a.reventada({ mano: 'derecha', extension: 90, tiempoMs: 1000, alcanceCm: 20, celda: 3 })
-    a.reventada({ mano: 'derecha', extension: 80, tiempoMs: 2000, alcanceCm: 30, celda: 4 })
-    a.reventada({ mano: 'izquierda', extension: 100, tiempoMs: 3000, alcanceCm: 8, celda: 10 })
-    a.intentosCerrados = 1
+    a.reventada({ mano: 'derecha', extension: 90, tiempoMs: 1000, alcanceCm: 20, celda: 3, numero: 1 })
+    a.reventada({ mano: 'derecha', extension: 80, tiempoMs: 2000, alcanceCm: 30.04, celda: 4, numero: 2 })
+    a.reventada({ mano: 'izquierda', extension: 100, tiempoMs: 3000, alcanceCm: 8, celda: 10, numero: 3 })
+    a.intentoCerrado('derecha', 6, 4) // burbuja 4: intento y nunca se reventó → 1 fallo
     const r = a.resumen()
     expect(r).toMatchObject({
       burbujas: 3,
@@ -301,28 +356,50 @@ describe('Atrapa burbujas: agregados del resumen', () => {
       alcanceMax: 30,
       alcanceMaxDerecha: 30,
       alcanceMaxIzquierda: 8,
-      tiempoReaccion: 2,
+      tiempoBurbuja: 2,
       intentosCerrados: 1,
       precision: 75,
-      zonasDerecha: mascaraDe([3, 4]),
+      zonasDerecha: mascaraDe([3, 4, 6]),
       zonasIzquierda: mascaraDe([10]),
-      zonasDerechaPct: 13,
+      zonasDerechaPct: 20,
       zonasIzquierdaPct: 7,
     })
+    expect(r).not.toHaveProperty('tiempoReaccion')
   })
-  it('una mano que no se vio no lleva alcance ni porcentaje de zonas (no es 0)', () => {
+  it('Aciertos %: un intento cerrado seguido de reventar la MISMA burbuja no castiga; solo falla la que nunca se revienta', () => {
     const a = new AgregadoBurbujas()
-    a.alcanzar('izquierda', 15)
+    a.intentoCerrado('derecha', 5, 1)
+    a.intentoCerrado('derecha', 5, 1) // varios intentos en la misma burbuja: un solo fallo posible
+    a.reventada({ mano: 'derecha', extension: 90, tiempoMs: 4000, alcanceCm: 10, celda: 5, numero: 1 })
+    expect(a.intentosCerrados).toBe(2) // el conteo de eventos sigue siendo de eventos
+    expect(a.resumen().precision).toBe(100)
+    a.agotada(2) // la burbuja 2 se agotó: fallo
+    a.intentoCerrado('derecha', 7, 3) // burbuja 3: intento y después se agotó: UN solo fallo
+    a.agotada(3)
+    a.reventada({ mano: 'derecha', extension: 90, tiempoMs: 1000, alcanceCm: 10, celda: 6, numero: 4 })
+    expect(a.burbujasFalladas).toBe(2)
+    expect(a.resumen().precision).toBe(50) // 2 reventadas de 4 burbujas
+  })
+  it('una mano sin burbujas ni intentos no lleva alcance ni porcentaje de zonas (no es 0)', () => {
+    const a = new AgregadoBurbujas()
+    a.reventada({ mano: 'izquierda', extension: 90, tiempoMs: 1000, alcanceCm: 15, celda: 2, numero: 1 })
     const r = a.resumen()
     expect(r.alcanceMaxDerecha).toBeNull()
     expect(r.zonasDerechaPct).toBeNull()
     expect(r.alcanceMaxIzquierda).toBe(15)
-    expect(r.zonasIzquierdaPct).toBe(0)
+    expect(r.zonasIzquierdaPct).toBe(7)
   })
   it('el intento con la mano sin abrir marca la zona alcanzada', () => {
     const a = new AgregadoBurbujas()
-    a.alcanzar('derecha', 5)
-    a.zona('derecha', 6)
+    a.intentoCerrado('derecha', 6, 1)
     expect(a.resumen().zonasDerecha).toBe(1 << 6)
+  })
+  it('el resumen no gasta tarjetas en el alcance por mano ni usa "reacción"', () => {
+    const m = crearBurbujas()
+    const tarjetas = tarjetasResumen(m.metricasResumen).map((d) => d.id)
+    expect(tarjetas).toEqual(['extensionMedia', 'alcanceMax', 'tiempoBurbuja'])
+    const nombres = [...m.metricasVivo, ...m.metricasResumen].map((d) => d.nombre.toLowerCase())
+    expect(nombres.some((n) => n.includes('reacci'))).toBe(false)
+    expect(m.metricasVivo.map((d) => d.id)).toEqual(['extension', 'alcance', 'tiempoBurbuja'])
   })
 })

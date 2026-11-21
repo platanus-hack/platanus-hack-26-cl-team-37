@@ -603,7 +603,7 @@
     {
       "id": "F24",
       "name": "Juego Atrapa burbujas (J3)",
-      "description": "Burbuja objetivo se revienta solo con mano abierta (extensión ≥ 80 % normalizada por calibración) y palma dentro del radio. Zona de aparición que crece; límite de zona desde el plan. Métricas: extensión, alcance máximo aprox. en cm, tiempo de reacción, mapa de zonas por mano.",
+      "description": "Burbuja objetivo se revienta solo con mano abierta (extensión ≥ 80 % normalizada por calibración) y palma dentro del radio. Zona de aparición que crece; límite de zona desde el plan. Métricas: extensión, alcance máximo aprox. en cm (al reventar), tiempo por burbuja, mapa de zonas por mano.",
       "prompt": "ref/prompts_juegos/J3_atrapa_burbujas.md",
       "images": [
         "ref/imagenes_juegos/03_atrapa_burbujas.png"
@@ -611,7 +611,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Mano a medio abrir no revienta; abierta sí",
         "Resumen muestra alcance por mano"
@@ -620,7 +620,7 @@
         "npm run e2e -- burbujas"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "tsc, oxlint y vitest en verde (incluye pruebas del alcance solo al reventar, del reposo al perder la mano y de Aciertos %); e2e burbujas (derecha, izquierda, zona inyectada en la sesión y alcance con segunda mano) + ejercicios + smoke en verde con --workers=1; captura docs/capturas/atrapa-burbujas.png revisada contra 03_atrapa_burbujas.png. Revisión P1 del PR #22 corregida. Pendiente P2: zona y umbralExtensionPct no están en el editor de planes.",
       "owner": "P3",
       "rama_inicio": "linea-J"
     },
