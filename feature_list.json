@@ -566,7 +566,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con grabación sintética completa torre de nivel 1 con cada mano",
         "Resumen muestra desvío por cubo"
@@ -575,7 +575,7 @@
         "npm run e2e -- torre"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: torre e2e 4/4 OK dos corridas (nivel 1 mano derecha e izquierda con desvío por cubo y /sensacion; bajar el cubo hasta meterlo en la torre y soltarlo sin caida; práctica libre con rearmado y Reiniciar); ejercicios+smoke 33/33 OK; vitest 245/245; tsc y oxlint sin errores; dueno --cambios OK. Revisión PR #19: piso de altura del cubo sostenido y al soltar, meta 0 = práctica libre, nivel 4 y fórmulas en cm de la escena (aprox.). fps 37-39 con física.",
       "owner": "P3",
       "rama_inicio": "linea-I"
     },
