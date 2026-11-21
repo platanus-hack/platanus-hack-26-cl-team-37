@@ -1,5 +1,9 @@
 /* F16 · Pantallas del terapeuta (pacientes, alertas, planes, informes). */
+/* F38: entrada a Comparar sesiones bajo cada paciente */
+.ter-comparar { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; margin: 4px 0 0 4px; border-radius: var(--pildora); background: var(--tarjeta); color: var(--tinta); font-size: 15px; font-weight: 600; text-decoration: none; }
 .terapeuta .ter-avatar { width: 56px; height: 56px; font-size: 18px; }
+/* F34: salir del panel (mín. 44 px de toque, sin estirarse a lo ancho) */
+.terapeuta .ter-salir { width: auto; min-height: 44px; padding: 0 14px; margin-right: 10px; gap: 6px; flex: none; }
 .ter-indicadores .tarjeta { padding: 14px 16px; }
 .ter-cifra { font-family: var(--titulos); font-weight: 800; font-size: 28px; line-height: 1.1; }
 .ter-cifra.alerta { color: var(--alerta); }
