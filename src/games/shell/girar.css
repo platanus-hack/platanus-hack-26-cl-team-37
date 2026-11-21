@@ -1,0 +1,38 @@
+/* "Gira tu teléfono" (GiraTelefono en Hud.tsx): teléfono animado que gira de vertical a horizontal.
+   Agrega estilos propios; .juego-girar base sigue en src/index.css y src/pwa.css. */
+.juego-girar .juego-girar-texto { max-width: 320px; color: var(--texto-2); }
+.juego-girar .juego-girar-texto strong { color: var(--texto); }
+.juego-girar .juego-girar-ayuda { max-width: 300px; }
+
+.girar-anim { overflow: visible; }
+.girar-cuerpo { fill: rgba(255, 255, 255, 0.06); stroke: var(--texto); }
+.girar-pantalla { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+.girar-camara { fill: var(--texto); }
+.girar-flecha { stroke: var(--acento); opacity: 0; }
+
+.girar-telefono { transform-box: view-box; transform-origin: 60px 62px; animation: girar-telefono 2.6s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
+.girar-flecha { animation: girar-flecha 2.6s ease-in-out infinite; }
+
+@keyframes girar-telefono {
+  0%, 22% { transform: rotate(0deg); }
+  55%, 88% { transform: rotate(90deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes girar-flecha {
+  0%, 10% { opacity: 0; }
+  22%, 50% { opacity: 1; }
+  62%, 100% { opacity: 0; }
+}
+/* La pantalla se ilumina cuando el teléfono queda horizontal: "así está bien". */
+.girar-pantalla { animation: girar-pantalla 2.6s ease-in-out infinite; }
+@keyframes girar-pantalla {
+  0%, 50% { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+  60%, 85% { fill: var(--exito); }
+  100% { fill: var(--acento-tenue, rgba(255, 200, 61, 0.18)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .girar-telefono, .girar-flecha, .girar-pantalla { animation: none; }
+  .girar-telefono { transform: rotate(90deg); }
+  .girar-flecha { opacity: 1; }
+}

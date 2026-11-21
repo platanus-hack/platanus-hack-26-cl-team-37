@@ -97,11 +97,15 @@ test.describe('Piano de dedos', () => {
       // Botón de sonido: existe, se puede silenciar y volver a activar (sin depender del audio).
       const sonido = page.getByTestId('piano-silencio')
       await expect(sonido).toBeVisible()
-      await sonido.click()
+      // Si el contexto de audio aún no corría, el primer toque solo lo desbloquea (iOS): se toca hasta que silencie.
+      for (let i = 0; i < 4 && !(await estado(page)).silencio; i++) {
+        await sonido.click()
+        await page.waitForTimeout(200)
+      }
       await expect(sonido).toHaveAttribute('aria-pressed', 'true')
       expect((await estado(page)).silencio).toBe(true)
       await sonido.click()
-      await expect(sonido).toHaveAttribute('aria-pressed', 'false')
+      await expect.poll(async () => (await estado(page)).silencio).toBe(false)
 
       // Nota 1: solo el dedo pedido → acierto.
       const d1 = await notaAbierta(page, 'derecha')

@@ -165,7 +165,15 @@ test.describe('preparar la sesión', () => {
     await page.getByRole('button', { name: 'Reintentar' }).click()
     await expect(comenzar(page)).toBeVisible()
 
-    for (const ruta of ['/sesion/no-existe/preparar', '/sesion/torre-cubos/preparar']) {
+    // El juego "Próximamente" se toma del catálogo (registro de juegos): al habilitar uno nuevo esta prueba no se rompe
+    // (antes era torre-cubos fijo). Si ya no queda ninguno, solo se prueba el inexistente.
+    await page.goto('/ejercicios')
+    await expect(page.locator('[data-juego]').first()).toBeVisible()
+    const noDisponibles = page.locator('[data-juego][data-disponible="false"]')
+    const proximamente = (await noDisponibles.count()) ? await noDisponibles.first().getAttribute('data-juego') : null
+    if (!proximamente) test.info().annotations.push({ type: 'aviso', description: 'sin juegos Próximamente en el catálogo: solo se prueba el inexistente' })
+    const rutas = ['/sesion/no-existe/preparar', ...(proximamente ? [`/sesion/${proximamente}/preparar`] : [])]
+    for (const ruta of rutas) {
       await page.goto(ruta)
       await expect(page.getByText('Este ejercicio no está disponible')).toBeVisible()
       await expect(comenzar(page)).toHaveCount(0)

@@ -23,6 +23,25 @@ Qué hiciste, qué probaste y qué quedó pendiente. Agrega al final; un bloque 
 - Qué: `e2e` corre en cada PR y push en paralelo (candado por rama), con 1 worker y sin las pruebas del paciente de prueba; `e2e-compartidas` (csp, flujo-paciente, historial, privacidad, sensacion y sin conexión) corre solo al unir a `dev`, una a la vez. Los deploys solo exigen `verificar`: los e2e se ven en rojo pero no frenan. Token de Vercel por ambiente: `VERCEL_DEV_TOKEN` para desarrollo (si falta, usa `VERCEL_TOKEN`) y `VERCEL_TOKEN` para producción.
 - Pendiente: cargar `VERCEL_DEV_TOKEN` y `VERCEL_TOKEN`; pedir a P2 que el mínimo de fps de `caja`, `movilidad` y `shell` sea configurable en la CI, y que revise `caja.spec` (inestable).
 
+## 2026-11-21 · Sistema de diseño «Salud» (rama p1/sistema-diseno)
+- Qué: `src/index.css` pasa del tema oscuro con Poppins y cinco acentos al sistema «Salud»: fondo #f4f4f2, tarjetas blancas planas, texto en tinta, botón principal en píldora tinta, amarillo solo de relleno (lo hecho, la pestaña actual con píldora suave, «Siguiente»), rojo solo para dolor y alertas, cifras en Archivo 300 (`src/ui/fuentes/archivo-latin.woff2`, OFL, desde `@fontsource-variable/archivo` 5.3.0). Los tokens viejos (`--texto`, `--acento`, `--exito`…) quedan como alias de los nuevos, así que cada pantalla cambia sin tocar su código; `.juego` y `.calibrar` redefinen los alias a sus valores oscuros (la escena 3D sigue oscura). Sin mayúsculas espaciadas, sin vidrio en la barra inferior, sin degradado en la barra de acción. Inicio sin 👋 ni 🔥; textos amarillos de historial, progreso y privacidad pasan a tinta.
+- Pruebas: `bash init.sh` → INIT OK; e2e inicio, acceso, progreso, historial y shell (35 pasan; las 3 que fallaron en la primera corrida eran por falta de `.env.secrets` en el worktree y pasan con él); `e2e:offline` del manifest (ahora comprueba que Archivo carga). Capturas 390×844 recapturadas: acceso, inicio, ejercicios, preparar, progreso, historial, privacidad, registro, resumen, sensación, calibración y juego (844×390).
+- Pendiente (de otros roles): `Sensacion.tsx` (P2) conserva 🎉 y «¡Sesión completada!»; `index.html` y `vite.config.ts` (sin dueño) siguen con `theme-color` #0f1720, que ahora debería ser #f4f4f2 (la prueba offline lo verifica: cambiar ambos juntos); la barra del paciente tiene 5 pestañas y el sistema pide 4 como máximo; la escala de dolor sigue como deslizador (el sistema propone 11 casillas, cambio de P2).
+
+## 2026-11-21 · Sistema de diseño aplicado a Inicio (PR #27)
+- El PR #27 solo recoloreaba la app (tokens): Inicio seguía con la estructura vieja (anillo "Plan de hoy", Racha, Adherencia, puntos). Ahora sigue el artefacto «Design System»: encabezado con marca y avatar, título de una línea, **arco de la semana** (un tramo por sesión indicada, cifra fina adentro, días debajo), tarjeta **Ahora** con la escena real del juego, lista de hoy con miniaturas y ✓, la cita como nota y una sola acción (Empezar, píldora tinta).
+- Piezas nuevas en `src/ui/salud.tsx` y `src/ui/salud.css`; escenas del artefacto en `src/ui/escenas/` (caja, pinza, movilidad).
+- Pruebas: `npm run verify` (284 unitarias); e2e `inicio` y `smoke` 34/34 contra la base de desarrollo (inicio.spec ajustado: arco en vez de racha y adherencia, tarjeta Ahora en vez de "Siguiente").
+- Pendiente: Ejercicios, Progreso, Historial, Privacidad, Acceso y Perfil (P1); Sensación con la escala de dolor, Resumen, terapeuta y la capa del juego (P2/P3).
+
+## 2026-11-21 · Sistema de diseño en las demás pantallas de P1 (PR #27)
+- **Ejercicios:** una tarjeta blanca con una fila por juego (no grilla de tarjetas iguales), la escena real como miniatura cuando el juego la tiene, "Asignado" y "Próximamente" escritos sin insignias de color.
+- **Historial:** los registros pasan a filas dentro de una sola tarjeta; meta cumplida en relleno amarillo y meta no alcanzada neutra (el rojo queda solo para dolor); fecha en cifras, sin tipografía monoespaciada.
+- **Privacidad:** ajustes dentro de una tarjeta, consentimiento como tarjeta plana con su estado escrito, escudo en tinta; el botón de peligro pasa a secundario (`src/ui/salud.css`).
+- **Progreso:** cifras en Archivo fino, sin pesos 700.
+- **Común:** encabezado de pantallas internas con volver arriba y título de 30 px debajo (`Encabezado`, `src/ui/piezas.tsx`); título de pantalla de una línea en 30 px.
+- Pendiente: Perfil (sigue "En construcción", es F19 de P2) y las pantallas de P2/P3 (sensación con escala de dolor, resumen, terapeuta, capa del juego). Escenas para los juegos nuevos.
+
 ## 2026-11-21 · Acceso centrado en computador (rama p1/acceso-ancho)
 - Revisión visual de https://manoviva-dev.vercel.app: en computador `/acceso` se estiraba a todo el ancho (1440 px) mientras el resto de la app usa la columna de 520 px. Causa: `SoloPublica` devolvía `<Outlet/>` sin el contenedor `.app`. Ahora lo envuelve.
 - Pruebas: tipos, lint y 284 unitarias; mirado en 1440×900 (columna centrada) y 375×812 (sin cambios); "Entrar con cuenta demo" llega a `/inicio`; consola sin errores.
