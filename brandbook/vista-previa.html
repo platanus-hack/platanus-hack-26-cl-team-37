@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Kuwü · Brandbook · Vista previa</title>
 <link rel="stylesheet" href="paleta.css" />
+<link rel="stylesheet" href="primitivas.css" />
 <style>
   @font-face { font-family: 'Nunito'; src: url('tipografia/Nunito[wght].ttf') format('truetype'); font-weight: 200 1000; }
   * { box-sizing: border-box; }
@@ -22,6 +23,11 @@
   .color { border-radius: 18px; padding: 70px 12px 10px; border: 1.5px solid #24283b1a; font-size: 13px; font-weight: 700; }
   .tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
   @media (max-width: 600px) { .envoltura { padding: 24px 16px 40px; } }
+  .muestras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+  .muestra { border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; border: 1.5px solid #24283b1a; }
+  .muestra h3 { margin: 0; font-size: 14px; font-weight: 800; }
+  .muestra.kuwu-noche { background: var(--kuwu-noche); color: var(--kuwu-crema); }
+  .fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .tipo { background: var(--kuwu-blanco); border-radius: 20px; padding: 18px 20px; border: 1.5px solid #24283b1a; }
 </style>
 </head>
@@ -73,6 +79,36 @@
   <div class="paleta" id="paleta"></div>
   <h2>Derivados (neutros, avisos y tema de cámara)</h2>
   <div class="paleta" id="derivados"></div>
+
+  <h2>Primitivas (primitivas.css)</h2>
+  <div class="muestras">
+    <div class="muestra ">
+      <h3>Tema claro (por defecto)</h3>
+      <button class="boton primario bloque">Empezar</button>
+      <div class="fila"><button class="boton secundario">Secundario</button><button class="boton peligro">Borrar datos</button></div>
+      <div class="fila"><button class="boton primario chico">Chico</button><button class="boton primario chico" disabled>Deshabilitado</button><button class="boton texto">Texto</button><button class="boton-icono" aria-label="Atrás">‹</button></div>
+      <div class="segmentos" role="tablist" aria-label="Período"><button role="tab" aria-selected="false">7 días</button><button role="tab" aria-selected="true">4 semanas</button><button role="tab" aria-selected="false">Todo</button></div>
+      <div class="chips" role="group" aria-label="Gesto"><button class="chip" aria-pressed="true">Todos</button><button class="chip" aria-pressed="false">Pinza</button><button class="chip" aria-pressed="false">Agarre</button></div>
+      <div class="campo"><label for="c-claro">Correo</label><input id="c-claro" class="entrada" placeholder="nombre@correo.cl" /><p class="ayuda-campo">Texto de ayuda.</p></div>
+      <div class="campo"><label for="e-claro">Código de la clínica</label><input id="e-claro" class="entrada entrada-codigo" value="CRM-48" aria-invalid="true" /><p class="error-campo">El código tiene 4 cifras.</p></div>
+      <label class="fila"><span>Recordatorios</span><span class="interruptor"><input type="checkbox" role="switch" checked /><span class="pista"></span></span></label>
+      <label class="fila"><span>Apagado</span><span class="interruptor"><input type="checkbox" role="switch" /><span class="pista"></span></span></label>
+      <label class="fila"><span>Deshabilitado</span><span class="interruptor"><input type="checkbox" role="switch" disabled /><span class="pista"></span></span></label>
+    </div>
+    <div class="muestra kuwu-noche">
+      <h3>Tema noche (.kuwu-noche: cámara y juego)</h3>
+      <button class="boton primario bloque">Empezar</button>
+      <div class="fila"><button class="boton secundario">Secundario</button><button class="boton peligro">Borrar datos</button></div>
+      <div class="fila"><button class="boton primario chico">Chico</button><button class="boton primario chico" disabled>Deshabilitado</button><button class="boton texto">Texto</button><button class="boton-icono" aria-label="Atrás">‹</button></div>
+      <div class="segmentos" role="tablist" aria-label="Período"><button role="tab" aria-selected="false">7 días</button><button role="tab" aria-selected="true">4 semanas</button><button role="tab" aria-selected="false">Todo</button></div>
+      <div class="chips" role="group" aria-label="Gesto"><button class="chip" aria-pressed="true">Todos</button><button class="chip" aria-pressed="false">Pinza</button><button class="chip" aria-pressed="false">Agarre</button></div>
+      <div class="campo"><label for="c-kuwu-noche">Correo</label><input id="c-kuwu-noche" class="entrada" placeholder="nombre@correo.cl" /><p class="ayuda-campo">Texto de ayuda.</p></div>
+      <div class="campo"><label for="e-kuwu-noche">Código de la clínica</label><input id="e-kuwu-noche" class="entrada entrada-codigo" value="CRM-48" aria-invalid="true" /><p class="error-campo">El código tiene 4 cifras.</p></div>
+      <label class="fila"><span>Recordatorios</span><span class="interruptor"><input type="checkbox" role="switch" checked /><span class="pista"></span></span></label>
+      <label class="fila"><span>Apagado</span><span class="interruptor"><input type="checkbox" role="switch" /><span class="pista"></span></span></label>
+      <label class="fila"><span>Deshabilitado</span><span class="interruptor"><input type="checkbox" role="switch" disabled /><span class="pista"></span></span></label>
+    </div>
+  </div>
 
   <h2>Tipografía</h2>
   <div class="tipos">

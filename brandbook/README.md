@@ -119,3 +119,25 @@ node brandbook/herramientas/exportar_png.mjs
 ```
 
 Después se copian a `public/iconos/` (`icono-512.png` también como `icono-maskable-512.png`, `apple-touch-icon-180.png` como `apple-touch-icon.png`). Revísalos en `vista-previa.html`.
+
+## 7. Primitivas de interfaz (`primitivas.css`)
+
+Botones, pestañas, campos e interruptores. Es la **única** definición de estos controles: las pantallas usan estas clases y no les cambian colores, letra, alto ni radio (sí pueden ajustar márgenes y ancho). Si hace falta otra variante, se agrega aquí y en `vista-previa.html`. Requiere `paleta.css` y Nunito; en la app se importan en `src/main.tsx`.
+
+| Control | Marcado | Variantes y estados |
+|---|---|---|
+| Botón | `<button class="boton primario">` | `primario` (una acción principal por pantalla) · `secundario` · `peligro` (borra o cancela algo que no se recupera) · `texto` · tamaño `chico` (48 px) · `bloque` · `:disabled` |
+| Botón de ícono | `<button class="boton-icono" aria-label="…">` | 48 × 48, redondo |
+| Pestañas | `<div class="segmentos" role="tablist">` con `<button role="tab" aria-selected>` | Para elegir un valor sin cambiar de panel: `role="group"` y `aria-pressed` |
+| Chips (filtros) | `<div class="chips" role="group">` con `<button class="chip" aria-pressed>` | `.chips.en-tarjeta` cuando van sobre una tarjeta blanca |
+| Campo | `<div class="campo"><label>…</label><input class="entrada">` | `textarea` / `select` con `.entrada` · `aria-invalid="true"` + `.error-campo` · `.ayuda-campo` · `.entrada-codigo` · `:disabled` |
+| Interruptor | `<span class="interruptor"><input type="checkbox" role="switch"><span class="pista"></span></span>` | encendido, apagado, deshabilitado; el foco se dibuja en la pista |
+
+**Medidas:** alto 56 px para botones y campos; área táctil mínima 48 px; botones, chips y pestañas en píldora; campos con radio 14 px. Letra Nunito: 800 en botones, 600 en pestañas, chips y rótulos, 400 en lo que se escribe.
+
+**Temas:** los controles usan los tokens `--kw-*` del propio archivo. Por defecto es el tema claro (sobre crema o blanco). Dentro de `.kuwu-noche` (en la app: juego y calibración) pasan a marino con texto crema, y el rojo pastel reemplaza a la alerta.
+
+**Catálogo vivo:** en la app, la ruta oculta `/primitivas` (no enlazada, no pide cuenta) muestra todos los controles y estados, interactivos, en los dos temas. Revísala al cambiar este archivo.
+
+**Foco:** todos los controles muestran un contorno de 2 px en tinta con `:focus-visible`. Con `prefers-reduced-motion` no hay transiciones.
+

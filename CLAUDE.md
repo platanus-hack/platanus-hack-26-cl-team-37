@@ -47,6 +47,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 
 El [brandbook](brandbook/README.md) es obligatorio para toda UI y front end:
 - **Colores:** solo los de `brandbook/paleta.css` (base y derivados). En CSS se usan los tokens de `src/index.css` (`--fondo`, `--tinta`, `--alerta`…), que apuntan a `--kuwu-*`; en lienzos y three.js, `src/ui/paleta.ts` (`KUWU`, `kuwuAlfa`, `kuwuNum`). Nada de hex sueltos; transparencias con `color-mix()` sobre un color de la paleta. Si falta un color, se agrega en `brandbook/herramientas/generar_brandbook.py`, se regenera y recién ahí se usa.
+- **Controles:** botones, pestañas, chips, campos e interruptores salen de `brandbook/primitivas.css` (README §7): se usan sus clases y variantes, sin cambiarles colores, letra, alto ni radio desde las pantallas. Si falta una variante, se agrega ahí. Para revisarlos, la ruta oculta `/primitivas`. Las zonas oscuras (cámara, juego) llevan la clase `kuwu-noche`.
 - **Tipografía:** Nunito (`--letra`; en lienzos `fuenteKuwu()`), también para cifras.
 - **Logo e íconos:** los SVG de `brandbook/logos/` y `brandbook/iconos/` en la variante que corresponde al fondo, sin recolorear.
 - Excepciones: un componente cuyo estilo el brandbook no define, y el color natural de los objetos de las escenas 3D (fruta, madera, cubos). Los acentos de interfaz dentro del juego sí usan la paleta.

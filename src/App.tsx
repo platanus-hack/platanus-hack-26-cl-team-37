@@ -26,6 +26,7 @@ const Alertas = lazy(() => import('./screens/terapeuta/Alertas'))
 const Planes = lazy(() => import('./screens/terapeuta/Planes'))
 const Informes = lazy(() => import('./screens/terapeuta/Informes'))
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
+const Primitivas = lazy(() => import('./screens/primitivas/Primitivas'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
 
 export default function App() {
@@ -35,6 +36,8 @@ export default function App() {
         <Suspense fallback={<PantallaCargando />}>
           <Routes>
             <Route path="/" element={<AlInicio />} />
+            {/* Vista oculta (no enlazada): catálogo de brandbook/primitivas.css. Pública para revisarla sin cuenta. */}
+            <Route path="/primitivas" element={<Primitivas />} />
             <Route element={<SoloPublica />}>
               <Route path="/acceso" element={<Acceso />} />
             </Route>

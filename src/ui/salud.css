@@ -60,7 +60,6 @@
 }
 
 /* ——— Un enlace con forma de botón no se subraya ——— */
-a.boton { text-decoration: none; }
 
 /* ——— Catálogo de ejercicios: una tarjeta, una fila por juego ——— */
 .catalogo { padding: 4px 20px; }
@@ -88,9 +87,6 @@ a.boton { text-decoration: none; }
 .encabezado.con-atras > :not(.boton-icono):not(.textos) { grid-area: derecha; }
 .encabezado .textos h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }
 .encabezado .subtitulo { color: var(--suave); font-size: 15px; margin-top: 4px; }
-
-/* ——— Botón de peligro: pasa a secundario; el texto dice qué se borra (Del repo actual) ——— */
-.boton.peligro { background: var(--tarjeta); color: var(--tinta); border: 1.5px solid var(--control); }
 
 /* ——— Título de pantalla: una línea, 30 px, 600 ——— */
 .pantalla > h1, .pantalla > header > h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }

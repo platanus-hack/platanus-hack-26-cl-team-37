@@ -1,0 +1,204 @@
+/* Primitivas de interfaz de Kuwü: botones, pestañas, campos e interruptores.
+   Requiere paleta.css (colores --kuwu-*) y la fuente Nunito. Es la única definición de estos controles: las pantallas
+   usan estas clases y no les cambian colores, letra, alto ni radio. Si un control necesita otra variante, se agrega aquí.
+   Ver README.md §7 y vista-previa.html. */
+
+/* ———————————————————————————————————————— Tema
+   Los controles no usan --kuwu-* directo, sino estos tokens de tema. Claro por defecto; .kuwu-noche (cámara y juego)
+   los cambia para leerse sobre marino. Solo colores de la paleta. */
+:root,
+.kuwu-claro {
+  --kw-superficie: var(--kuwu-blanco); /* fondo de controles sobre crema */
+  --kw-tinta: var(--kuwu-marino); /* texto, botón principal, opción elegida, foco */
+  --kw-sobre-tinta: var(--kuwu-crema); /* texto sobre --kw-tinta */
+  --kw-suave: var(--kuwu-suave); /* texto secundario: rótulos, opciones no elegidas */
+  --kw-tenue: var(--kuwu-tenue); /* textos de ejemplo (placeholder) */
+  --kw-control: var(--kuwu-control); /* bordes de campos y botón secundario, interruptor apagado */
+  --kw-pista: var(--kuwu-pista); /* botón deshabilitado */
+  --kw-alerta: var(--kuwu-alerta); /* borde de error y de peligro */
+  --kw-alerta-texto: var(--kuwu-alerta-texto); /* texto de error y de peligro */
+  --kw-alerta-fondo: var(--kuwu-alerta-fondo); /* fondo de un campo con error */
+  --kw-letra: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --kw-alto: 56px; /* alto de botones y campos */
+  --kw-toque: 48px; /* área táctil mínima (chips, pestañas, botón chico, botón de ícono) */
+  --kw-radio-campo: 14px;
+  --kw-pildora: 999px;
+}
+
+.kuwu-noche {
+  --kw-superficie: var(--kuwu-marino);
+  --kw-tinta: var(--kuwu-crema);
+  --kw-sobre-tinta: var(--kuwu-marino);
+  --kw-suave: var(--kuwu-noche-texto-2);
+  --kw-tenue: var(--kuwu-noche-texto-2);
+  --kw-control: var(--kuwu-noche-texto-2);
+  --kw-pista: var(--kuwu-noche-borde);
+  --kw-alerta: var(--kuwu-rojo);
+  --kw-alerta-texto: var(--kuwu-rojo);
+  --kw-alerta-fondo: color-mix(in srgb, var(--kuwu-rojo) 16%, transparent);
+}
+
+/* ———————————————————————————————————————— Botones
+   <button class="boton primario">  · una acción principal por pantalla
+   .secundario · .peligro (borra o cancela algo que no se recupera) · .texto (acción menor, subrayada)
+   Tamaño: .chico (48 px) · .bloque (ancho completo). Ícono solo: <button class="boton-icono" aria-label="…"> */
+.boton {
+  min-height: var(--kw-alto);
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--kw-pildora);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 800 17px / 1.2 var(--kw-letra);
+  text-decoration: none;
+  cursor: pointer;
+  transition: scale 0.12s cubic-bezier(0.2, 0, 0, 1);
+}
+.boton:active:not(:disabled) { scale: 0.97; }
+.boton:disabled { cursor: not-allowed; }
+.boton.primario { background: var(--kw-tinta); color: var(--kw-sobre-tinta); }
+.boton.secundario { background: var(--kw-superficie); color: var(--kw-tinta); border: 1.5px solid var(--kw-control); }
+.boton.peligro { background: var(--kw-superficie); color: var(--kw-alerta-texto); border: 1.5px solid var(--kw-alerta); }
+.boton.texto { min-height: var(--kw-toque); padding: 0 6px; background: none; color: var(--kw-tinta); font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; }
+.boton.primario:disabled,
+.boton.secundario:disabled,
+.boton.peligro:disabled { background: var(--kw-pista); color: var(--kw-suave); border-color: transparent; }
+.boton.texto:disabled { color: var(--kw-suave); }
+.boton.chico { min-height: var(--kw-toque); padding: 0 14px; font-size: 14px; }
+.boton.bloque { width: 100%; }
+
+.boton-icono {
+  width: var(--kw-toque);
+  height: var(--kw-toque);
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kw-superficie);
+  color: var(--kw-tinta);
+  cursor: pointer;
+}
+.boton-icono:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ———————————————————————————————————————— Pestañas
+   Control segmentado (opciones de igual ancho, una elegida):
+     <div class="segmentos" role="tablist"><button role="tab" aria-selected="true">…</button>…</div>  · cambia de panel
+     <div class="segmentos" role="group"><button aria-pressed="true">…</button>…</div>               · elige un valor
+   Chips (filtros, se desplazan si no caben): <div class="chips" role="group"><button class="chip" aria-pressed>…</button></div> */
+.segmentos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--kw-pildora);
+  background: var(--kw-superficie);
+}
+.segmentos > button {
+  min-height: var(--kw-toque);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--kw-pildora);
+  background: transparent;
+  color: var(--kw-suave);
+  font: 600 16px / 1.2 var(--kw-letra);
+  cursor: pointer;
+}
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Sobre una tarjeta blanca el chip blanco no se ve: .chips.en-tarjeta los pone sobre pista. */
+.chip {
+  min-height: var(--kw-toque);
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--kw-pildora);
+  background: var(--kw-superficie);
+  color: var(--kw-suave);
+  font: 600 15px / 1.2 var(--kw-letra);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segmentos > button[aria-pressed='true'],
+.segmentos > button[aria-selected='true'],
+.chip[aria-pressed='true'],
+.chip[aria-selected='true'],
+.chip.activo { background: var(--kw-tinta); color: var(--kw-sobre-tinta); }
+.chips.en-tarjeta > .chip:not([aria-pressed='true']):not([aria-selected='true']):not(.activo) { background: var(--kw-pista); }
+.segmentos > button:disabled,
+.chip:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ———————————————————————————————————————— Campos
+   <div class="campo">
+     <label for="x">Correo</label>
+     <input id="x" class="entrada" aria-invalid="false" aria-describedby="x-ayuda" />
+     <p id="x-ayuda" class="ayuda-campo">…</p>  · o <p class="error-campo">…</p> con aria-invalid="true"
+   </div>
+   También <textarea class="entrada"> y <select class="entrada">. Códigos: .entrada.entrada-codigo */
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo label,
+.campo .rotulo { color: var(--kw-suave); font: 600 15px / 1.3 var(--kw-letra); }
+.entrada {
+  width: 100%;
+  min-height: var(--kw-alto);
+  padding: 0 14px;
+  border: 1.5px solid var(--kw-control);
+  border-radius: var(--kw-radio-campo);
+  background: var(--kw-superficie);
+  color: var(--kw-tinta);
+  font: 400 17px / 1.3 var(--kw-letra);
+}
+.entrada::placeholder { color: var(--kw-tenue); opacity: 1; }
+.entrada:focus { outline: none; border-color: var(--kw-tinta); box-shadow: 0 0 0 1px var(--kw-tinta); }
+.entrada[aria-invalid='true'] { border-color: var(--kw-alerta); background: var(--kw-alerta-fondo); }
+.entrada[aria-invalid='true']:focus { box-shadow: 0 0 0 1px var(--kw-alerta); }
+.entrada:disabled { background: var(--kw-pista); color: var(--kw-suave); cursor: not-allowed; }
+textarea.entrada { min-height: 90px; padding: 12px 14px; resize: vertical; }
+select.entrada { cursor: pointer; }
+.entrada.entrada-codigo { font-size: 20px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; caret-color: var(--kw-tinta); }
+.entrada.entrada-codigo::placeholder { letter-spacing: 0.18em; }
+.ayuda-campo { margin: 0; color: var(--kw-suave); font: 400 14px / 1.35 var(--kw-letra); }
+.error-campo { margin: 0; color: var(--kw-alerta-texto); font: 600 14px / 1.35 var(--kw-letra); }
+
+/* ———————————————————————————————————————— Interruptor
+   <label class="fila"><span>Recordatorios</span>
+     <span class="interruptor"><input type="checkbox" role="switch" /><span class="pista"></span></span>
+   </label>
+   El input cubre todo el interruptor (área táctil) y es el que recibe el foco; .pista es solo el dibujo. */
+.interruptor { position: relative; display: inline-block; width: 56px; height: 34px; flex: none; }
+.interruptor > input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.interruptor > input:disabled { cursor: not-allowed; }
+.interruptor > .pista { position: absolute; inset: 0; border-radius: var(--kw-pildora); background: var(--kw-control); transition: background 0.12s; }
+.interruptor > .pista::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--kuwu-blanco);
+  transition: transform 0.15s;
+}
+.interruptor > input:checked + .pista { background: var(--kw-tinta); }
+.interruptor > input:checked + .pista::after { transform: translateX(22px); background: var(--kw-sobre-tinta); }
+.interruptor > input:disabled + .pista { opacity: 0.45; }
+/* El input es invisible: el foco se dibuja en la pista. */
+.interruptor > input:focus-visible + .pista { outline: 2px solid var(--kw-tinta); outline-offset: 3px; }
+
+/* ———————————————————————————————————————— Foco (todos los controles) */
+.boton:focus-visible,
+.boton-icono:focus-visible,
+.segmentos > button:focus-visible,
+.chip:focus-visible { outline: 2px solid var(--kw-tinta); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .boton,
+  .interruptor > .pista,
+  .interruptor > .pista::after { transition: none; }
+}
