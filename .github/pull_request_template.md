@@ -6,7 +6,7 @@ Closes #<!-- número del issue -->
 
 ## Rol y carpetas tocadas
 - [ ] P1 · P2 · P3 (marca el tuyo)
-- [ ] Solo toqué carpetas propias (o avisé al dueño: ver `docs/equipo/contratos.md` §7)
+- [ ] Si toqué algo del área de otro rol, le avisé (mapa orientativo: `docs/equipo/contratos.md` §7)
 - [ ] Si toqué un archivo compartido (registry, modulos, Miniatura, sintetica, repos, piezas): solo agregué, no cambié lo existente
 
 ## Verificación
