@@ -127,6 +127,12 @@ describe('medición entre las dos manos', () => {
     expect(palmas).toBeLessThan(22.5)
   })
 
+  it('bajo la zona muerta el estiramiento es 0', () => {
+    expect(estiramiento(20.8, 20)).toBe(0)
+    expect(estiramiento(21.2, 20)).toBeCloseTo(0.06)
+    expect(estiramiento(18, 20)).toBe(0)
+  })
+
   it('el estiramiento del guion queda cerca del 65 % medido por las palmas', () => {
     const reposo = medirBanda(cuadro(banda, T_REPOSO), 'palma')!.largoCm
     const estirada = medirBanda(cuadro(banda, T_ESTIRADA), 'palma')!.largoCm
@@ -188,7 +194,11 @@ describe('medición entre las dos manos', () => {
 })
 
 describe('marcar el reposo', () => {
-  it('promedia un segundo de banda quieta', () => {
+  it('el cero automático pide más quietud que el pedido con el botón', () => {
+    expect(MS_REPOSO_AUTO).toBeGreaterThan(MS_REPOSO)
+  })
+
+  it('promedia la ventana de banda quieta', () => {
     const c = new CapturaReposo()
     let r: number | null = null
     for (let t = 0; t <= MS_REPOSO; t += 100) r = c.agregar(t, 20 + (t % 200 ? 0.2 : -0.2))
@@ -196,7 +206,7 @@ describe('marcar el reposo', () => {
   })
 
   it('con otra ventana espera más y sigue entregando el valor mientras la banda siga quieta', () => {
-    const c = new CapturaReposo(MS_REPOSO_AUTO)
+    const c = new CapturaReposo(1500)
     expect(c.agregar(0, 30)).toBeNull()
     expect(c.agregar(1000, 30)).toBeNull()
     expect(c.agregar(1500, 30)).toBeCloseTo(30)
@@ -211,7 +221,7 @@ describe('marcar el reposo', () => {
   })
 
   it('si la persona se mueve, parte de nuevo', () => {
-    const c = new CapturaReposo()
+    const c = new CapturaReposo(1000)
     expect(c.agregar(0, 20)).toBeNull()
     expect(c.agregar(600, 20)).toBeNull()
     expect(c.agregar(900, 26)).toBeNull()

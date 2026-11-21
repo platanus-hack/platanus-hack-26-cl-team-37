@@ -104,16 +104,35 @@ export function medirBanda(cuadro: CuadroManos, agarre: Agarre): MedidaBanda | n
 export const REPOSO_CORTO_CM = 12
 
 /** Fracción de estiramiento respecto del reposo; 0 si la banda está suelta. */
+/**
+ * Bajo este estiramiento se informa 0: es temblor de la medida y de la mano, no carga. Sin esta zona, con la banda en
+ * reposo se leían kilos (prueba real, 21-nov-2026: «aunque lo dejaba sin ejercer fuerza igual marcaba 2 kg»), porque la
+ * curva del látex es empinada al principio: con la Corength, 5 % de estiramiento ya es cerca de 0,4 kg.
+ */
+export const ZONA_MUERTA = 0.05
+
+/** Fracción de estiramiento respecto del reposo; 0 si la banda está suelta o dentro de la zona muerta. */
 export function estiramiento(largoCm: number, reposoCm: number): number {
-  return reposoCm > 0 ? Math.max(0, largoCm / reposoCm - 1) : 0
+  const e = reposoCm > 0 ? largoCm / reposoCm - 1 : 0
+  return e < ZONA_MUERTA ? 0 : e
 }
+
+/**
+ * Tras este tiempo con la banda «estirada» y quieta (sin subir ni bajar) se pregunta si en realidad está en reposo: es
+ * lo que pasa cuando el reposo quedó marcado con las manos más juntas. No se corrige solo porque también puede ser un
+ * estiramiento sostenido a propósito.
+ */
+export const MS_SOSPECHA_REPOSO = 6000
 
 // ── Marcar el reposo ────────────────────────────────────────────────────────────────────────────────────────────
 
-/** Cuánto hay que sostener la banda quieta para marcar el reposo (ms) y cuánto puede variar el largo (fracción). */
-export const MS_REPOSO = 1000
-/** Sin reposo todavía, se marca solo tras este tiempo quieto: con las dos manos en la banda no se puede tocar un botón. */
-export const MS_REPOSO_AUTO = 1500
+/** «Poner en cero»: promedio de este tiempo de medida (ms), casi al instante, como la tara de una balanza. */
+export const MS_REPOSO = 400
+/**
+ * Sin reposo todavía, se marca solo tras este tiempo quieto (con las dos manos en la banda no se puede tocar un botón).
+ * Se pide bastante quietud para no marcarlo mientras las manos todavía se acomodan; si igual queda mal, «Poner en cero».
+ */
+export const MS_REPOSO_AUTO = 2500
 export const VARIACION_REPOSO = 0.06
 /**
  * Si con el reposo ya marcado aparece un largo estable al menos esta fracción más corto, el reposo se había marcado

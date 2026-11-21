@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, PALMA_MIN, REPOSO_CORTO_CM, ToleranciaPerdida, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, MS_SOSPECHA_REPOSO, PALMA_MIN, REPOSO_CORTO_CM, ToleranciaPerdida, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
@@ -37,8 +37,10 @@ interface Vista {
   grabandoMs: number | null
   /** Hace rato que no se ven las dos manos: decir qué revisar (luz, encuadre). */
   sinManos: boolean
+  /** La banda lleva rato «estirada» y quieta: quizá está en reposo y el cero quedó mal. */
+  sospechaReposo: boolean
 }
-const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false }
+const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false, sospechaReposo: false }
 /**
  * Se dice qué revisar tras este tiempo sin ver las dos manos y con al menos estos cuadros procesados. Se piden los dos:
  * al iniciar, MediaPipe puede congelar la página varios segundos (Chromium sin GPU: unos 5 s) y ese tiempo no cuenta.
@@ -64,7 +66,8 @@ function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, r
   if (v.medida && v.medida.palma < PALMA_MIN) return 'Acércate al teléfono: las manos se ven pequeñas y se miden peor.'
   if (v.medida && v.medida.desnivel > DESNIVEL_MAX) return 'Pon las dos manos a la misma distancia del teléfono.'
   if (capturando || (reposoCm == null && v.progresoReposo > 0.25)) return 'Quieto un segundo…'
-  if (reposoCm == null) return 'Sostén la banda tensa, sin estirar, y quédate quieto: el reposo se marca solo.'
+  if (reposoCm == null) return 'Sostén la banda recta, sin estirarla, y quédate quieto: el cero se marca solo.'
+  if (v.sospechaReposo) return '¿Estás en reposo? Si no estás estirando, toca «Poner en cero».'
   return 'Estira despacio y vuelve. Cada ida y vuelta cuenta una repetición.'
 }
 
@@ -151,8 +154,13 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     let t0Grabacion: number | null = null
     let estabaCapturando = false
     let sinManosDesde: number | null = null
+    // Para sospechar un cero mal puesto: la banda «estirada» y quieta (dentro de ±4 %) por mucho rato.
+    const quietaEstirada = new CapturaReposo(MS_SOSPECHA_REPOSO)
+    let sospecha = false
     let cuadrosSinManos = 0
     const fijarReposo = (cm: number, cfg: typeof config.current) => {
+      quietaEstirada.cortar()
+      sospecha = false
       // Se actualiza al tiro para los cuadros que lleguen antes del próximo render.
       config.current = { ...cfg, reposoCm: cm, capturando: false }
       captura.cortar()
@@ -213,6 +221,11 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
           contador.current.agregar(c.t, medida.largoCm, cfg.reposoCm, cfg.curva)
           e = estiramiento(medida.largoCm, cfg.reposoCm)
           trazo.push({ t: c.t, kg: cargaEn(cfg.curva, e).kg })
+          if (e > 0) sospecha = quietaEstirada.agregar(c.t, medida.largoCm) != null
+          else {
+            quietaEstirada.cortar()
+            sospecha = false
+          }
         }
       }
       trazo = trazo.filter((p) => c.t - p.t <= MS_TRAZO)
@@ -227,6 +240,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         estirando: contador.current.estirando,
         trazo: [...trazo],
         grabandoMs: g && t0Grabacion != null ? c.t - t0Grabacion : null,
+        sospechaReposo: sospecha,
         sinManos: sinManosDesde != null && c.t - sinManosDesde > MS_AYUDA_SIN_MANOS && cuadrosSinManos >= CUADROS_AYUDA_SIN_MANOS,
       })
     })
@@ -411,8 +425,8 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
               Cancelar
             </button>
           ) : (
-            <button type="button" className="boton primario" disabled={vista.manos < 2} onClick={() => setCapturando(true)}>
-              {reposoCm == null ? 'Marcar reposo' : 'Volver a marcar reposo'}
+            <button type="button" className={`boton ${vista.sospechaReposo ? 'primario' : reposoCm == null ? 'primario' : 'secundario'}`} disabled={vista.manos < 2} onClick={() => setCapturando(true)}>
+              Poner en cero
             </button>
           )}
         </section>

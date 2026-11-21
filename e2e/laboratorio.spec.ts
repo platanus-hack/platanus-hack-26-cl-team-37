@@ -23,7 +23,7 @@ test('marca el reposo, mide el estiramiento y cuenta repeticiones', async ({ pag
   // Con la banda quieta el reposo se marca solo (las manos están ocupadas con la banda).
   await expect(texto(page, 'reposo')).toHaveText(/\d+ cm/, { timeout: 10_000 })
   await expect(texto(page, 'indicacion')).toHaveText(/Estira despacio/)
-  await expect(page.getByRole('button', { name: 'Volver a marcar reposo' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Poner en cero' })).toBeVisible()
 
   // Una ida y vuelta completa cuenta una repetición, con un pico de carga sobre cero.
   await expect(texto(page, 'repeticiones')).toHaveText('1', { timeout: 12_000 })
@@ -35,14 +35,14 @@ test('marca el reposo, mide el estiramiento y cuenta repeticiones', async ({ pag
   v.sinErrores()
 })
 
-test('el reposo se puede volver a marcar con el botón y cancelar', async ({ page }) => {
+test('«Poner en cero» fija el reposo al instante', async ({ page }) => {
   await page.goto(URL_SIMULADA)
   await expect(texto(page, 'reposo')).toHaveText(/\d+ cm/, { timeout: 10_000 })
-  await page.getByRole('button', { name: 'Volver a marcar reposo' }).click()
-  await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible()
-  await page.getByRole('button', { name: 'Cancelar' }).click()
-  await page.getByRole('button', { name: 'Volver a marcar reposo' }).click()
-  await expect(page.getByRole('button', { name: 'Volver a marcar reposo' })).toBeVisible({ timeout: 10_000 })
+  // En reposo el estiramiento informa 0 (zona muerta), no décimas de temblor.
+  await expect(texto(page, 'estiramiento')).toHaveText('0 %', { timeout: 8_000 })
+  await page.getByRole('button', { name: 'Poner en cero' }).click()
+  await expect(page.getByRole('button', { name: 'Poner en cero' })).toBeVisible({ timeout: 3_000 })
+  await expect(texto(page, 'reposo')).toHaveText(/\d+ cm/)
 })
 
 test('las tiras escalan la curva y la meta se marca en las repeticiones', async ({ page }) => {
