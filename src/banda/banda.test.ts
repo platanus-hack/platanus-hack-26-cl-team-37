@@ -3,7 +3,7 @@ import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sint
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, PALMA_MIN, alcanzaMeta, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
+import { CapturaReposo, ContadorReps, MS_REPOSO, PALMA_MIN, alcanzaMeta, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -117,20 +117,20 @@ describe('medición entre las dos manos', () => {
 
   it('mide el largo entre los puntos de agarre', () => {
     const m = medirBanda(cuadro(banda, T_REPOSO), 'pinza')!
-    // Las manos están a 0,38 y 0,62 del ancho: 24 % de 640 px a 50 cm con f = 512 px son 15 cm entre palmas; la pinza
-    // queda unos centímetros hacia el pulgar de cada mano, así que el largo real es algo distinto de 15.
-    expect(m.largoCm).toBeGreaterThan(8)
-    expect(m.largoCm).toBeLessThan(22)
+    // Las manos están a 0,33 y 0,67 del ancho: 34 % de 640 px a 50 cm con f = 512 px son 21 cm entre palmas; la pinza
+    // queda unos centímetros hacia el pulgar de cada mano, así que el largo real es algo menor.
+    expect(m.largoCm).toBeGreaterThan(12)
+    expect(m.largoCm).toBeLessThan(24)
     expect(m.desnivel).toBeLessThan(0.02)
     const palmas = medirBanda(cuadro(banda, T_REPOSO), 'palma')!.largoCm
-    expect(palmas).toBeGreaterThan(13.5)
-    expect(palmas).toBeLessThan(16)
+    expect(palmas).toBeGreaterThan(19.5)
+    expect(palmas).toBeLessThan(22.5)
   })
 
-  it('el estiramiento del guion queda cerca del 73 % medido por las palmas', () => {
+  it('el estiramiento del guion queda cerca del 65 % medido por las palmas', () => {
     const reposo = medirBanda(cuadro(banda, T_REPOSO), 'palma')!.largoCm
     const estirada = medirBanda(cuadro(banda, T_ESTIRADA), 'palma')!.largoCm
-    expect(estiramiento(estirada, reposo)).toBeCloseTo(0.42 / 0.24 - 1, 1)
+    expect(estiramiento(estirada, reposo)).toBeCloseTo(0.56 / 0.34 - 1, 1)
   })
 
   it('no depende del lente ni de la distancia al teléfono', () => {
@@ -159,7 +159,7 @@ describe('medición entre las dos manos', () => {
 
   it('avisa cuando una mano se pega al borde de la imagen', () => {
     expect(medirBanda(cuadro(banda, T_REPOSO), 'pinza')!.alBorde).toBe(false)
-    const abierta: GuionSintetico = { manos: banda.manos.map((m, i) => ({ ...m, poses: m.poses.map((p) => ({ ...p, x: i === 0 ? 0.08 : 0.92 })) })) }
+    const abierta: GuionSintetico = { manos: banda.manos.map((m, i) => ({ ...m, poses: m.poses.map((p) => ({ ...p, x: i === 0 ? 0.06 : 0.94 })) })) }
     expect(medirBanda(cuadro(abierta, T_REPOSO), 'pinza')!.alBorde).toBe(true)
     expect(manosAlBorde([])).toBe(false)
   })
@@ -263,6 +263,21 @@ describe('repeticiones', () => {
     // Picos 2 y 3: media 2,5 y desviación 0,5, así que la constancia es 1 − 0,2.
     expect(t.constancia).toBeCloseTo(0.8)
     expect(totales(reps.slice(0, 1)).constancia).toBeNull()
+  })
+
+  it('arma un resumen de la serie para pegar en el chat', () => {
+    const reps = [
+      { picoKg: 2, picoEstiramiento: 0.5, tensionS: 2, trabajoJ: 1, fueraDeRango: false },
+      { picoKg: 3, picoEstiramiento: 0.7, tensionS: 3, trabajoJ: 2, fueraDeRango: false },
+    ]
+    const t = textoResumen(reps, { banda: 'Corength 5 kg', tiras: 2, metaKg: 2.5, reposoCm: 18.4 })
+    expect(t).toContain('Banda: Corength 5 kg, 2 tiras, reposo 18 cm')
+    expect(t).toContain('Repeticiones: 2 (1 llegó a la meta de 2,5 kg)')
+    expect(textoResumen(reps, { banda: 'X', tiras: 1, metaKg: 1, reposoCm: null })).toContain('(2 llegaron a la meta de 1,0 kg)')
+    expect(t).toContain('Constancia entre repeticiones: 80 %')
+    expect(t).toContain('Picos: 2,0 kg (50 %), 3,0 kg (70 %)')
+    expect(t).not.toMatch(/presión/i)
+    expect(textoResumen([], { banda: 'X', tiras: 1, metaKg: null, reposoCm: null })).toContain('Repeticiones: 0')
   })
 
   it('una repetición llega a la meta con una tolerancia chica', () => {

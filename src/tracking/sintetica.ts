@@ -371,14 +371,14 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
         })),
       }
     case 'banda': {
-      // Laboratorio de banda: las dos manos toman la banda en pinza, la sostienen tensa (reposo) y la estiran a los
-      // lados. Reposo ≈ 15 cm entre las manos; estirada ≈ 26 cm (cerca de 75 % de estiramiento).
+      // Laboratorio de banda: las dos manos toman la banda, la sostienen tensa (reposo) y la estiran a los lados.
+      // Palmas a ≈ 21 cm en reposo y ≈ 36 cm estiradas (unos 15 y 30 cm entre los nudillos del índice).
       const pinza: Partial<PoseMano> = { apertura: 0.7, dedos: { indice: 0.5 }, pinzaCm: 0.5 }
       const mano = (l: LadoMano, reposo: number, estirada: number) => ({
         lado: l,
         poses: secuencia([[0, { ...pinza, x: reposo }], [2500, {}], [1200, { x: estirada }], [600, {}], [1200, { x: reposo }], [1000, {}]]),
       })
-      return { manos: [mano('derecha', 0.38, 0.29), mano('izquierda', 0.62, 0.71)] }
+      return { manos: [mano('derecha', 0.33, 0.22), mano('izquierda', 0.67, 0.78)] }
     }
     case 'calibracion': {
       // Los pasos de la calibración (F08): abierta 2,5 s, abrir y cerrar 3 veces, pinza 1,5 s, soltar.

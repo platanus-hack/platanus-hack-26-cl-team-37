@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, PALMA_MIN, REPOSO_CORTO_CM, estiramiento, medirBanda, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, PALMA_MIN, REPOSO_CORTO_CM, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
@@ -192,6 +192,9 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const carga = e == null ? null : cargaEn(curva, e)
   const t = totales(vista.repeticiones, metaKg)
   const fuenteNombre = fuente ? NOMBRE_FUENTE[fuente.tipo] : null
+  // El recuadro toma la proporción del video, así no se recorta lo que mide (en un teléfono vertical el video es 3:4).
+  const proporcion = camara?.ancho && camara?.alto ? `${camara.ancho} / ${camara.alto}` : null
+  const vertical = !!camara?.ancho && !!camara?.alto && camara.alto > camara.ancho
   const grabando = vista.grabandoMs != null
 
   const pasos: { texto: string; estado: EstadoPaso }[] = [
@@ -203,6 +206,14 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const borrarReps = () => {
     contador.current.reiniciar()
     setVista((v) => ({ ...v, repeticiones: [], estirando: false }))
+  }
+  const copiarResumen = async () => {
+    try {
+      await navigator.clipboard.writeText(textoResumen(vista.repeticiones, { banda: base.nombre, tiras, metaKg, reposoCm }))
+      avisar('Resumen copiado')
+    } catch {
+      avisar('No se pudo copiar.', true)
+    }
   }
   const copiarReporte = async () => {
     if (!camara) return
@@ -247,7 +258,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
 
       <div className="lab-grilla">
         <section className="lab-escena" aria-label="Cámara">
-          <div className="lab-camara">
+          <div className={`lab-camara${vertical ? ' vertical' : ''}`} style={proporcion ? { aspectRatio: proporcion } : undefined}>
             <div className="lab-fondo" ref={fondo} />
             <canvas ref={lienzo} className="lab-lienzo" />
             <div className="lab-chips">
@@ -259,6 +270,15 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
                 </span>
               )}
             </div>
+            {reposoCm != null && !capturando && (
+              <div className="lab-hud" data-meta={metaKg && carga && carga.kg >= metaKg * TOLERANCIA_META ? 'si' : undefined} aria-hidden="true">
+                <b>{carga ? num(carga.kg, 1) : '—'}</b>
+                <span>kg aprox.</span>
+                <span className="lab-hud-reps">
+                  {t.n} {t.n === 1 ? 'repetición' : 'repeticiones'}
+                </span>
+              </div>
+            )}
             <p className="lab-indicacion" role="status" data-testid="indicacion">
               {indicacion(estado, error, vista, reposoCm, capturando)}
             </p>
@@ -302,6 +322,15 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
               />
             </span>
           </div>
+          {vertical && (
+            <p className="lab-girar">
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="6" y="2.5" width="8" height="13" rx="1.6" />
+                <path d="M3 13.5a7 7 0 0 0 7 4.5M16.5 6.5a7 7 0 0 0-3-3" />
+              </svg>
+              Gira el teléfono: en horizontal caben mejor las dos manos estiradas.
+            </p>
+          )}
           <p className="lab-privado">Al grabar se guardan solo los 21 puntos de cada mano, nunca el video.</p>
         </section>
 
@@ -324,17 +353,28 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
           {carga?.fueraDeRango && <p className="lab-aviso">Pasaste el último punto de la curva: el valor es una prolongación.</p>}
           {reposoCm != null && reposoCm < REPOSO_CORTO_CM && <p className="lab-aviso">Reposo corto: con las manos más separadas el estiramiento se mide mejor.</p>}
           {reposoCm != null && <Trazo puntos={vista.trazo} ventanaMs={MS_TRAZO} tope={tope} meta={metaKg} />}
-          <button type="button" className="boton primario" disabled={vista.manos < 2 || capturando} onClick={() => setCapturando(true)}>
-            {capturando ? 'Midiendo…' : reposoCm == null ? 'Marcar reposo' : 'Volver a marcar reposo'}
-          </button>
+          {capturando ? (
+            <button type="button" className="boton secundario" onClick={() => setCapturando(false)}>
+              Cancelar
+            </button>
+          ) : (
+            <button type="button" className="boton primario" disabled={vista.manos < 2} onClick={() => setCapturando(true)}>
+              {reposoCm == null ? 'Marcar reposo' : 'Volver a marcar reposo'}
+            </button>
+          )}
         </section>
 
         <section className="tarjeta lab-reps" aria-label="Repeticiones">
           <div className="fila entre">
             <h2>Repeticiones</h2>
-            <button type="button" className="lab-enlace" disabled={t.n === 0} onClick={borrarReps}>
-              Borrar
-            </button>
+            <span className="lab-acciones">
+              <button type="button" className="lab-enlace" disabled={t.n === 0} onClick={copiarResumen}>
+                Copiar
+              </button>
+              <button type="button" className="lab-enlace" disabled={t.n === 0} onClick={borrarReps}>
+                Borrar
+              </button>
+            </span>
           </div>
           <div className="lab-meta">
             <span className="rotulo">Meta por repetición</span>

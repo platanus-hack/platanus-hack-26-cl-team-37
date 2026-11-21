@@ -263,3 +263,22 @@ export function totales(reps: Repeticion[], metaKg: number | null = null): Total
     rapidas: reps.filter((r) => r.tensionS < MIN_S_REP).length,
   }
 }
+
+const n1 = (v: number) => v.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/** Resumen de la serie en texto, para pegarlo en el chat del equipo o en una nota. */
+export function textoResumen(reps: Repeticion[], o: { banda: string; tiras: number; metaKg: number | null; reposoCm: number | null }): string {
+  const t = totales(reps, o.metaKg)
+  const lineas = [
+    `Banda: ${o.banda}, ${o.tiras === 1 ? '1 tira' : `${o.tiras} tiras`}${o.reposoCm ? `, reposo ${Math.round(o.reposoCm)} cm` : ''}`,
+    `Repeticiones: ${t.n}${o.metaKg ? ` (${t.enMeta} ${t.enMeta === 1 ? 'llegó' : 'llegaron'} a la meta de ${n1(o.metaKg)} kg)` : ''}`,
+  ]
+  if (t.n > 0) {
+    lineas.push(`Mejor pico: ${n1(t.mejorKg ?? 0)} kg aprox. · promedio ${n1(t.promedioKg ?? 0)} kg`)
+    if (t.constancia != null) lineas.push(`Constancia entre repeticiones: ${Math.round(t.constancia * 100)} %`)
+    lineas.push(`Tiempo con la banda estirada: ${Math.round(t.tensionS)} s · trabajo ${n1(t.trabajoJ)} J`)
+    lineas.push(`Picos: ${reps.map((r) => `${n1(r.picoKg)} kg (${Math.round(r.picoEstiramiento * 100)} %)`).join(', ')}`)
+  }
+  lineas.push('Estimación de la carga de la banda a partir de su estiramiento (cámara), no medición de fuerza de la persona.')
+  return lineas.join('\n')
+}

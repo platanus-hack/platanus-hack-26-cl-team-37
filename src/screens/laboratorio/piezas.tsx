@@ -29,9 +29,7 @@ export function ArcoCarga({ kg, tope, meta, rotulo }: { kg: number | null; tope:
       <svg viewBox="0 0 210 150" aria-hidden="true">
         <path className="vacio" d={tramo(INICIO, INICIO + BARRIDO)} />
         {lleno > 0.01 && <path className="hecho" d={tramo(INICIO, INICIO + BARRIDO * lleno)} />}
-        {angMeta != null && (
-          <line className="lab-marca-meta" x1={punto(angMeta, 66).x} y1={punto(angMeta, 66).y} x2={punto(angMeta, 94).x} y2={punto(angMeta, 94).y} />
-        )}
+        {angMeta != null && <path className="lab-marca-meta" d={tramo(Math.max(INICIO, angMeta - 1.6), Math.min(INICIO + BARRIDO, angMeta + 1.6))} />}
       </svg>
       <div className="arco-centro" aria-hidden="true">
         <b data-testid="carga">{kg == null ? '—' : num(kg, 1)}</b>

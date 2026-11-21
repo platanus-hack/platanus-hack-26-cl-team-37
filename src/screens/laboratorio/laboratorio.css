@@ -25,11 +25,18 @@
 
 /* ——— Cámara ——— */
 .lab-escena { display: grid; gap: 10px; align-content: start; min-width: 0; }
-.lab-camara { position: relative; overflow: hidden; border-radius: var(--radio); background: #10161c; aspect-ratio: 4 / 3; }
+.lab-camara { position: relative; overflow: hidden; border-radius: var(--radio); background: #10161c; aspect-ratio: 4 / 3; max-height: 72dvh; margin-inline: auto; width: 100%; }
+.lab-camara.vertical { width: auto; height: min(60dvh, 520px); max-width: 100%; }
 .lab-fondo, .lab-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; }
 .lab-fondo video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .lab-lienzo { pointer-events: none; }
-.lab-chips { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.lab-hud { position: absolute; top: 12px; right: 12px; display: grid; justify-items: end; gap: 2px; padding: 10px 14px 10px 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.94); color: var(--tinta); pointer-events: none; }
+.lab-hud b { font: 300 40px / 0.95 var(--cifras); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.lab-hud span { color: var(--suave); font-size: 13px; font-weight: 600; }
+.lab-hud .lab-hud-reps { margin-top: 4px; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.lab-hud[data-meta='si'] { background: var(--amarillo); }
+.lab-hud[data-meta='si'] span { color: var(--sobre-amarillo); }
+.lab-chips { position: absolute; top: 12px; left: 12px; right: 140px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
 .lab-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: var(--pildora); background: rgba(16, 22, 28, 0.82); color: #ffffff; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .lab-chip.grabando { background: #ffffff; color: var(--tinta); }
 .lab-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--dolor); }
@@ -44,11 +51,13 @@
 .lab-boton-grabar[aria-pressed='true'] { background: var(--tinta); color: var(--sobre-tinta); }
 .lab-boton-grabar[aria-pressed='true'] .lab-icono-grabar { border-radius: 3px; background: var(--sobre-tinta); }
 .lab-privado { color: var(--suave); font-size: 13px; }
+.lab-girar { display: flex; align-items: center; gap: 8px; color: var(--tinta); font-size: 14px; font-weight: 600; }
+.lab-girar svg { flex: none; }
 
 /* ——— Lectura ——— */
 .lab-lectura { justify-items: center; }
 .lab-lectura .boton { width: 100%; }
-.lab-arco .lab-marca-meta { stroke: var(--tinta); stroke-width: 3; stroke-linecap: round; }
+.lab-arco .lab-marca-meta { stroke: var(--tinta); stroke-width: 16; stroke-linecap: butt; }
 .lab-datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin: 0; text-align: center; }
 .lab-datos dt { color: var(--suave); font-size: 14px; }
 .lab-datos dd { margin: 2px 0 0; font: 400 20px / 1.1 var(--cifras); font-variant-numeric: tabular-nums; }
@@ -60,6 +69,7 @@
 
 /* ——— Repeticiones ——— */
 .lab-enlace { min-height: var(--toque); padding: 0 4px; border: 0; background: none; color: var(--tinta); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 0.2em; }
+.lab-acciones { display: flex; gap: 8px; }
 .lab-enlace:disabled { color: var(--control); text-decoration: none; cursor: default; }
 .lab-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 4px 0 12px; border-bottom: 1px solid var(--linea); }
 .lab-meta .stepper .valor { min-width: 92px; font-size: 18px; }
@@ -124,14 +134,14 @@
 
 @media (min-width: 900px) {
   .laboratorio { padding: 28px 28px 40px; gap: 18px; }
-  .lab-grilla { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-areas: 'escena lectura' 'banda reps' 'banda reporte' 'como como'; align-items: start; gap: 18px; }
+  /* Izquierda: cámara y banda. Derecha: lectura, repeticiones, cámara del equipo y cómo se calcula. */
+  .lab-grilla { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-areas: 'escena lectura' 'escena reps' 'banda reporte' 'banda como'; align-items: start; gap: 18px; }
   .lab-escena { grid-area: escena; }
   .lab-lectura { grid-area: lectura; }
   .lab-reps { grid-area: reps; }
   .lab-banda { grid-area: banda; }
   .lab-reporte { grid-area: reporte; }
   .lab-como { grid-area: como; }
-  .lab-como .lab-formula { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
