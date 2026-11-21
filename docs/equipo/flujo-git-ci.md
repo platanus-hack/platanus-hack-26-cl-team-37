@@ -1,5 +1,7 @@
 # Flujo de Git, CI/CD y reglas de la base compartida
 
+> **Actualización:** hay dos ambientes separados (dev y prod). Donde este documento dice "una sola base, que es producción", rige [`ambientes.md`](ambientes.md): se trabaja contra **dev**.
+
 ## 1. Ramas y Pull Requests
 
 - `main` es lo que se despliega. **Protegida: nadie empuja directo.**
@@ -22,7 +24,8 @@
 
 `Settings → Secrets and variables → Actions` (nombres exactos, valores solo del administrador):
 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_PASSWORD`,
-`SUPABASE_ACCESS_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (los dos últimos están en `.vercel/project.json` del equipo del dueño).
+`SUPABASE_ACCESS_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_DEV_PROJECT_ID` (los identificadores vienen en `.env.dev` y `.env.prod`).
+**Los secretos `SUPABASE_*` y `VITE_SUPABASE_*` de los jobs `verificar` y `e2e` son los de DEV.** Para producción (migraciones y despliegue de `main`) crea secretos aparte con sufijo `_PROD`.
 
 ## 2. Claves y entornos locales
 
@@ -113,9 +116,9 @@ la aplica a mano (`supabase db push --include-all`) y lo avisa en el chat; el ar
 
 ## 5. Reglas de la base compartida
 
-Es **producción**. Resumen operativo (el detalle está en `contratos.md` §3 y §5):
-1. Migraciones aditivas y numeradas por persona.
-2. Nunca `db:seed`.
+Resumen operativo (ahora hay **dev** y **prod**, ver `ambientes.md`; el detalle está en `contratos.md` §3 y §5):
+1. Migraciones aditivas y numeradas por persona; primero a dev, a prod al unir a `main`.
+2. `db:seed` solo en dev (antes: `node scripts/entorno.mjs --actual`).
 3. Pruebas limpian **por id explícito**.
 4. No crear planes, alertas ni auditoría en pacientes demo desde pruebas.
 5. Una persona a la vez corre las pruebas del paciente de prueba (§6).

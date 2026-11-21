@@ -15,17 +15,18 @@ Hoy es la fecha límite del hackatón. Somos 3 personas más coordinación, sobr
 ## Qué leer, en este orden (15 minutos)
 
 1. Este archivo.
-2. [`plan-de-hoy.md`](plan-de-hoy.md): qué hace cada persona hoy, en qué orden, y cuándo se congela todo.
-3. [`contratos.md`](contratos.md): lo que **no se puede cambiar sin avisar** y cómo pedir cambios a otro rol.
-4. [`flujo-git-ci.md`](flujo-git-ci.md): ramas, Pull Requests, CI/CD, claves y reglas de la base de datos compartida.
-5. `CLAUDE.md` y `session-handoff.md` (si usas Claude Code, él los lee solo).
+2. [`ambientes.md`](ambientes.md): los dos ambientes (dev y prod) y qué credenciales recibes.
+3. [`plan-de-hoy.md`](plan-de-hoy.md): qué hace cada persona hoy, en qué orden, y cuándo se congela todo.
+4. [`contratos.md`](contratos.md): lo que **no se puede cambiar sin avisar** y cómo pedir cambios a otro rol.
+5. [`flujo-git-ci.md`](flujo-git-ci.md): ramas, Pull Requests, CI/CD, claves y reglas de la base de datos compartida.
+6. `CLAUDE.md` y `session-handoff.md` (si usas Claude Code, él los lee solo).
 
 ## Reglas de oro
 
 1. **Nada de push directo a `main`.** Rama propia y Pull Request.
 2. **Carpetas ajenas no se tocan.** Claude Code te pregunta tu rol al empezar y se niega a editar lo de otro (`node scripts/dueno.mjs --cambios` lo revisa en tu PR). Si algo ajeno te bloquea, lo pides (formato en `contratos.md` §8).
-3. **La base de datos es una sola y es la de producción.** Migraciones solo aditivas; ver `contratos.md` §3.
-4. **Nunca `npm run db:seed`.** Borra y recrea los datos de demostración. Lo corre solo la coordinación, una vez, al final.
+3. **Se trabaja contra el ambiente `dev`** (`node scripts/entorno.mjs dev`); producción solo la toca la CI y la coordinación. Migraciones aditivas; ver `ambientes.md` y `contratos.md` §3.
+4. **`npm run db:seed` solo en `dev`** (antes mira `node scripts/entorno.mjs --actual`). En producción lo corre solo la coordinación, una vez, al final.
 5. **Las claves nunca van al repositorio.** `.env.local` y `.env.secrets` están ignorados por git; no los pegues en chats públicos ni issues.
 6. **Antes de abrir un PR:** `npm run verify` en verde (tipos, lint, unitarias, build).
 7. **Pruebas que comparten estado** (paciente de prueba): se corren con el candado de `flujo-git-ci.md` §6, o las deja correr la CI.
@@ -39,7 +40,7 @@ Hoy es la fecha límite del hackatón. Somos 3 personas más coordinación, sobr
 git clone https://github.com/platanus-hack/platanus-hack-26-cl-team-37.git
 cd platanus-hack-26-cl-team-37
 git checkout -b p<N>/<tema>         # p1/ci, p2/prescripcion, p3/torre-cubos …
-# Node 22 (ver .nvmrc). Copia .env.example a .env.local y .env.secrets y pide los valores por el canal PRIVADO.
+# Node 22 (ver .nvmrc). Recibe .env.dev por el canal PRIVADO, ponlo en la raíz y corre: node scripts/entorno.mjs dev
 npm ci
 bash init.sh                        # debe terminar en INIT OK (Windows: Git Bash)
 npm run dev                         # http://localhost:5174, cuentas demo en docs/manoviva-spec.md §9
