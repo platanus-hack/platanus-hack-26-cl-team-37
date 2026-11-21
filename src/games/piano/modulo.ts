@@ -16,7 +16,7 @@ import * as THREE from 'three'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
-import { SonidoPiano } from './audio'
+import { SonidoPiano, accionToqueSonido, botonSilenciado } from './audio'
 import {
   AgregadoPiano,
   CalibradorReposo,
@@ -29,6 +29,7 @@ import {
   REPOSO_MS,
   capital,
   flexionMcp,
+  inicioPausa,
   ladosDelNivel,
   nivelPiano,
   separarTeclas,
@@ -120,7 +121,7 @@ export const crearPiano: CrearJuego = () => {
   let juez: Juez | null = null
   let fase: Fase = 'calibrando'
   let reloj = 0
-  let pausaDesde = 0
+  let pausaDesde: number | null = null
   let ultimasManos: ManoSeguida[] | null = null
 
   const detectores: Record<LadoMano, DetectorMano> = { derecha: new DetectorMano(), izquierda: new DetectorMano() }
@@ -183,7 +184,7 @@ export const crearPiano: CrearJuego = () => {
   // ── Reposo ──
   function empezarReposo(desde: number) {
     fase = 'calibrando'
-    pausaDesde = desde
+    pausaDesde = inicioPausa(pausaDesde, desde)
     for (const l of lados) {
       listo[l] = false
       progreso[l] = 0
@@ -194,7 +195,8 @@ export const crearPiano: CrearJuego = () => {
 
   function terminarReposo() {
     if (!juez) juez = new Juez(nivel, lados, rng, total, reloj)
-    else juez.atrasar(reloj - pausaDesde)
+    else juez.atrasar(reloj - (pausaDesde ?? reloj))
+    pausaDesde = null
     fase = 'jugando'
   }
 
@@ -368,26 +370,39 @@ export const crearPiano: CrearJuego = () => {
     if (a) dibujarAviso(a.texto, a.frac)
   }
 
+  /** Refleja en el botón lo que realmente pasa: silenciado por el paciente o contexto de audio aún sin correr (iOS). */
+  let firmaBoton = ''
+  function ponerBoton() {
+    const b = botonSonido
+    if (!b) return
+    const mudo = botonSilenciado(sonido.silencio, sonido.estado())
+    const firma = mudo ? '1' : '0'
+    if (firma === firmaBoton) return
+    firmaBoton = firma
+    b.setAttribute('aria-pressed', mudo ? 'true' : 'false')
+    b.setAttribute('aria-label', mudo ? 'Activar el sonido' : 'Silenciar el sonido')
+    b.title = mudo ? 'Activar el sonido' : 'Silenciar el sonido'
+    b.textContent = mudo ? '🔇' : '🔊'
+  }
+
   function crearBotonSonido() {
     if (typeof document === 'undefined') return
     const b = document.createElement('button')
     b.type = 'button'
     b.className = 'piano-silencio'
     b.setAttribute('data-testid', 'piano-silencio')
-    const poner = () => {
-      b.setAttribute('aria-pressed', sonido.silencio ? 'true' : 'false')
-      b.setAttribute('aria-label', sonido.silencio ? 'Activar el sonido' : 'Silenciar el sonido')
-      b.title = sonido.silencio ? 'Activar el sonido' : 'Silenciar el sonido'
-      b.textContent = sonido.silencio ? '🔇' : '🔊'
-    }
-    poner()
     b.addEventListener('click', () => {
-      sonido.fijarSilencio(!sonido.silencio)
-      if (!sonido.silencio) sonido.desbloquear()
-      poner()
+      const a = accionToqueSonido(sonido.silencio, sonido.estado())
+      if (a.silencio !== sonido.silencio) sonido.fijarSilencio(a.silencio)
+      if (a.desbloquear) sonido.desbloquear() // dentro del toque: iOS solo deja reanudar el audio aquí
+      firmaBoton = ''
+      ponerBoton()
     })
-    document.body.appendChild(b)
+    // Dentro de `.juego` (no en body): así queda bajo la pausa y el aviso de girar el teléfono.
+    ;(document.querySelector('.juego') ?? document.body).appendChild(b)
     botonSonido = b
+    firmaBoton = ''
+    ponerBoton()
   }
 
   function depuracion(): EstadoPianoDepuracion {
@@ -439,11 +454,11 @@ export const crearPiano: CrearJuego = () => {
     metricasVivo: [
       { id: 'independencia', nombre: 'Independencia de dedos', unidad: '%', formula: 'promedio de las últimas pulsaciones de 1 − (movimiento medio de los otros dedos / movimiento del dedo pedido)', aprox: true, mejor: 'mayor' },
       { id: 'aciertos', nombre: 'Aciertos', unidad: '', formula: "eventos 'acierto': solo el dedo pedido bajó, dentro de la ventana de la nota", mejor: 'mayor' },
-      { id: 'desfase', nombre: 'Desfase', unidad: 'ms', formula: 'promedio de |inicio de la pulsación − llegada de la nota a la línea| de los aciertos', mejor: 'menor' },
+      { id: 'desfase', nombre: 'Desfase', unidad: 'ms', formula: 'promedio de |inicio de la pulsación − llegada de la nota a la línea| de los aciertos; medido con la cámara (15–30 cuadros/s más la latencia del seguimiento), por eso es aproximado', aprox: true, mejor: 'menor' },
     ],
     metricasResumen: [
       { id: 'independencia', nombre: 'Independencia de dedos', unidad: '%', formula: 'promedio por pulsación del dedo pedido de 1 − (movimiento medio de los otros 4 dedos / movimiento del dedo pedido); bajar dos dedos a la vez la reduce', aprox: true, mejor: 'mayor', corto: 'Independencia' },
-      { id: 'desfaseMedio', nombre: 'Desfase medio', unidad: 'ms', formula: 'promedio de |inicio de la pulsación − llegada de la nota a la línea| en los aciertos', mejor: 'menor', tarjeta: true, corto: 'Desfase' },
+      { id: 'desfaseMedio', nombre: 'Desfase medio', unidad: 'ms', formula: 'promedio de |inicio de la pulsación − llegada de la nota a la línea| en los aciertos; medido con la cámara (15–30 cuadros/s más la latencia del seguimiento), por eso es aproximado', aprox: true, mejor: 'menor', tarjeta: true, corto: 'Desfase' },
       { id: 'aciertos', nombre: 'Aciertos', unidad: '', formula: "eventos 'acierto' (solo bajó el dedo pedido, dentro de la ventana)", mejor: 'mayor', tarjeta: true },
       { id: 'notasPerdidas', nombre: 'Notas perdidas', unidad: '', formula: "eventos 'nota_perdida' (terminó la ventana sin acierto)", mejor: 'menor', tarjeta: true, corto: 'Perdidas' },
       { id: 'dedosEquivocados', nombre: 'Dedos equivocados', unidad: '', formula: "eventos 'dedo_equivocado' (bajó un dedo que no era, o uno de más junto al pedido)", mejor: 'menor', tarjeta: true, corto: 'Equivocados' },
@@ -493,6 +508,7 @@ export const crearPiano: CrearJuego = () => {
       c.camara.add(aviso.grupo)
       c.escena.add(c.camara)
 
+      sonido.desbloquear() // crea el contexto de audio ya (en iOS queda suspendido hasta el toque del botón)
       crearBotonSonido()
       empezarReposo(0)
       dibujar(0)
@@ -542,6 +558,7 @@ export const crearPiano: CrearJuego = () => {
         for (const ev of juez.avanzar(reloj, (l) => detectores[l].fase === 'episodio')) aplicar(ev)
         if (metaAlcanzada()) fase = 'fin'
       }
+      ponerBoton()
       dibujar(dt)
     },
 
@@ -563,7 +580,7 @@ export const crearPiano: CrearJuego = () => {
         }
       }
       let pista: string | undefined
-      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste las notas'
+      if (metaAlcanzada()) pista = agregado.aciertos > 0 ? '¡Muy bien! Terminaste las notas' : 'Terminaste las notas'
       else if (fase === 'calibrando') pista = lados.length > 1 ? 'Deja las dos manos quietas sobre las teclas' : 'Deja la mano quieta sobre las teclas'
       const ind = agregado.independenciaReciente()
       const des = agregado.desfaseMedio()

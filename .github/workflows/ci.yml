@@ -53,8 +53,6 @@ jobs:
       vercel_dev: ${{ steps.secretos.outputs.vercel_dev }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }} # el chequeo de dueños compara contra la rama base
 
       - uses: actions/setup-node@v5
         with:
@@ -79,22 +77,6 @@ jobs:
             [ $code = 0 ] || { echo "::error::$nombre falló"; fallo=1; }
           done
           exit $fallo
-
-      # Informativo: no bloquea. El rol sale del prefijo de la rama (p1/, p2/, p3/).
-      - name: Dueños de archivos (informativo)
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        env:
-          RAMA: ${{ github.head_ref }}
-          BASE: ${{ github.base_ref }}
-        run: |
-          case "$RAMA" in
-            p1/*) ROL=P1 ;;
-            p2/*) ROL=P2 ;;
-            p3/*) ROL=P3 ;;
-            *) echo "Rama '$RAMA' sin prefijo p1/ p2/ p3/: se omite el chequeo de dueños."; exit 0 ;;
-          esac
-          node scripts/dueno.mjs --cambios --rol "$ROL" --base "origin/$BASE"
 
       # Solo dice si existen (true/false); nunca imprime valores.
       - name: Secretos disponibles

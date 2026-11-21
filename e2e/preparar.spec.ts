@@ -169,7 +169,9 @@ test.describe('preparar la sesión', () => {
     // (antes era torre-cubos fijo). Si ya no queda ninguno, solo se prueba el inexistente.
     await page.goto('/ejercicios')
     await expect(page.locator('[data-juego]').first()).toBeVisible()
-    const proximamente = await page.locator('[data-juego][data-disponible="false"]').first().getAttribute('data-juego', { timeout: 1_000 }).catch(() => null)
+    const noDisponibles = page.locator('[data-juego][data-disponible="false"]')
+    const proximamente = (await noDisponibles.count()) ? await noDisponibles.first().getAttribute('data-juego') : null
+    if (!proximamente) test.info().annotations.push({ type: 'aviso', description: 'sin juegos Próximamente en el catálogo: solo se prueba el inexistente' })
     const rutas = ['/sesion/no-existe/preparar', ...(proximamente ? [`/sesion/${proximamente}/preparar`] : [])]
     for (const ruta of rutas) {
       await page.goto(ruta)
