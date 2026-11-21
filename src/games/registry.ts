@@ -1,4 +1,6 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
+import { NIVELES_MOVILIDAD } from './movilidad/logica'
+
 export type Gesto =
   | 'Pinza'
   | 'Agarre'
@@ -53,13 +55,15 @@ const nivelesCaja: NivelJuego[] = [
   { nivel: 5, nombre: 'Objetos pequeños, lejos', tamano: 0.72, cantidad: 10, distanciaCaja: 1.75, detalle: '10 objetos pequeños, caja al fondo' },
 ]
 
-const nivelesMovilidad: NivelJuego[] = [1, 2, 3, 4, 5].map((n) => ({
+// Movilidad guiada (F11): nombre, detalle y umbrales viven en src/games/movilidad/logica.ts. `cantidad` no se usa:
+// la meta de ciclos viene del plan (metaAgarres).
+const nivelesMovilidad: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   nivel: n,
-  nombre: ['Rango cómodo', 'Rango medio', 'Rango amplio', 'Rango amplio y lento', 'Rango completo'][n - 1],
+  nombre: NIVELES_MOVILIDAD[n].nombre,
   tamano: 1,
-  cantidad: 6 + n * 2,
+  cantidad: 0,
   distanciaCaja: 0,
-  detalle: `${6 + n * 2} repeticiones de abrir y cerrar`,
+  detalle: NIVELES_MOVILIDAD[n].detalle,
 }))
 
 export const JUEGOS: Juego[] = [

@@ -304,7 +304,7 @@
       "dependencies": [
         "F09"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con fuente sintética de abrir/cerrar cuenta ciclos exactos y termina la sesión"
       ],
@@ -312,7 +312,7 @@
         "npm run e2e -- movilidad"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 · npm run e2e -- movilidad 2/2 (4 corridas verdes seguidas con el código final, 2 workers, más la del e2e completo): sesión REAL nivel 2, meta 6, ?fuente=sintetica&guion=abrir-cerrar (un ciclo cada 2 s en bucle) en 844x390 → contador 1/6, 2/6, 3/6 de a uno, 'Cerrada' en el panel, ritmo en vivo 25–35 ciclos/min → '¡Meta cumplida! 6/6' → /sensacion conservando el query; sin Rapier. BD: metricas agarres 6, agarresDer 6, intentos 6 (al cumplir la meta deja de contar aunque la mano siga), precision 1, contador 6, meta 6, metaCumplida, motivoFin meta; juego.ciclos 6, ritmo 25–35, rango > 80 %, aperturaMax 100, tiempoMedioCiclo 0,5–1,5 s (= tiempoMedioAgarreS); muestras 10 Hz con canales aperturaMano y guia; eventos ciclo = 6 × (agarre_inicio → soltar{enCaja:true}) mano derecha, seq 1..N. Sesión falsa nivel 3 sin meta: la guía avanza ('Cierra la mano despacio' en la pista), 3 ciclos + un cierre a medias (0,5 > umbral 0,3) → 3 exactos; Terminar guarda agarres 3, intentos 3, contador 3, juego.ciclos 3. fps (Chromium headless, sombras): 24,3–37,4 (≥ 24; con 2 workers en paralelo la calidad adaptativa puede bajar un paso). vitest 117/117 (4 nuevas en movilidad.test.ts) · bash init.sh INIT OK (BD 15/15, 19 sesiones: las de prueba se limpian) · npm run e2e 69/70 (la que falló fue tracking 'camara (auto)' por un GET a fonts.gstatic.com, ajena a F11; corrida sola 4/4). Capturas 844x390: docs/capturas/movilidad.png (3/6, mano cerrada, guía abierta: tu anillo amarillo chico dentro del anillo guía blanco), movilidad-meta.png (¡Meta cumplida! 6/6, anillo verde) y movilidad-ambas.png (plan demo 'ambas': guía al centro, anillo por mano). Sin imagen de referencia propia (02_inicio solo la nombra): mismo lenguaje visual que 06a (HUD, mesa, manos articuladas, amarillo/verde)."
     },
     {
       "id": "F12",

@@ -6,6 +6,7 @@ import type { CrearJuego } from './contrato'
 
 export const MODULOS: Record<string, () => Promise<CrearJuego>> = {
   'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja),
+  'movilidad-guiada': () => import('../movilidad/modulo').then((m) => m.crearMovilidad),
   // Juegos de prueba de la base (F09): solo se llega con una sesión creada por e2e o scripts/crear-preparada.ts.
   'prueba-shell': () => import('../prueba/modulo').then((m) => m.crearPruebaShell),
   'prueba-fisica': () => import('../prueba/modulo').then((m) => m.crearPruebaFisica),

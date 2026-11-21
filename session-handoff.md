@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F10 Caja de juguetes con métricas (Prompt 6) → done (sin deploy: `deploy: false`).
+- Última sesión: 2026-11-21, F11 Movilidad guiada (calentamiento) → done (sin deploy: `deploy: false`).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F11 — Movilidad guiada (calentamiento)** sobre la base (`node scripts/siguiente-feature.mjs`).
+- Recommended Next Step: **F12 — Dolor y esfuerzo (Prompt 7)**, `/sesion/:id/sensacion` (`node scripts/siguiente-feature.mjs`).
 
 ## Archivos clave (Files)
 
@@ -79,7 +79,7 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 
 **Cómo agregar un juego (F10 Caja, F11 Movilidad, F22–F27):**
 1. `src/games/<juego>/modulo.ts` exporta `export const crearX: CrearJuego = () => ({ ...ModuloJuego })` (estado del juego en el cierre; una instancia por montaje, `montar` se llama una sola vez por instancia).
-2. Registrar en `src/games/shell/modulos.ts` como `'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja)` (ya está). Sin esto, /jugar muestra "<juego> todavía no está listo" (hoy Movilidad).
+2. Registrar en `src/games/shell/modulos.ts` como `'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja)` (Caja y Movilidad ya están). Sin esto, /jugar muestra "<juego> todavía no está listo".
 3. `disponible: true` en `src/games/registry.ts` + `DISPONIBLES` de `e2e/ejercicios.spec.ts` al cerrar el feature.
 4. Eventos propios fuera de `agarre_inicio | agarre_fin | soltar | perdida_seguimiento | pausa | reanudar` → migración NUEVA que amplíe el check de `eventos_sesion` + agregar el tipo a `TipoEvento` (`src/domain/types.ts`). Caja (F10) y Movilidad (F11) no lo necesitan.
 
@@ -89,7 +89,6 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 **ContextoJuego** (`ctx` en montar): `escena` (THREE.Scene), `camara`, `mesa = { ancho 5,4, fondo 3,3, altura 0 (cara de arriba), z −0,25, objeto }` (unidades ≈ 10 cm), `manos` (ManosVirtuales: `punto(lado, i)` → THREE.Vector3 del landmark i en la escena, `palma(lado)`, `visible(lado)`), `fisica` (`{ RAPIER, mundo, paso, avanzar, liberar }` o null; la base ya crea el piso de la mesa y avanza el mundo ANTES de `actualizar`), `sesion`, `parametros`, `nivel` (= `niveles[parametros.nivel]`), `meta`, `calibracion`, `escalaCm`, `fuente`, `registrar(tipo, { mano, objeto, datos })`, `medidas(lado)` → `{ aperturaPinzaCm, apertura (0..~1,2), aperturaCalibrada (0..1 con rangoAbrirCerrar de la calibración, o null), flexion {pulgar..menique} (MCP+PIP, grados), muneca {x,y} (imagen cruda), distanciaCm }` o null, `manoPrincipal()` (lado de la mano de la sesión visible), `ahora()` (ms de juego activo), `configurarManos(zonaParcial)` (dónde se mueven las manos virtuales: `ZONA_BASE` en `manos3d.ts`).
 
 **Lo que hace la base (no repetir en el juego):** HUD completo (`Hud.tsx`; estado de mano por defecto Abierta/Cerrada si `hud().manos` no trae ese lado; '—' sin mano), ciclo (`ciclo.ts`: esperando → jugando ⇄ pausa → terminada; pausa manual con Menú, en vertical, en segundo plano y sin mano > 2 s, que se reanuda sola), eventos `pausa{motivo}`/`reanudar`/`perdida_seguimiento`, muestras 10 Hz (apertura de pinza cm + flexión del índice de la mano principal + canales del juego), agregados base con `AcumuladorBase` (calidad del registro, apertura y flexión máx., suavidad SPARC de la muñeca por ventanas de 3 s, fps medio) → `metricas = { ...agregarSesion(base), metaCumplida, juego, contador, meta, motivoFin }`, guardado (`repos.sesiones.actualizar` con `metricas`, `muestras`, `fin`; estado sigue 'en curso') y navegación a `/sesion/:id/sensacion?<query>`. Aviso "🎉 ¡Meta cumplida! N/N" y fin 2,5 s después. Wake Lock, "Gira tu teléfono", pixel ratio ≤ 1,5 + calidad adaptativa, `?depuracion=1` muestra fps.
-- **Para F11 (Movilidad):** `usaFisica: false`; contar ciclos con `ctx.medidas(lado).aperturaCalibrada` con histéresis como `prueba-shell` (cierre < 0,35, apertura > 0,7). Meta = repeticiones del nivel (`desdePlan: (p) => …`).
 - **e2e de juegos:** utilidades en `e2e/juegos.ts` (desde F10): `crearSesion(juego, duracionMin, meta, nivel = 2)` (sesión real con el cliente demo, sin ingreso extra) + `limpiar(desde, id)`; o `sesionFalsa(page, juego, duracionMin, meta, nivel)` (rutas de PostgREST simuladas, devuelve las escrituras PATCH/POST); `juego(page)`, `esperarFase`, `HORIZONTAL`, `ID_FALSO`, tipo `Ventana`. Ejemplos: `e2e/shell.spec.ts`, `e2e/caja.spec.ts`. Estado del juego en `window.__manovivaJuego` (`fase, motivo, fps, calidad, pixelRatio, jugadoMs, contador, eventos, muestras, fisica, vivo`). Manos: `window.__manoviva.fuente.cargarGuion({ manos: [{ lado, poses: [{ t, x, y, apertura, pinzaCm, distanciaCm, ... }] }] })`, `fijarPose`, `ocultar`. Viewport horizontal `page.setViewportSize({ width: 844, height: 390 })` (el config usa 390×844 → "Gira tu teléfono").
 - Captura horizontal: `ID=$(npx tsx scripts/crear-preparada.ts <juego> derecha 5 12 [nivel])` → `npm run captura -- "/sesion/$ID/jugar?fuente=sintetica&guion=ambas" <nombre> --horizontal --espera 3000` → `npx tsx scripts/limpiar-preparadas.ts <ISO desde> $ID`. Para una captura "en acción" conviene sacarla desde el e2e con `page.screenshot` (así lo hace Caja con `CAPTURA_CAJA=1`).
 - Clases CSS en `src/index.css` (sección "juego: base común"): `.juego`, `.juego-vista`, `.juego-caja` (paneles oscuros), `.juego-panel`, `.juego-barra`, `.juego-menu`, `.juego-metricas`, `.juego-camara`, `.juego-centro`, `.juego-pildora(.exito)`, `.juego-aviso`, `.juego-capa`, `.juego-dialogo`, `.juego-girar`.
@@ -101,6 +100,15 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - `contarAgarres` (src/metrics/sesion.ts) ahora mide el tiempo hasta `agarre_fin` si existe.
 - Depuración/e2e: con fuente simulada `window.__manoviva.juego.estado()` → `{ contador, objetos[{id, forma, tam, estado: mesa|tomado|soltado|guardado, x,y,z, inicio}], caja, zona, pinza{lado}, punta{lado}, agarrando, umbrales }`. Otros juegos pueden exponer su `estado()` en el mismo lugar (tipo en `src/tracking/fuentes.ts`). `e2e/caja.spec.ts` tiene la clase `Mano` (mover con guion sin bucle, `apuntar` en lazo cerrado sobre x de la imagen y distancia) reutilizable para juegos de alcance.
 - Capturas: `CAPTURA_CAJA=1 npm run e2e -- caja -g exactos` → `docs/capturas/caja.png` y `caja-meta.png` (oculta la franja de fps).
+
+## Movilidad guiada (F11, hecho) — `src/games/movilidad/`
+
+- `logica.ts` (puro, pruebas `movilidad.test.ts`): `NIVELES_MOVILIDAD` (nombre, detalle, umbrales `cierre`/`apertura` de apertura calibrada, tramos de la guía en ms, `guiaCerrada`), `nivelMovilidad(n)`, `guiaEn(tMs, nivel)` → `{ objetivo 0..1, fase: abierta|cerrando|cerrada|abriendo }`, `PISTAS`, `pasoCiclo` (histéresis; devuelve `cierre` o `ciclo {duracionMs, rango}`), `ritmoCpm(tiempos, ahora)`, `ritmoMedio`. El registro toma nombre/detalle de los niveles desde aquí.
+- `modulo.ts` → `crearMovilidad` (registrado en `modulos.ts`, `usaFisica: false`). Meta = `metaAgarres` (etiqueta "Ciclos"). Eventos: `agarre_inicio {objeto:'ciclo'}` al cerrar y `soltar {objeto:'ciclo', enCaja:true, duracionMs, rango}` al reabrir (como el seed) → agregados de la base sirven tal cual (agarres = ciclos). Deja de contar al cumplir la meta. 'ambas' = cada mano cuenta. Vivo: `apertura` (%), `flexIndice`, `ritmo`. Resumen (`metricas.juego`): `ciclos, ritmo, tiempoMedioCiclo, rango, aperturaMax, flexionIndiceMax, seguimiento`. Canales: `aperturaMano`, `guia`.
+- Escena: mano guía fantasma (clase `ManoGuia`, usa `manoSintetica` + `puntosEnEscena` con zona de ancla fija) + halo + anillo; por mano que cuenta, anillo propio vs. anillo de la guía, onda por ciclo; arco de cuentas al fondo (≤ 12). `configurarManos` corre la zona de manos a un lado (y la baja: y 0,1–1,35).
+- Depuración/e2e: `window.__manoviva.juego.estado()` → `{ contador, meta, lados, cerrada, apertura, objetivo, fase, umbrales, ciclosT }`.
+- e2e `e2e/movilidad.spec.ts`; capturas `CAPTURA_MOVILIDAD=1 npm run e2e -- movilidad -g exactos` → `docs/capturas/movilidad.png` y `movilidad-meta.png`; `movilidad-ambas.png` con `crear-preparada.ts movilidad-guiada ambas 3 10 1` + captura `--horizontal`.
+- **Para F13 (Resumen):** leer `modulo.metricasResumen` del juego de la sesión (Movilidad no tiene precisión ni suavidad propias; sus valores están en `metricas.juego`).
 
 ## Cuidado con
 
@@ -119,5 +127,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F11 (Movilidad guiada).
-3. Marcar F11 `in-progress` y seguir CLAUDE.md. Leer "Base común de juegos" y "Caja de juguetes" de arriba; `src/games/prueba/modulo.ts` (prueba-shell cuenta cierres con histéresis: casi lo que pide Movilidad) y `src/games/caja/modulo.ts` como ejemplos. Movilidad = `src/games/movilidad/modulo.ts` + entrada en `modulos.ts`; `usaFisica: false`. Ya está `disponible: true` en el registro y en `DISPONIBLES` de `e2e/ejercicios.spec.ts`. e2e con `e2e/juegos.ts` + preset sintético `abrir-cerrar`.
+2. `node scripts/siguiente-feature.mjs` → F12 (Dolor y esfuerzo, Prompt 7: `docs/referencia/prompts/07_dolor_y_esfuerzo.md`, imagen `07_dolor_y_esfuerzo.png`).
+3. Marcar F12 `in-progress` y seguir CLAUDE.md. Reemplazar `src/screens/sesion/Sensacion.tsx` (provisoria). Llegan ahí desde /jugar con la Sesion 'en curso' (con `metricas`, `muestras`, `fin`) y el query `?fuente=…` (conservarlo hacia /resumen). Guardar EVA/esfuerzo/nota con `repos.sesiones.actualizar` (no cerrar: el cierre con hash es F13). Umbral de dolor desde el plan vigente; la alerta va por `repos` (revisar `src/data/repos.ts` y la tabla `alertas`). Para e2e: `crearSesion`/`sesionFalsa` de `e2e/juegos.ts` y `limpiar(desde, id)`; las alertas creadas por e2e también hay que limpiarlas (posible ampliación de `limpiar_sesiones_prueba` con migración NUEVA).
