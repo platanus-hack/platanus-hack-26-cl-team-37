@@ -246,3 +246,12 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 ### 2026-11-21 · F20 PWA instalable y sin conexión (línea C, Sonnet 5.5)
 - vite-plugin-pwa (SW solo en build/preview), manifest e íconos PNG, fuentes Poppins/DM Sans autoalojadas (index.html ya no usa Google Fonts → la CSP de F18 puede quitar esos orígenes), caché de modelo/wasm/Rapier, Supabase siempre por red. El objeto repos queda envuelto por conRespaldoLocal (src/data/sinConexion.ts): cache de lecturas, ID provisional S-AAAAMMDD-Lxxxxx para sesiones creadas sin red con alias al sincronizar; cerrar con hash exige red y cola vacía; aviso de estado de red. docs/telefono.md con pasos para el teléfono y nota de Capacitor.
 - Cuidado: no tocar colaLocal.ts ni supabaseRepos.ts sin coordinar. Flaky conocido: e2e inicio "estado de error con reintento" falla a veces con varias líneas activas.
+
+### 2026-11-21 · Corrección de profundidad (prueba con cámara real del dueño)
+- Al acercar la mano a la cámara, la mano virtual venía hacia el jugador; debía irse al fondo (la pantalla es una ventana al juego). Cambio en src/games/shell/manos3d.ts: ZONA_BASE.z = [-0.9, 0.9] (cerca de la cámara = fondo de la mesa) y la profundidad local de la mano con el mismo sentido. Prueba unitaria actualizada. Pendiente: confirmar con el dueño que ahora se siente bien y revisar la izquierda/derecha.
+
+### 2026-11-21 · F15 Historial y F18 Privacidad (líneas D y E, Sonnet 5.5)
+- F15: lista mezclada de sesiones y cambios de plan, hoja de registro con verificación de hash, exportar PDF/CSV con auditoría, prueba estática de solo-agregar. CSV con ; y coma decimal.
+- F18: consentimiento versionado (src/legal/consentimiento-v1.md es texto provisorio para que la clínica lo redacte), interruptores, descarga y eliminación de datos, CSP en vercel.json (sin Google Fonts: las fuentes ya van autoalojadas por F20), cabeceras de seguridad, docs/privacidad-red.md. Restaurar el paciente de prueba: npx tsx scripts/prueba-privacidad.ts restaurar.
+- Decisión del coordinador: F20 devuelve listas vacías cuando falla la red y no hay copia local (uso sin conexión); por eso la prueba de historial ya no espera estado de error de red (sí se prueba en inicio y preparar, con margen de 25 s por los reintentos de supabase-js).
+- Pendiente de revisar: mostrar 0 sesiones sin red puede confundir; hay aviso de Sin conexión pero solo si el navegador reporta offline.

@@ -395,7 +395,7 @@
       "dependencies": [
         "F13"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "19 sesiones de Carmen muestran Verificado",
         "PDF y CSV se descargan",
@@ -407,7 +407,7 @@
         "npm run captura -- /historial historial"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea D, Sonnet 5.5): tsc/oxlint limpios; vitest con solo-agregar.test (8) en verde; e2e historial 7 OK; las 19 sesiones de Carmen salen Verificado; Alterado probado interceptando la respuesta; PDF y CSV (sesiones y eventos) con auditoría exportar_pdf/exportar_csv y pie obligatorio; capturas historial.png y registro-sesion.png comparadas con 10a/10b."
     },
     {
       "id": "F16",
@@ -468,7 +468,7 @@
       "dependencies": [
         "F03"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Firmar consentimiento desbloquea la primera sesión",
         "CSP activa y la app sigue funcionando (sin errores CSP en consola)",
@@ -479,7 +479,7 @@
         "curl -I del deploy muestra Content-Security-Policy"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea E, Sonnet 5.5): tsc/oxlint limpios; vitest; e2e privacidad (5) + csp (7, 0 violaciones sobre dist con los headers de vercel.json: login, pantallas de paciente y terapeuta, juego, calibración MediaPipe); consentimiento versionado firmado/pendiente, descarga JSON+CSV, eliminar con doble confirmación, auditoría de cada cambio; inventario de red en docs/privacidad-red.md. Pendiente de verificar tras deploy: curl -I con la CSP."
     },
     {
       "id": "F19",
