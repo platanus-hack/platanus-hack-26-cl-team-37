@@ -2,7 +2,7 @@
 
 App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D en three.js y seguimiento de manos con MediaPipe.
 **Desde 2026-11-21 trabajan 3 personas en paralelo** (ver `docs/equipo/`: plan, contratos y flujo de Git). Lee `docs/equipo/README.md` antes de tocar código. Las reglas de abajo siguen valiendo, con estas diferencias para el equipo:
-- Trabajas en tu rama (`p1/…`, `p2/…`, `p3/…`) y entregas por Pull Request a `main`. **Nunca empujes directo a `main`.**
+- Trabajas en tu rama (`p1/…`, `p2/…`, `p3/…`) y entregas por Pull Request a `dev` (a `main` solo llega el PR `dev` → `main`). **Nunca empujes directo a `dev` ni a `main`.**
 - Cada rol tiene su área (mapa orientativo en `docs/equipo/contratos.md` §7), pero **cualquiera puede editar cualquier archivo**. Si cambias algo en que trabaja otra persona, avísale en el chat para no pisarse.
 - Solo marcas en `feature_list.json` las funcionalidades que te pertenecen (campo `owner`). `node scripts/siguiente-feature.mjs --owner P2` te dice cuál toca.
 - La base de datos es UNA sola y es la de producción: migraciones solo aditivas, nunca `npm run db:seed`.
@@ -39,7 +39,8 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - Secretos solo en `.env.secrets` y `.env.local` (git y Vercel los ignoran). Nunca imprimirlos, commitearlos ni ponerlos en el código cliente. La clave `service_role` solo la usan los scripts de `scripts/`.
 - Supabase: solo el proyecto `iniposctftmzxkqasikh`. Cambios de esquema = **migración nueva** en `supabase/migrations/` + `supabase db push`. Nunca editar una migración ya aplicada. Nunca borrar ni pausar proyectos.
 - Vercel: solo el proyecto `manoviva`. El deploy a producción lo hace la CI al unir a `main` (o P1 / coordinación); el resto no despliega a producción.
-- Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `main`. Prohibido empujar a `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
+- Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `dev`. Prohibido empujar directo a `dev` o `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
+- **Pull antes de unir (merge).** Antes de unir un PR, trae lo último de su rama base (`dev` para las ramas `p1/…`, `p2/…`, `p3/…`; `main` solo para el PR `dev` → `main` o un `hotfix/…`): `git fetch origin && git merge origin/dev` en tu rama (o `gh pr update-branch <n>` en una ajena), vuelve a correr `npm run verify` y únelo solo con `verificar` en verde **sobre ese commit nuevo**. GitHub no exige rama al día: un PR verde contra un `dev` viejo puede romper `dev` al unirse. Si el choque está en código de otra persona, avísale.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
 
 ## Definición de terminado — Definition of Done (por feature)
