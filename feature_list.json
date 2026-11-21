@@ -818,6 +818,31 @@
       "deploy": false,
       "evidence": "",
       "owner": "coordinación"
+    },
+    {
+      "id": "F33",
+      "name": "Tablero HTML de features (tabla + grafo de dependencias)",
+      "description": "Página HTML local que lee feature_list.json en vivo (botón Recargar, tecla R y recarga automática cada 5 s), con filtros básicos (estado, dueño, texto, \"en desarrollo\") y un grafo de nodos de dependencias: clic en un feature resalta toda su cadena aguas arriba y abajo y muestra su detalle. Herramienta interna del equipo, no es parte de la app.",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F01"
+      ],
+      "status": "in-progress",
+      "acceptance": [
+        "node scripts/tablero-features.mjs sirve el tablero en http://localhost:5199 sin dependencias nuevas",
+        "Recargar (botón, tecla R o auto) refleja cambios de feature_list.json sin reiniciar el servidor; un JSON a medio editar muestra error y no rompe la página",
+        "Filtros por estado, dueño y texto, con opción de mostrar las dependencias de lo filtrado y atajo \"En desarrollo\"",
+        "Grafo de nodos con capas por dependencia; flechas punteadas para dependencias no terminadas; \"lista para empezar\" destacada",
+        "Clic en un nodo o fila resalta ancestros y descendientes y muestra aceptación, verificación y evidencia"
+      ],
+      "verify": [
+        "node scripts/tablero-features.mjs + captura con Playwright",
+        "npm run verify"
+      ],
+      "deploy": false,
+      "evidence": "2026-11-21: servidor responde 200 en / y /feature_list.json; Playwright (Chrome, 1440x1000): 34 nodos, 0 errores de consola, filtros estado/dueño/En desarrollo y selección de F17/F21 resaltan su cadena. Pendiente: npm run verify / init.sh no corren en esta máquina (node_modules sin binarios darwin-x64 de oxlint y typescript); queda a la CI del PR.",
+      "owner": "P2"
     }
   ]
 }

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ManoViva · Tablero de features</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --text: #1d2330; --muted: #667085; --line: #d0d5dd;
+    --done: #12b76a; --in-progress: #2e90fa; --not-started: #98a2b3; --blocked: #f04438; --lista: #f79009;
+    --P1: #7a5af8; --P2: #ee46bc; --P3: #15b79e; --coordinación: #475467; --sin: #b0b7c3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  .grupo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .grupo > b { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  button, select, input[type=search] { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  button { cursor: pointer; } button:hover { background: #eef2f6; }
+  label.chip { display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; user-select: none; background: #fff; }
+  .punto { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  #estado-carga { color: var(--muted); font-size: 12px; }
+  #estado-carga.error { color: var(--blocked); font-weight: 600; }
+  main { display: grid; grid-template-columns: 1fr 360px; gap: 12px; padding: 12px 16px; }
+  .caja { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  #lienzo { position: relative; height: 70vh; overflow: hidden; cursor: grab; }
+  #lienzo:active { cursor: grabbing; }
+  #lienzo svg { width: 100%; height: 100%; display: block; }
+  .ayuda-lienzo { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--muted); pointer-events: none; }
+  .nodo { cursor: pointer; transition: opacity .15s; }
+  .nodo rect.cuerpo { stroke-width: 1.5; }
+  .nodo text { font-size: 11px; pointer-events: none; }
+  .nodo .id { font-weight: 700; font-size: 12px; }
+  .nodo.sel rect.cuerpo { stroke: #000; stroke-width: 3; }
+  .nodo.cambio rect.cuerpo { animation: destello 1.2s ease-in-out 3; }
+  @keyframes destello { 50% { stroke: var(--lista); stroke-width: 5; } }
+  .arista { fill: none; stroke: #a6b0bf; stroke-width: 1.4; transition: opacity .15s; }
+  .arista.pendiente { stroke: var(--lista); stroke-dasharray: 4 3; }
+  .arista.resaltada { stroke: #000; stroke-width: 2.2; }
+  .tenue { opacity: .12; } .contexto { opacity: .45; }
+  #detalle { padding: 12px 14px; max-height: 70vh; overflow: auto; }
+  #detalle h2 { font-size: 15px; margin: 0 0 6px; }
+  #detalle h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px; }
+  #detalle ul { margin: 0; padding-left: 18px; }
+  #detalle .vacio { color: var(--muted); }
+  .etq { display: inline-block; padding: 1px 7px; border-radius: 999px; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .dep { display: inline-block; margin: 1px 3px 1px 0; padding: 0 6px; border-radius: 4px; border: 1px solid var(--line); font-size: 12px; cursor: pointer; background: #fff; }
+  .dep .punto { width: 7px; height: 7px; margin-right: 3px; }
+  #tabla-caja { grid-column: 1 / -1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eaecf0; vertical-align: top; }
+  th { position: sticky; top: 0; background: #f9fafb; cursor: pointer; user-select: none; font-size: 12px; color: var(--muted); }
+  tr.fila { cursor: pointer; } tr.fila:hover { background: #f5f8ff; } tr.fila.sel { background: #eaf2ff; }
+  tr.oculta { display: none; }
+  .resumen { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ManoViva · Features</h1>
+  <div class="grupo">
+    <button id="recargar" title="Volver a leer feature_list.json (tecla R)">⟳ Recargar</button>
+    <label class="chip"><input type="checkbox" id="auto" /> auto cada 5 s</label>
+    <span id="estado-carga">—</span>
+  </div>
+  <div class="grupo" id="filtro-estado"><b>Estado</b></div>
+  <div class="grupo">
+    <b>Dueño</b>
+    <select id="filtro-owner"><option value="">Todos</option></select>
+  </div>
+  <div class="grupo">
+    <input type="search" id="buscar" placeholder="Buscar id, nombre, texto…" size="22" />
+  </div>
+  <div class="grupo">
+    <label class="chip" title="Muestra también (semitransparentes) las dependencias de lo filtrado"><input type="checkbox" id="con-deps" checked /> con dependencias</label>
+    <button id="en-desarrollo" title="Atajo: en desarrollo + listas para empezar, con sus dependencias">En desarrollo</button>
+    <button id="limpiar">Limpiar filtros</button>
+  </div>
+  <div class="resumen" id="resumen"></div>
+</header>
+
+<main>
+  <div class="caja" id="lienzo">
+    <svg id="grafo"><defs>
+      <marker id="flecha" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a6b0bf" /></marker>
+      <marker id="flecha-neg" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000" /></marker>
+    </defs><g id="vista"></g></svg>
+    <div class="ayuda-lienzo">Rueda: zoom · arrastrar: mover · clic en nodo: dependencias (aguas arriba y abajo) · doble clic en fondo: ver todo · flecha naranja punteada = dependencia aún no terminada</div>
+  </div>
+  <aside class="caja" id="detalle"><p class="vacio">Haz clic en un feature para ver su detalle.</p></aside>
+  <div class="caja" id="tabla-caja">
+    <table>
+      <thead><tr>
+        <th data-orden="id">ID</th><th data-orden="name">Nombre</th><th data-orden="owner">Dueño</th>
+        <th data-orden="estado">Estado</th><th>Depende de</th><th>Lo necesitan</th><th data-orden="evidence">Evidencia</th>
+      </tr></thead>
+      <tbody id="filas"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const ESTADOS = ['not-started', 'in-progress', 'done', 'blocked']
+const NOMBRE_ESTADO = { 'not-started': 'sin empezar', 'in-progress': 'en desarrollo', done: 'terminado', blocked: 'bloqueado', lista: 'lista para empezar' }
+const OWNERS = ['P1', 'P2', 'P3', 'coordinación', '(sin dueño)']
+const color = (v) => getComputedStyle(document.documentElement).getPropertyValue('--' + v).trim()
+const colorOwner = (o) => color(o && OWNERS.includes(o) ? o : 'sin')
+const $ = (s) => document.querySelector(s)
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+const GUARDADO = 'tablero-features-v1'
+const ui = Object.assign(
+  { estados: ESTADOS.slice(), owner: '', texto: '', conDeps: true, auto: false, sel: null, orden: 'id', asc: true },
+  JSON.parse(localStorage.getItem(GUARDADO) || '{}'),
+)
+const guardar = () => localStorage.setItem(GUARDADO, JSON.stringify(ui))
+
+let features = [], porId = new Map(), hijos = new Map(), anterior = new Map(), firmaAnterior = ''
+let posiciones = new Map(), primeraVez = true
+
+// ---------- Carga ----------
+async function cargar() {
+  const est = $('#estado-carga')
+  try {
+    const r = await fetch('feature_list.json?t=' + Date.now(), { cache: 'no-store' })
+    if (!r.ok) throw new Error(await r.text())
+    const texto = await r.text()
+    const datos = JSON.parse(texto)
+    est.className = ''
+    est.textContent = 'actualizado ' + new Date().toLocaleTimeString('es-CL')
+    if (texto === firmaAnterior) return
+    firmaAnterior = texto
+    procesar(datos.features)
+  } catch (e) {
+    est.className = 'error'
+    est.textContent = location.protocol === 'file:'
+      ? 'Abre con: node scripts/tablero-features.mjs'
+      : 'Error al leer feature_list.json (¿JSON a medio editar?): ' + e.message.slice(0, 80)
+  }
+}
+
+function procesar(lista) {
+  const cambiados = new Set()
+  for (const f of lista) {
+    const a = anterior.get(f.id)
+    if (anterior.size && (!a || a !== f.status)) cambiados.add(f.id)
+  }
+  anterior = new Map(lista.map((f) => [f.id, f.status]))
+  features = lista
+  porId = new Map(features.map((f) => [f.id, f]))
+  hijos = new Map(features.map((f) => [f.id, []]))
+  for (const f of features) for (const d of f.dependencies || []) hijos.get(d)?.push(f.id)
+  for (const f of features) f.estado = estadoVisible(f)
+  armarOwners()
+  diagramar()
+  dibujarGrafo(cambiados)
+  dibujarTabla()
+  aplicarFiltros()
+  dibujarDetalle()
+}
+
+// "lista para empezar" = sin empezar y con todas sus dependencias terminadas
+const depsListas = (f) => (f.dependencies || []).every((d) => porId.get(d)?.status === 'done')
+const estadoVisible = (f) => (f.status === 'not-started' && depsListas(f) ? 'lista' : f.status)
+
+// ---------- Grafo: capas por camino más largo + orden por baricentro ----------
+const AN = 150, AL = 46, SEP_X = 70, SEP_Y = 18
+function diagramar() {
+  const capa = new Map()
+  const capaDe = (id, pila = new Set()) => {
+    if (capa.has(id)) return capa.get(id)
+    if (pila.has(id)) return 0 // ciclo: no debería ocurrir
+    pila.add(id)
+    const f = porId.get(id)
+    const c = f ? Math.max(-1, ...(f.dependencies || []).filter((d) => porId.has(d)).map((d) => capaDe(d, pila))) + 1 : 0
+    capa.set(id, c)
+    return c
+  }
+  features.forEach((f) => capaDe(f.id))
+  const capas = []
+  for (const f of features) (capas[capa.get(f.id)] ||= []).push(f.id)
+  const fila = new Map()
+  capas.forEach((ids) => ids.forEach((id, i) => fila.set(id, i)))
+  for (let vuelta = 0; vuelta < 4; vuelta++) {
+    for (const ids of capas) {
+      const bc = (id) => {
+        const ps = (porId.get(id).dependencies || []).filter((d) => fila.has(d))
+        return ps.length ? ps.reduce((s, d) => s + fila.get(d), 0) / ps.length : fila.get(id)
+      }
+      ids.sort((a, b) => bc(a) - bc(b) || a.localeCompare(b))
+      ids.forEach((id, i) => fila.set(id, i))
+    }
+  }
+  const alto = Math.max(...capas.map((c) => c.length))
+  posiciones = new Map()
+  capas.forEach((ids, c) => {
+    const desplaz = ((alto - ids.length) * (AL + SEP_Y)) / 2
+    ids.forEach((id, i) => posiciones.set(id, { x: c * (AN + SEP_X), y: desplaz + i * (AL + SEP_Y) }))
+  })
+}
+
+function dibujarGrafo(cambiados) {
+  const g = $('#vista')
+  let s = ''
+  for (const f of features) {
+    for (const d of f.dependencies || []) {
+      const a = posiciones.get(d), b = posiciones.get(f.id)
+      if (!a || !b) continue
+      const x1 = a.x + AN, y1 = a.y + AL / 2, x2 = b.x, y2 = b.y + AL / 2, m = (x1 + x2) / 2
+      const pend = porId.get(d)?.status !== 'done' ? ' pendiente' : ''
+      s += `<path class="arista${pend}" data-de="${d}" data-a="${f.id}" d="M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}" marker-end="url(#flecha)"/>`
+    }
+  }
+  for (const f of features) {
+    const p = posiciones.get(f.id)
+    const nombre = f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name
+    s += `<g class="nodo${cambiados.has(f.id) ? ' cambio' : ''}" data-id="${f.id}" transform="translate(${p.x},${p.y})">
+      <title>${esc(f.id + ' — ' + f.name + ' [' + NOMBRE_ESTADO[f.estado] + ']')}</title>
+      <rect class="cuerpo" width="${AN}" height="${AL}" rx="8" fill="#fff" stroke="${color(f.estado)}"/>
+      <rect width="6" height="${AL}" rx="3" fill="${color(f.estado)}"/>
+      <rect x="${AN - 44}" y="5" width="38" height="14" rx="7" fill="${colorOwner(f.owner)}"/>
+      <text x="${AN - 25}" y="15.5" text-anchor="middle" fill="#fff" style="font-size:9px;font-weight:700">${esc(f.owner === 'coordinación' ? 'coord' : f.owner || '—')}</text>
+      <text class="id" x="13" y="17">${f.id}</text>
+      <text x="13" y="34" fill="#344054">${esc(nombre)}</text>
+    </g>`
+  }
+  g.innerHTML = s
+  g.querySelectorAll('.nodo').forEach((n) => n.addEventListener('click', (e) => { e.stopPropagation(); seleccionar(n.dataset.id) }))
+  if (primeraVez) { encuadrar(); primeraVez = false }
+}
+
+// ---------- Zoom y arrastre ----------
+let vb = { x: 0, y: 0, w: 1000, h: 600 }
+const svg = $('#grafo')
+const ponerVB = () => svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`)
+// todo=true: cabe el grafo completo. Si no: zoom legible (máx. 1,6 unidades por píxel) anclado a la izquierda.
+function encuadrar(todo) {
+  const xs = [...posiciones.values()]
+  if (!xs.length) return
+  const minX = Math.min(...xs.map((p) => p.x)) - 20, minY = Math.min(...xs.map((p) => p.y)) - 20
+  const maxX = Math.max(...xs.map((p) => p.x)) + AN + 20, maxY = Math.max(...xs.map((p) => p.y)) + AL + 20
+  const r = svg.getBoundingClientRect()
+  const kTodo = Math.max((maxX - minX) / r.width, (maxY - minY) / r.height)
+  const k = todo === true ? kTodo : Math.min(kTodo, Math.max(1.6, (maxY - minY) / r.height))
+  const ancho = r.width * k, alto = r.height * k
+  vb = { w: ancho, h: alto, x: ancho >= maxX - minX ? minX - (ancho - (maxX - minX)) / 2 : minX, y: minY - (alto - (maxY - minY)) / 2 }
+  ponerVB()
+}
+svg.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  const r = svg.getBoundingClientRect(), k = e.deltaY > 0 ? 1.12 : 1 / 1.12
+  const px = vb.x + ((e.clientX - r.left) / r.width) * vb.w, py = vb.y + ((e.clientY - r.top) / r.height) * vb.h
+  vb = { x: px - (px - vb.x) * k, y: py - (py - vb.y) * k, w: vb.w * k, h: vb.h * k }
+  ponerVB()
+}, { passive: false })
+let arrastre = null
+svg.addEventListener('pointerdown', (e) => { arrastre = { x: e.clientX, y: e.clientY, vb: { ...vb }, movio: false } })
+window.addEventListener('pointermove', (e) => {
+  if (!arrastre) return
+  const r = svg.getBoundingClientRect(), dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y
+  if (Math.abs(dx) + Math.abs(dy) > 3) arrastre.movio = true
+  vb.x = arrastre.vb.x - (dx * vb.w) / r.width
+  vb.y = arrastre.vb.y - (dy * vb.h) / r.height
+  ponerVB()
+})
+window.addEventListener('pointerup', () => { setTimeout(() => (arrastre = null)) })
+svg.addEventListener('click', () => { if (!arrastre?.movio) seleccionar(null) })
+svg.addEventListener('dblclick', () => encuadrar(true))
+
+// ---------- Filtros ----------
+function armarFiltrosEstado() {
+  const cont = $('#filtro-estado')
+  for (const e of ESTADOS) {
+    const l = document.createElement('label')
+    l.className = 'chip'
+    l.innerHTML = `<input type="checkbox" value="${e}"> <span class="punto" style="background:${color(e)}"></span>${NOMBRE_ESTADO[e]}`
+    const c = l.querySelector('input')
+    c.checked = ui.estados.includes(e)
+    c.addEventListener('change', () => {
+      ui.estados = [...cont.querySelectorAll('input:checked')].map((x) => x.value)
+      guardar(); aplicarFiltros()
+    })
+    cont.appendChild(l)
+  }
+}
+function armarOwners() {
+  const s = $('#filtro-owner'), presentes = new Set(features.map((f) => f.owner || '(sin dueño)'))
+  s.innerHTML = '<option value="">Todos</option>' + OWNERS.filter((o) => presentes.has(o)).map((o) => `<option>${o}</option>`).join('')
+  s.value = ui.owner
+}
+const ownerDe = (f) => f.owner || '(sin dueño)'
+function coincide(f) {
+  if (!ui.estados.includes(f.status)) return false
+  if (ui.owner && ownerDe(f) !== ui.owner) return false
+  if (ui.texto) {
+    const t = ui.texto.toLowerCase()
+    const blob = [f.id, f.name, f.description, f.owner, f.evidence, ...(f.acceptance || [])].join(' ').toLowerCase()
+    if (!blob.includes(t)) return false
+  }
+  return true
+}
+const ancestros = (id, acc = new Set()) => { for (const d of porId.get(id)?.dependencies || []) if (!acc.has(d)) { acc.add(d); ancestros(d, acc) } return acc }
+const descendientes = (id, acc = new Set()) => { for (const h of hijos.get(id) || []) if (!acc.has(h)) { acc.add(h); descendientes(h, acc) } return acc }
+
+function aplicarFiltros() {
+  const visibles = new Set(features.filter(coincide).map((f) => f.id))
+  const contexto = new Set()
+  if (ui.conDeps) for (const id of visibles) for (const a of ancestros(id)) if (!visibles.has(a)) contexto.add(a)
+  // selección: resalta su cadena completa
+  let cadena = null
+  if (ui.sel && porId.has(ui.sel)) cadena = new Set([ui.sel, ...ancestros(ui.sel), ...descendientes(ui.sel)])
+  document.querySelectorAll('.nodo').forEach((n) => {
+    const id = n.dataset.id
+    n.classList.toggle('sel', id === ui.sel)
+    const enFiltro = visibles.has(id) || contexto.has(id)
+    const dentro = cadena ? cadena.has(id) : enFiltro
+    n.classList.toggle('tenue', !dentro)
+    n.classList.toggle('contexto', dentro && !cadena && contexto.has(id))
+  })
+  document.querySelectorAll('.arista').forEach((a) => {
+    const { de, a: para } = a.dataset
+    const res = cadena && cadena.has(de) && cadena.has(para)
+    a.classList.toggle('resaltada', !!res)
+    a.setAttribute('marker-end', res ? 'url(#flecha-neg)' : 'url(#flecha)')
+    const ok = cadena ? res : (visibles.has(para) || contexto.has(para)) && (visibles.has(de) || contexto.has(de))
+    a.classList.toggle('tenue', !ok)
+  })
+  document.querySelectorAll('tr.fila').forEach((tr) => {
+    tr.classList.toggle('oculta', !visibles.has(tr.dataset.id) && !contexto.has(tr.dataset.id))
+    tr.style.opacity = contexto.has(tr.dataset.id) ? 0.55 : 1
+    tr.classList.toggle('sel', tr.dataset.id === ui.sel)
+  })
+  const cuenta = {}
+  for (const f of features) cuenta[f.estado] = (cuenta[f.estado] || 0) + 1
+  $('#resumen').innerHTML = `<span>${features.length} features</span>` +
+    ['done', 'in-progress', 'lista', 'not-started', 'blocked'].filter((e) => cuenta[e])
+      .map((e) => `<span><span class="punto" style="background:${color(e)}"></span> ${NOMBRE_ESTADO[e]}: ${cuenta[e]}</span>`).join('') +
+    `<span>· mostrando ${visibles.size}${contexto.size ? ' + ' + contexto.size + ' dep.' : ''}</span>`
+}
+
+$('#filtro-owner').addEventListener('change', (e) => { ui.owner = e.target.value; guardar(); aplicarFiltros() })
+$('#buscar').addEventListener('input', (e) => { ui.texto = e.target.value.trim(); guardar(); aplicarFiltros() })
+$('#con-deps').addEventListener('change', (e) => { ui.conDeps = e.target.checked; guardar(); aplicarFiltros() })
+$('#en-desarrollo').addEventListener('click', () => {
+  ui.estados = ['in-progress', 'not-started', 'blocked']; ui.conDeps = true; ui.texto = ''
+  sincronizarControles(); guardar(); aplicarFiltros()
+})
+$('#limpiar').addEventListener('click', () => {
+  Object.assign(ui, { estados: ESTADOS.slice(), owner: '', texto: '', conDeps: true, sel: null })
+  sincronizarControles(); guardar(); aplicarFiltros(); dibujarDetalle()
+})
+function sincronizarControles() {
+  document.querySelectorAll('#filtro-estado input').forEach((c) => (c.checked = ui.estados.includes(c.value)))
+  $('#filtro-owner').value = ui.owner; $('#buscar').value = ui.texto
+  $('#con-deps').checked = ui.conDeps; $('#auto').checked = ui.auto
+}
+
+// ---------- Selección y detalle ----------
+function seleccionar(id) {
+  ui.sel = ui.sel === id ? null : id
+  guardar(); aplicarFiltros(); dibujarDetalle()
+}
+const chipDep = (id) => {
+  const f = porId.get(id)
+  return `<span class="dep" data-ir="${id}" title="${esc(f?.name)}"><span class="punto" style="background:${color(f?.estado || 'blocked')}"></span>${id}</span>`
+}
+const etiqueta = (e) => `<span class="etq" style="background:${color(e)}">${NOMBRE_ESTADO[e]}</span>`
+function dibujarDetalle() {
+  const d = $('#detalle'), f = porId.get(ui.sel)
+  if (!f) { d.innerHTML = '<p class="vacio">Haz clic en un feature (grafo o tabla) para ver su detalle.</p>'; return }
+  const faltan = (f.dependencies || []).filter((x) => porId.get(x)?.status !== 'done')
+  const lista = (xs) => (xs?.length ? '<ul>' + xs.map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<span class="vacio">—</span>')
+  d.innerHTML = `
+    <h2>${f.id} · ${esc(f.name)}</h2>
+    <div>${etiqueta(f.estado)} <span class="etq" style="background:${colorOwner(f.owner)}">${esc(f.owner || 'sin dueño')}</span></div>
+    ${f.blocked_reason ? `<h3>Motivo de bloqueo</h3><p>${esc(f.blocked_reason)}</p>` : ''}
+    <h3>Descripción</h3><p>${esc(f.description) || '<span class="vacio">—</span>'}</p>
+    <h3>Depende de</h3><div>${(f.dependencies || []).map(chipDep).join('') || '<span class="vacio">nada</span>'}</div>
+    ${faltan.length && f.status !== 'done' ? `<p style="color:var(--lista)">Esperando: ${faltan.join(', ')}</p>` : ''}
+    <h3>Cadena completa aguas arriba</h3><div>${[...ancestros(f.id)].sort().map(chipDep).join('') || '<span class="vacio">—</span>'}</div>
+    <h3>Lo necesitan (directo)</h3><div>${(hijos.get(f.id) || []).map(chipDep).join('') || '<span class="vacio">nadie</span>'}</div>
+    <h3>Desbloquea en total</h3><div>${[...descendientes(f.id)].sort().map(chipDep).join('') || '<span class="vacio">—</span>'}</div>
+    <h3>Aceptación</h3>${lista(f.acceptance)}
+    <h3>Verificación</h3>${lista(f.verify)}
+    <h3>Evidencia</h3><p>${esc(f.evidence) || '<span class="vacio">sin evidencia</span>'}</p>
+    ${f.spec_refs ? `<h3>Spec</h3><p>docs/manoviva-spec.md ${esc(f.spec_refs.join(' '))}</p>` : ''}
+    ${f.prompt ? `<h3>Prompt</h3><p>${esc(f.prompt.replace(/^ref\//, 'docs/referencia/'))}</p>` : ''}`
+}
+document.addEventListener('click', (e) => {
+  const ir = e.target.closest('[data-ir]')
+  if (ir) { ui.sel = null; seleccionar(ir.dataset.ir) }
+})
+
+// ---------- Tabla ----------
+const RANGO = { 'in-progress': 0, blocked: 1, lista: 2, 'not-started': 3, done: 4 }
+function dibujarTabla() {
+  const val = (f, k) => (k === 'estado' ? RANGO[f.estado] : k === 'owner' ? ownerDe(f) : String(f[k] ?? ''))
+  const filas = features.slice().sort((a, b) => {
+    const x = val(a, ui.orden), y = val(b, ui.orden)
+    return (x < y ? -1 : x > y ? 1 : a.id.localeCompare(b.id)) * (ui.asc ? 1 : -1)
+  })
+  $('#filas').innerHTML = filas.map((f) => `
+    <tr class="fila" data-id="${f.id}">
+      <td><b>${f.id}</b></td><td>${esc(f.name)}</td>
+      <td><span class="etq" style="background:${colorOwner(f.owner)}">${esc(f.owner || '—')}</span></td>
+      <td>${etiqueta(f.estado)}</td>
+      <td>${(f.dependencies || []).map(chipDep).join('')}</td>
+      <td>${(hijos.get(f.id) || []).map(chipDep).join('')}</td>
+      <td style="max-width:320px;color:var(--muted);font-size:12px">${esc((f.evidence || '').slice(0, 140))}${(f.evidence || '').length > 140 ? '…' : ''}</td>
+    </tr>`).join('')
+  $('#filas').querySelectorAll('tr.fila').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('[data-ir]')) seleccionar(tr.dataset.id) }))
+  document.querySelectorAll('th[data-orden]').forEach((th) => {
+    th.textContent = th.textContent.replace(/ [▲▼]$/, '') + (th.dataset.orden === ui.orden ? (ui.asc ? ' ▲' : ' ▼') : '')
+  })
+}
+document.querySelectorAll('th[data-orden]').forEach((th) => th.addEventListener('click', () => {
+  ui.asc = ui.orden === th.dataset.orden ? !ui.asc : true
+  ui.orden = th.dataset.orden
+  guardar(); dibujarTabla(); aplicarFiltros()
+}))
+
+// ---------- Recarga ----------
+let temporizador = null
+function programarAuto() {
+  clearInterval(temporizador)
+  if (ui.auto) temporizador = setInterval(cargar, 5000)
+}
+$('#recargar').addEventListener('click', cargar)
+$('#auto').addEventListener('change', (e) => { ui.auto = e.target.checked; guardar(); programarAuto() })
+document.addEventListener('keydown', (e) => { if (e.key === 'r' && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey) cargar() })
+
+armarFiltrosEstado()
+sincronizarControles()
+programarAuto()
+cargar()
+</script>
+</body>
+</html>

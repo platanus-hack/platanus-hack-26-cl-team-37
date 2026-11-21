@@ -6,3 +6,4 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · coordinación · Una sola base de Supabase (la de producción) para desarrollo, CI y demo; migraciones solo aditivas y numeradas por persona.
 - 2026-11-21 · coordinación · Vercel se despliega desde la CI con token (el repositorio de la organización no se puede conectar a Vercel).
 - 2026-11-21 · P2 · Convención de profundidad corregida tras prueba con cámara real: acercar la mano a la cámara la mete hacia el fondo de la mesa.
+- 2026-11-21 · P2 · Tablero de features local (`node scripts/tablero-features.mjs`, puerto 5199) en HTML+SVG puro, sin dependencias nuevas: lee feature_list.json del disco en cada recarga para que todos lo usen sin build.
