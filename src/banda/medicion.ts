@@ -12,11 +12,17 @@ import { PUNTOS_PALMA, escalaPerspectivaDebil } from '../tracking/distancia'
 import type { CuadroManos, ManoSeguida } from '../tracking/tipos'
 import { areaHasta, cargaEn, type CurvaBanda } from './curva'
 
-/** Con qué parte de la mano se sostiene la banda. */
+/**
+ * Con qué parte de la mano se sostiene la banda. 'nudillo' (la banda en el puño, medida en el nudillo del índice, por
+ * donde sale la banda) es el punto por defecto: en pruebas con MediaPipe sobre fotos (21-nov-2026) fue el más estable
+ * entre distancias (4,6 puntos de estiramiento de variación media, contra 5,9 la palma y 9,2 la pinza) y el de menos
+ * ruido. Las puntas de los dedos son los puntos más ruidosos de MediaPipe.
+ */
 export type Agarre = 'pinza' | 'nudillo' | 'palma'
+export const AGARRE_POR_DEFECTO: Agarre = 'nudillo'
 export const AGARRES: { v: Agarre; n: string }[] = [
+  { v: 'nudillo', n: 'Puño' },
   { v: 'pinza', n: 'Pinza' },
-  { v: 'nudillo', n: 'Nudillo' },
   { v: 'palma', n: 'Palma' },
 ]
 
@@ -44,6 +50,21 @@ export interface MedidaBanda {
   desnivel: number
   /** Algún punto de las manos está pegado al borde de la imagen: al estirar más, se va a salir. */
   alBorde: boolean
+  /** Largo de la palma (muñeca → nudillo del medio) de la mano más chica, como fracción del lado corto de la imagen. */
+  palma: number
+}
+
+/**
+ * Bajo este tamaño de palma se pide acercarse. Medido con MediaPipe sobre fotos de manos (21-nov-2026): con la palma
+ * bajo ~6 % del lado corto de la imagen deja de detectar las dos manos de forma fiable, y con manos chicas el
+ * estiramiento medido varía más (hasta 5 puntos entre distancias).
+ */
+export const PALMA_MIN = 0.07
+
+/** Largo de la palma de una mano en la imagen, como fracción del lado corto. */
+export function tamanoPalma(mano: Pick<ManoSeguida, 'landmarks'>, ancho: number, alto: number): number {
+  const [a, b] = [mano.landmarks[0], mano.landmarks[9]]
+  return Math.hypot((b.x - a.x) * ancho, (b.y - a.y) * alto) / Math.min(ancho, alto)
 }
 
 /** Margen (fracción de la imagen) bajo el que un punto se considera pegado al borde. */
@@ -72,8 +93,15 @@ export function medirBanda(cuadro: CuadroManos, agarre: Agarre): MedidaBanda | n
     ],
     desnivel: Math.abs(sa - sb) / escala,
     alBorde: manosAlBorde([a, b]),
+    palma: Math.min(tamanoPalma(a, cuadro.ancho, cuadro.alto), tamanoPalma(b, cuadro.ancho, cuadro.alto)),
   }
 }
+
+/**
+ * Bajo este largo de reposo (cm aprox.) el error relativo del reposo pesa: el ruido por cuadro es cerca de 0,5 cm
+ * (medido con MediaPipe sobre fotos con ruido de sensor) y un reposo de 12 cm ya da unos 4 puntos de estiramiento.
+ */
+export const REPOSO_CORTO_CM = 12
 
 /** Fracción de estiramiento respecto del reposo; 0 si la banda está suelta. */
 export function estiramiento(largoCm: number, reposoCm: number): number {

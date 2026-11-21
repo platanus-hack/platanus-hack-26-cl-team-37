@@ -3,7 +3,7 @@ import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sint
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, alcanzaMeta, estiramiento, manosAlBorde, medirBanda, puntoAgarre, totales } from './medicion'
+import { CapturaReposo, ContadorReps, MS_REPOSO, PALMA_MIN, alcanzaMeta, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -162,6 +162,17 @@ describe('medición entre las dos manos', () => {
     const abierta: GuionSintetico = { manos: banda.manos.map((m, i) => ({ ...m, poses: m.poses.map((p) => ({ ...p, x: i === 0 ? 0.08 : 0.92 })) })) }
     expect(medirBanda(cuadro(abierta, T_REPOSO), 'pinza')!.alBorde).toBe(true)
     expect(manosAlBorde([])).toBe(false)
+  })
+
+  it('mide el tamaño de la palma para pedir que se acerquen', () => {
+    // Mano promedio a 50 cm con f = 0,8 × 640: la palma (9 cm) ocupa unos 92 px de los 480 del lado corto.
+    expect(medirBanda(cuadro(banda, T_REPOSO), 'pinza')!.palma).toBeGreaterThan(0.15)
+    const lejos: GuionSintetico = { manos: banda.manos.map((m) => ({ ...m, poses: m.poses.map((p) => ({ ...p, distanciaCm: 160 })) })) }
+    expect(medirBanda(cuadro(lejos, T_REPOSO), 'pinza')!.palma).toBeLessThan(PALMA_MIN)
+    // Se normaliza por el lado corto: la misma mano en una imagen vertical u horizontal da lo mismo.
+    const mano = cuadro(banda, 0).manos[0]
+    const px = tamanoPalma(mano, 640, 480) * 480
+    expect(px).toBeGreaterThan(60)
   })
 
   it('con una sola mano no mide', () => {

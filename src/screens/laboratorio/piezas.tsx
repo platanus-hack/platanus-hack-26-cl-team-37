@@ -25,7 +25,7 @@ export function ArcoCarga({ kg, tope, meta, rotulo }: { kg: number | null; tope:
   const angMeta = meta && tope > 0 ? INICIO + BARRIDO * Math.min(1, meta / tope) : null
   const enMeta = kg != null && meta != null && meta > 0 && alcanzaMeta({ picoKg: kg }, meta)
   return (
-    <div className="arco lab-arco" data-meta={enMeta ? 'si' : undefined} role="img" aria-label={kg == null ? 'Sin medida todavía' : `${num(kg, 1)} kilos, aproximado${meta ? `; meta ${num(meta, 1)} kilos` : ''}`}>
+    <div className="arco lab-arco" data-meta={enMeta ? 'si' : undefined} role="img" aria-label={`${kg == null ? 'Sin medida todavía' : `${num(kg, 1)} kilos, aproximado`}${meta ? `; meta ${num(meta, 1)} kilos` : ''}`}>
       <svg viewBox="0 0 210 150" aria-hidden="true">
         <path className="vacio" d={tramo(INICIO, INICIO + BARRIDO)} />
         {lleno > 0.01 && <path className="hecho" d={tramo(INICIO, INICIO + BARRIDO * lleno)} />}

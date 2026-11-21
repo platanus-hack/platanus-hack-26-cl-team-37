@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, estiramiento, medirBanda, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, PALMA_MIN, REPOSO_CORTO_CM, estiramiento, medirBanda, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
@@ -28,7 +28,7 @@ const MS_TRAZO = 12000
 
 interface Vista {
   manos: number
-  medida: Pick<MedidaBanda, 'largoCm' | 'desnivel' | 'alBorde'> | null
+  medida: Pick<MedidaBanda, 'largoCm' | 'desnivel' | 'alBorde' | 'palma'> | null
   progresoReposo: number
   repeticiones: Repeticion[]
   estirando: boolean
@@ -49,6 +49,7 @@ function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, r
   if (estado === 'error') return 'No pudimos abrir la cámara. Recarga la página.'
   if (v.manos < 2) return 'Muestra las dos manos sosteniendo la banda.'
   if (v.medida?.alBorde) return 'Una mano se sale del cuadro: aléjate un poco o toma la banda más corta.'
+  if (v.medida && v.medida.palma < PALMA_MIN) return 'Acércate al teléfono: las manos se ven pequeñas y se miden peor.'
   if (v.medida && v.medida.desnivel > DESNIVEL_MAX) return 'Pon las dos manos a la misma distancia del teléfono.'
   if (capturando) return 'Quieto un segundo…'
   if (reposoCm == null) return 'Sostén la banda tensa, sin estirar, y marca el reposo.'
@@ -87,7 +88,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const lienzo = useRef<HTMLCanvasElement>(null)
   const archivo = useRef<HTMLInputElement>(null)
 
-  const [agarre, setAgarre] = useGuardado<Agarre>('agarre', 'pinza')
+  const [agarre, setAgarre] = useGuardado<Agarre>('agarre', AGARRE_POR_DEFECTO)
   const [curvaId, setCurvaId] = useGuardado('curva', CORENGTH_5KG.id)
   const [tiras, setTiras] = useGuardado('tiras', 2)
   const [meta, setMeta] = useGuardado('meta', 0)
@@ -321,6 +322,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
             </div>
           </dl>
           {carga?.fueraDeRango && <p className="lab-aviso">Pasaste el último punto de la curva: el valor es una prolongación.</p>}
+          {reposoCm != null && reposoCm < REPOSO_CORTO_CM && <p className="lab-aviso">Reposo corto: con las manos más separadas el estiramiento se mide mejor.</p>}
           {reposoCm != null && <Trazo puntos={vista.trazo} ventanaMs={MS_TRAZO} tope={tope} meta={metaKg} />}
           <button type="button" className="boton primario" disabled={vista.manos < 2 || capturando} onClick={() => setCapturando(true)}>
             {capturando ? 'Midiendo…' : reposoCm == null ? 'Marcar reposo' : 'Volver a marcar reposo'}
