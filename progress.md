@@ -5,7 +5,7 @@ Registro de sesiones (solo agregar al final). Cada entrada: fecha, feature, qué
 ## Estado actual (Current State)
 
 - Last Updated: 2026-11-21
-- Hecho: F00 base, F01 harness, F02 esqueleto, F03 acceso, F04 inicio del paciente, F05 catálogo de ejercicios, F06 preparar la sesión. El resto de las pantallas siguen provisorias. Deploy de producción al día con F06.
+- Hecho: F00 base, F01 harness, F02 esqueleto, F03 acceso, F04 inicio del paciente, F05 catálogo de ejercicios, F06 preparar la sesión, F07 módulo de seguimiento de manos (sin pantalla propia). El resto de las pantallas siguen provisorias. Deploy de producción al día con F06.
 - Siguiente (Next): ver `node scripts/siguiente-feature.mjs` y `session-handoff.md`.
 
 ## Decisiones
@@ -57,12 +57,24 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - 2026-11-21 · (F06) Juego inexistente o "Próximamente" en /sesion/:juego/preparar → mensaje "Este ejercicio no está disponible" con enlace a /ejercicios (no se crea sesión). `?fuente=` se conserva al ir a /calibrar. Cada "Comenzar" crea una sesión preparada nueva (no se reutilizan).
 - 2026-11-21 · (F06) `versionApp`, `dispositivo` y `versionModelo` quedan null en la sesión preparada: los llena la calibración/juego/cierre.
 - 2026-11-21 · (F06) Limpieza de e2e: `scripts/limpiar-preparadas.ts <ISO desde>` (service_role, como manda CLAUDE.md: solo scripts/) borra sesiones `preparada` de pacientes demo creadas desde esa fecha; `e2e/preparar.spec.ts` lo llama en un `finally` de la única prueba que crea sesión. Smoke usa ahora `/sesion/caja-juguetes/preparar` (título "Caja de juguetes").
+- 2026-11-21 · (F07) Estados de la fuente: los 4 del prompt (`sin permiso | buscando | detectada | perdida`) + `iniciando`, `sin camara` y `error`, porque F08 debe explicar "sin cámara" y fallos de modelo. `perdida` = había mano y lleva ≥ 300 ms sin verse (evita parpadeos); la pausa de 2 s la decide F09 con `fuente.ultimaDeteccion`.
+- 2026-11-21 · (F07) Convención de coordenadas única para todas las fuentes = la de MediaPipe sobre el video SIN espejo (landmarks normalizados, world en metros). Dibujar en espejo es tarea de la vista (`espejarX`). La mano derecha del sujeto queda a la izquierda de la imagen cruda, pulgar hacia +x (así la genera la sintética).
+- 2026-11-21 · (F07) Lateralidad: etiqueta de MediaPipe 'Right' → 'derecha' (según la nota del d.ts de tasks-vision 1.2.3: es la mano del sujeto con imagen sin espejo). `?lateralidad=invertida` la invierte para probar en teléfono. Sigue pendiente de verificación con teléfono real.
+- 2026-11-21 · (F07) Distancia: la fórmula del spec se usa en su forma invariante a rotación en el plano y a espejo (Procrustes 2D: s = √(a²+b²)/ΣX², probando también u → −u). Con imagen y mundo alineados es idéntica a la del spec. Ajuste con los 21 puntos y referencia al centro de la palma (0,5,9,13,17) corrigiendo con la diferencia de z del mundo (con el puño los dedos quedan más cerca). Distancia = cámara → centro de la palma. Error con mano sintética proyectada: máx. 2,0 % en 40/50/60 cm (abierta, puño, pinza, esquina, girada/inclinada).
+- 2026-11-21 · (F07) One Euro: la cámara suaviza landmarks e world por lado (1,0 / 0,02); las fuentes simuladas no suavizan (la grabación ya guarda lo suavizado). `EstimadorDistancia` suaviza su propia salida.
+- 2026-11-21 · (F07) MediaPipe Tasks envía telemetría (POST https://odml.pa.googleapis.com/v1/log). Lo detectó el e2e de la cámara. Se corta en el navegador envolviendo `fetch` (responde 204 sin red) antes de cargar MediaPipe (`bloquearTelemetriaMediapipe` en camara.ts). El e2e verifica que no salga ninguna petición que no sea GET a la propia app (o Supabase).
+- 2026-11-21 · (F07) GPU → CPU: si crear con GPU falla, CPU; además, si con GPU va < 8 fps en los primeros 2,5 s, cambia una vez a CPU (Chromium headless tiene GPU por software: 0,6 fps con GPU, ~18 fps con CPU). `?delegado=cpu|gpu` lo fuerza. Web Worker no se implementa todavía: se evalúa con el fps medido en teléfono (F09/F21).
+- 2026-11-21 · (F07) Luminancia de la cámara: se dibuja el video en un lienzo de 32×24 cada 500 ms y se descarta. La sintética entrega `luz` del guion (140 por defecto; `fijarLuz(30)` simula poca luz).
+- 2026-11-21 · (F07) Grabación: formato compacto propio (`manoviva-landmarks` v1, arreglos de 63 números por mano, 5 decimales, t relativo). Reproducción por muestreo y retención (sin interpolar) para que sea exactamente determinista. Demo en `public/grabaciones/demo.json` (guion `calibracion` a 15 fps, 149 cuadros, 140 KB), regenerable con `npx tsx scripts/generar-grabacion.ts`.
+- 2026-11-21 · (F07) Sin dependencias nuevas. MediaPipe se importa con `import()` dentro de `camara.ts`, que a su vez se importa con `import()` desde `fuentes.ts`: no entra al bundle principal.
 
 ## Riesgos abiertos
 
 - Node local 20.17 < 20.19 que pide Vite 8: `init.sh` reinstala binarios nativos de Windows. Arreglo definitivo: instalar Node 22 LTS.
 - Registro público de Supabase Auth sigue activo: un extraño puede crear cuenta, pero sin perfil no ve datos (RLS). Desactivar en el panel de Supabase (Auth > Providers > Email > "Allow new users to sign up") antes de uso real.
 - Lateralidad izquierda/derecha, instalación PWA y modo avión solo se pueden confirmar en un teléfono real.
+- (F07) La focal 0,8 × ancho no está medida en un teléfono real: es la mayor fuente de error de la distancia. `focalDesdeDistanciaConocida` permite calibrarla (F21 /depuracion).
+- (F07) Si una versión nueva de @mediapipe/tasks-vision cambia el endpoint de telemetría, el e2e `tracking` lo detecta (falla por petición saliente).
 - Medidas en cm y grados no validadas contra regla/goniómetro hasta que un humano ejecute docs/validacion.md (F21).
 - (Resuelto en F03) `repos.auth.salir()` ahora usa `signOut({ scope: 'local' })`.
 - Las pruebas e2e de acceso hacen ingresos reales (≈7 por corrida): correr la suite muchas veces seguidas podría tocar el límite de ingresos por IP de Supabase Auth.
@@ -116,3 +128,9 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Nuevo: `src/games/preparar.ts` (+ pruebas), `NivelJuego.detalle` en el registro, `scripts/limpiar-preparadas.ts`, estilos sección "preparar sesión" en `src/index.css`.
 - Verificación: `npm run e2e -- preparar` 5/5 · `npm run e2e -- smoke inicio ejercicios` 39/39 · vitest 41/41 · `bash init.sh` INIT OK · captura `docs/capturas/preparar.png` · deploy prod 200 (/ y /acceso).
 - Siguiente: F07 (módulo de seguimiento de manos).
+
+### 2026-11-21 · F07 Módulo de seguimiento de manos
+- `src/tracking/`: `tipos.ts` (FuenteManos, ManoSeguida, CuadroManos, estados), `fuenteBase.ts` (estado, fps, suscriptores), `camara.ts` (getUserMedia 640×480@30 frontal, HandLandmarker VIDEO 2 manos GPU→CPU, modelo y wasm locales, solo el último cuadro con requestVideoFrameCallback, One Euro, luz, corte de telemetría), `sintetica.ts` (modelo de mano + guiones con claves y presets), `fuenteSimulada.ts` (FuenteSintetica con control en vivo, FuenteGrabacion, reloj inyectable), `grabacion.ts` (grabador y lector JSON, reproducción determinista), `distancia.ts` (perspectiva débil + regla + focal calibrable + pinhole + EstimadorDistancia), `fuentes.ts` (`?fuente=` y fábrica), `useFuenteManos.ts` (hook).
+- `public/grabaciones/demo.json` + `scripts/generar-grabacion.ts`. `e2e/tracking.spec.ts` (4 pruebas en Chromium con cámara falsa).
+- Verificación: `npm test -- tracking` 40/40 · `npm run e2e -- tracking` 4/4 · `npm run e2e` 55/55 · `bash init.sh` INIT OK.
+- Siguiente: F08 (pantalla de calibración).

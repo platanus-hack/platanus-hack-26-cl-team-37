@@ -201,7 +201,7 @@
       "dependencies": [
         "F02"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Pruebas unitarias: distancia con mano sintética proyectada a 40/50/60 cm estima con error < 5 %",
         "Fuente sintética produce manos con la misma forma que la cámara (21 puntos image + world, lado)",
@@ -212,7 +212,7 @@
         "npm test -- tracking"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "npm test -- tracking: 40/40 (distancia con mano sintética proyectada a 40/50/60 cm, 5 poses c/u: error máx. 2,0 %; regla corrige mano de 16 cm; focal calibrable; pinhole de respaldo; geometría de la sintética 21+21 puntos y lado; guiones; grabación ida y vuelta y reproducción determinista idéntica en dos corridas; el grabador solo guarda números de landmarks). npm run e2e -- tracking: 4/4 en Chromium con cámara falsa (sintetica detectada ~30 fps; grabacion demo detectada; camara carga MediaPipe local, queda buscando, CPU ~18 fps, auto GPU→CPU; ninguna petición saliente salvo GET a la app: se detectó y cortó la telemetría de MediaPipe a odml.pa.googleapis.com). npm run e2e 55/55. bash init.sh INIT OK (81 unitarias). Video: solo en memoria para detectar/mostrar; luz en lienzo 32x24 descartado; nada se guarda ni envía. Pendiente humano: lateralidad y fps en teléfono real."
     },
     {
       "id": "F08",

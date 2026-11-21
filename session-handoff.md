@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F06 preparar la sesión → done (deploy prod hecho, 200).
+- Última sesión: 2026-11-21, F07 módulo de seguimiento de manos → done (sin deploy: `deploy: false`).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F07 — Módulo de seguimiento de manos + distancia + fuentes simuladas** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F08 — Calibración (pantalla)** (`node scripts/siguiente-feature.mjs` para el detalle).
 
 ## Archivos clave (Files)
 
@@ -52,6 +52,19 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - e2e que crean sesiones: limpiar con `npx tsx scripts/limpiar-preparadas.ts <ISO desde>` (borra solo `preparada` de pacientes demo creadas desde esa fecha). Ver `e2e/preparar.spec.ts` (try/finally). F08 puede crear su sesión de prueba igual y limpiarla así — ojo: una sesión que pasó a `en curso` no la borra este script (ampliarlo o re-seed).
 - Clases CSS nuevas (sección "preparar sesión"): `.preparar`, `.preparar-tarjeta`, `.preparar-valor`, `.niveles`, `.duracion`, `.boton-paso`, `.autor`, `.consejo`.
 
+## Seguimiento de manos (F07, hecho) — `src/tracking/`
+
+- **Interfaz** (`tipos.ts`): `FuenteManos` = `{ tipo, estado, fps, ultimo, ultimaDeteccion, luminancia, video, detalleError, iniciar(), detener(), alCuadro(fn) → quitar, alEstado(fn) → quitar }`. Cuadro = `{ t, manos: ManoSeguida[], ancho, alto }`; `ManoSeguida = { lado: 'derecha'|'izquierda', landmarks (21, normalizados 0..1, imagen SIN espejo), worldLandmarks (21, metros, centrados), confianza }`. Estados: `iniciando | sin permiso | sin camara | error | buscando | detectada | perdida` (perdida tras 300 ms sin mano).
+- **Crear**: `crearFuente(configDesdeUrl(location.search))` (`fuentes.ts`, async; la cámara y MediaPipe se cargan con `import()`), o en React `const { fuente, estado, error } = useFuenteManos(location.search)` (inicia/detiene sola; los cuadros se leen con `fuente.alCuadro` o `fuente.ultimo`, sin re-render por cuadro). **Pasar `?fuente=` de pantalla en pantalla** (F06 ya lo hace hasta /calibrar).
+- **URL**: `?fuente=camara|sintetica|grabacion` (por defecto camara) · `&guion=calibracion|quieta|abrir-cerrar|pinza|mover|sin-mano|ambas` · `&lado=izquierda` · `&grabacion=/ruta.json` (por defecto `/grabaciones/demo.json`) · `&lateralidad=invertida` · `&delegado=cpu|gpu`.
+- **Sintética** (`sintetica.ts` + `FuenteSintetica`): `PoseMano = { apertura 0..1, dedos: {pulgar,indice,medio,anular,menique: flexión 0..1}, pinzaCm | null, x, y (imagen cruda), distanciaCm, giroDeg, pronacionDeg, inclinacionDeg, confianza, visible }`. Guion = `{ manos: [{ lado, poses: PoseClave[] }], bucle?, luz?, camara? }`; `secuencia([[durMs, pose], ...])` arma claves; cada clave hereda lo no indicado (`dedos` se reemplaza), interpolación lineal. El preset por defecto `calibracion` hace: abierta 2,5 s → abrir/cerrar ×3 → pinza 0,5 cm 1,5 s → suelta (≈ 9,9 s, en bucle): pensado para que F08 complete sus 3 pasos con `?fuente=sintetica`.
+- **Control en vivo (e2e)**: `window.__manoviva.fuente` (solo fuentes simuladas) → `cargarGuion(g)`, `fijarPose({ apertura: 0 }, 'derecha')`, `ocultar()`, `fijarLuz(30)`, `reiniciarReloj()`. Un guion puesto con `page.addInitScript(() => { window.__manoviva = { guion: {...} } })` reemplaza al preset al crear la fuente. Para manejar el tiempo a mano en unitarias: `new FuenteSintetica(guion, relojManual())` + `reloj.t = ...; fuente.paso()`.
+- **Grabación** (`grabacion.ts`): `new GrabadorLandmarks('camara')` + `fuente.alCuadro(c => g.agregar(c))` → `g.json()`; `descargarJson(texto)` en `fuentes.ts`; `leerGrabacion(texto)` + `new FuenteGrabacion(g)`. Solo números de landmarks, nunca video. Regenerar la demo: `npx tsx scripts/generar-grabacion.ts [guion] [salida]`.
+- **Distancia** (`distancia.ts`): `estimarDistanciaCm(mano, ancho, alto, { largoReglaCm, focalPx })` → `{ cm, metodo: 'perspectiva'|'pinhole' }` (al centro de la palma; mostrar "aprox."); `new EstimadorDistancia(opts).estimar(mano, ancho, alto, t)` suavizado por lado; `focalDesdeDistanciaConocida(...)` para calibrar la focal en /depuracion (F21).
+- **Cámara** (`camara.ts`): `fuente.video` es un `<video>` creado por la fuente (no está en el DOM): F08 lo monta/dibuja en espejo (`transform: scaleX(-1)` o `espejarX` para los puntos). `fuente.delegado` dice GPU/CPU. Corta la telemetría de MediaPipe (odml.pa.googleapis.com). Chromium headless: CPU ~18 fps; GPU por software pasa sola a CPU tras ~3–5 s.
+- Métricas de mano: `src/metrics/geometria.ts` (`largoMano`, `aperturaPinza`, `aperturaMano`, `flexionDedo`, `luminanciaMedia`, `clasificarLuz`, `CONEXIONES` para dibujar).
+- e2e: `e2e/tracking.spec.ts` importa `/src/tracking/fuentes.ts` del servidor dev dentro de `page.evaluate` (útil mientras no haya pantalla).
+
 ## Cuidado con
 
 - Correr `bash init.sh` antes de nada. Si `npm install` borró los binarios nativos de Windows, init.sh los repone.
@@ -69,5 +82,6 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F07.
-3. Marcar F07 `in-progress` y seguir CLAUDE.md.
+2. `node scripts/siguiente-feature.mjs` → F08.
+3. Marcar F08 `in-progress` y seguir CLAUDE.md. Notas para F08: usar `useFuenteManos(location.search)`; pasos guiados medibles con `aperturaMano` (abierta > 0,8, puño < 0,3) y `aperturaPinza`; distancia con `EstimadorDistancia` (+ `largoManoCm` del paciente como regla); luz con `fuente.luminancia` + `clasificarLuz`; confianza = `mano.confianza`; fps = `fuente.fps`; estados `sin permiso`/`sin camara`/`error` traen `fuente.detalleError`. La sesión de prueba que pase a `en curso` no la borra `limpiar-preparadas.ts`.
+4. Notas para F09 (juegos): la pausa automática usa `fuente.ultimaDeteccion` (ms del reloj de la fuente, mismo que `cuadro.t`); los e2e de juegos manejan las manos con `window.__manoviva.fuente.cargarGuion(...)`; para un guion propio de juego (p. ej. "tomar y dejar en la caja") agregar un preset en `GUIONES_PRESET` o inyectarlo.
