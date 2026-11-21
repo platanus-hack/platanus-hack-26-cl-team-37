@@ -5,9 +5,9 @@
 .progreso-titulo { font-size: 15px; }
 .progreso-valor { font-family: var(--titulos); font-weight: 700; font-size: 24px; line-height: 1.2; margin: 6px 0 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
 .progreso-var { font-family: var(--cuerpo); font-size: 15px; font-weight: 700; }
-.progreso-var.sube { color: var(--exito); }
+.progreso-var.sube { color: var(--tinta); }
 .progreso-var.baja { color: var(--texto-2); }
-.progreso-meta { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 14px; color: var(--exito); white-space: nowrap; }
+.progreso-meta { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 14px; color: var(--suave); white-space: nowrap; }
 .progreso-cabeza { align-items: flex-start; }
 .progreso-grafico { margin: 6px -4px 0; }
 .progreso-grafico .recharts-wrapper:focus, .progreso-grafico svg:focus { outline: none; }
@@ -26,4 +26,4 @@
 .progreso-par .tarjeta { padding: 14px; }
 .progreso-par .progreso-valor { font-size: 22px; }
 .progreso-par .progreso-nota { margin-top: 6px; }
-.progreso-baja-tiempo { color: var(--exito); }
+.progreso-baja-tiempo { color: var(--tinta); font-weight: 600; }

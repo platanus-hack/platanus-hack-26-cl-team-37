@@ -43,7 +43,7 @@ export default function Inicio() {
         <div className="flex1">
           <p className="sobretitulo inicio-fecha">{fechaLarga(hoy)}</p>
           <h1>
-            Hola, {primerNombre} <span aria-hidden="true">👋</span>
+            Hola, {primerNombre}
           </h1>
         </div>
         <div className="avatar acento inicio-avatar" aria-hidden="true">
@@ -113,7 +113,7 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
       </ul>
       {hechos === plan.items.length && (
         <p className="tarjeta exito compacta" role="status">
-          ¡Completaste el plan de hoy!
+          Completaste el plan de hoy.
         </p>
       )}
 
@@ -121,7 +121,7 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
         <div className="tarjeta dato-inicio">
           <p className="tenue">Racha</p>
           <p className="enorme" data-testid="racha">
-            {dias} {dias === 1 ? 'día' : 'días'} {dias > 0 && <span aria-hidden="true">🔥</span>}
+            {dias} {dias === 1 ? 'día' : 'días'}
           </p>
         </div>
         <div className="tarjeta dato-inicio">

@@ -1,5 +1,8 @@
-/* Poppins y DM Sans autoalojadas (public/fuentes/, solo subconjunto latino: cubre español). Sin Google Fonts: la app
+/* Archivo (cifras del sistema de diseño) y Poppins y DM Sans autoalojadas (public/fuentes/, solo subconjunto latino: cubre español). Sin Google Fonts: la app
    funciona sin conexión y no se contacta a terceros. Licencia OFL. */
+/* Archivo, de Omnibus-Type (OFL 1.1), de @fontsource-variable/archivo 5.3.0: variable de peso 100–900, solo latino. Las cifras finas del sistema. */
+@font-face { font-family: 'Archivo Variable'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./ui/fuentes/archivo-latin.woff2') format('woff2-variations'); }
+/* Poppins y DM Sans siguen declaradas: el lienzo del juego de movilidad todavía dibuja con Poppins. */
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fuentes/poppins-600-latin.woff2') format('woff2'); }
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fuentes/poppins-700-latin.woff2') format('woff2'); }
 @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fuentes/dm-sans-latin.woff2') format('woff2'); }

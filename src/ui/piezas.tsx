@@ -190,7 +190,7 @@ export function Anillo({ valor, tam = 64, grosor = 7, color = 'var(--acento)', c
   return (
     <div style={{ position: 'relative', width: tam, height: tam, flex: 'none' }}>
       <svg width={tam} height={tam} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-        <circle cx={tam / 2} cy={tam / 2} r={r} stroke="#2c3c4b" strokeWidth={grosor} fill="none" />
+        <circle cx={tam / 2} cy={tam / 2} r={r} stroke="var(--pista)" strokeWidth={grosor} fill="none" />
         <circle cx={tam / 2} cy={tam / 2} r={r} stroke={color} strokeWidth={grosor} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>{children}</div>
