@@ -736,7 +736,7 @@
       "dependencies": [
         "F13"
       ],
-      "status": "not-started",
+      "status": "in-progress",
       "acceptance": [
         "Un PR muestra los checks verificar y e2e",
         "main exige que pasen",
@@ -749,7 +749,7 @@
         "curl del sitio tras el merge"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "CI mínima (job verificar): .github/workflows/ci.yml corre npm ci, tipos, lint, unitarias y build en cada PR y push a main, más chequeo de dueños informativo. Lock regenerado para que npm ci funcione. Probado local desde cero (Node 26): todo verde. Pendiente: e2e y desplegar (necesitan secretos del administrador) y protección de main.",
       "owner": "P1"
     },
     {

@@ -1,0 +1,61 @@
+# CI de ManoViva (F29, dueño P1). Spec: docs/equipo/flujo-git-ci.md §3.
+# Por ahora solo el job `verificar` (sin base de datos ni claves). Los jobs `e2e` y `desplegar`
+# necesitan secretos que solo puede cargar quien administra el repositorio.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama o PR cancela la corrida anterior de verificar (no toca la base).
+concurrency:
+  group: verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # el chequeo de dueños compara contra origin/main
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Pruebas unitarias
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Informativo: no bloquea. El rol sale del prefijo de la rama (p1/, p2/, p3/).
+      - name: Dueños de archivos (informativo)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          RAMA: ${{ github.head_ref }}
+        run: |
+          case "$RAMA" in
+            p1/*) ROL=P1 ;;
+            p2/*) ROL=P2 ;;
+            p3/*) ROL=P3 ;;
+            *) echo "Rama '$RAMA' sin prefijo p1/ p2/ p3/: se omite el chequeo de dueños."; exit 0 ;;
+          esac
+          node scripts/dueno.mjs --cambios --rol "$ROL" --base origin/main
