@@ -7,7 +7,7 @@ Hoy es la fecha límite del hackatón. Somos 3 personas más coordinación, sobr
 
 | Rol | Foco | Quién (usuario de GitHub) |
 |---|---|---|
-| **P1 · Plataforma y calidad** | Front, CI/CD y casos borde | _completar_ |
+| **P1 · Plataforma y calidad** | Front, CI/CD y casos borde | Maximiliano Aguirre ([@Cadutodalcielo](https://github.com/Cadutodalcielo)) |
 | **P2 · Juegos existentes y funcionalidades** | Mejorar Caja, Movilidad y Pinza fina; terminar prescripción, perfil y diagnóstico | _completar_ |
 | **P3 · Juegos nuevos** | Torre de cubos, Atrapa burbujas, Exprime la naranja, Piano de dedos, Memoria de cartas | _completar_ |
 | **Coordinación** | Ficha de entrega, presentación, regresión final, resolver dudas de contratos | Martín + Claude |
