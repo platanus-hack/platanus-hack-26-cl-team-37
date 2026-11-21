@@ -11,6 +11,10 @@ import { CLAVE_DEMO, CUENTAS, entrarComo } from './ayudas.ts'
 import { esperarFase, ID_FALSO, juego, sesionFalsa } from './juegos.ts'
 
 test.describe.configure({ mode: 'serial' })
+// Este build trae el service worker de la PWA. Si toma el control, las peticiones a Supabase salen por él y page.route
+// (la sesión falsa de juegos.ts) no las ve: la calibración pedía la sesión a la base real y no la encontraba.
+// El service worker se prueba en offline.spec.ts; aquí solo importa la CSP.
+test.use({ serviceWorkers: 'block' })
 
 const PUERTO = Number(process.env.CSP_PUERTO ?? 5197)
 const BASE = `http://localhost:${PUERTO}`
@@ -22,8 +26,16 @@ const MIME: Record<string, string> = {
 
 // Encabezados tal como los aplicará Vercel (source "/(.*)").
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as { headers: { source: string; headers: { key: string; value: string }[] }[] }
-const ENCABEZADOS = Object.fromEntries(vercel.headers.find((h) => h.source === '/(.*)')!.headers.map((h) => [h.key, h.value]))
+// vercel.json trae la ref de Supabase de producción. Si .env.local apunta a otro proyecto (manoviva-dev, en local y en
+// la CI), se sirve la CSP con esa ref, igual que hacen los deploys de desarrollo de .github/workflows/ci.yml.
+const REF_PROD = 'iniposctftmzxkqasikh'
+const URL_APP = /^VITE_SUPABASE_URL=(.*)$/m.exec(readFileSync('.env.local', 'utf8'))?.[1]?.trim() ?? ''
+const REF_APP = /^https?:\/\/([^.]+)\./.exec(URL_APP)?.[1] ?? REF_PROD
+const ENCABEZADOS = Object.fromEntries(
+  vercel.headers.find((h) => h.source === '/(.*)')!.headers.map((h) => [h.key, h.value.replaceAll(REF_PROD, REF_APP)]),
+)
 const CSP = ENCABEZADOS['Content-Security-Policy']
+const CSP_VERCEL = vercel.headers.find((h) => h.source === '/(.*)')!.headers.find((h) => h.key === 'Content-Security-Policy')!.value
 
 let servidor: Server
 
@@ -80,8 +92,10 @@ test('el servidor aplica la CSP y los encabezados de vercel.json', async ({ requ
   // Política mínima: nada de eval ni de scripts en línea; Supabase por https y wss; camera solo para este origen.
   expect(CSP).not.toMatch(/(?<!wasm-)unsafe-eval|script-src[^;]*unsafe-inline/)
   expect(CSP).toContain("script-src 'self' 'wasm-unsafe-eval'")
-  expect(CSP).toContain('https://iniposctftmzxkqasikh.supabase.co')
-  expect(CSP).toContain('wss://iniposctftmzxkqasikh.supabase.co')
+  expect(CSP_VERCEL).toContain(`https://${REF_PROD}.supabase.co`)
+  expect(CSP_VERCEL).toContain(`wss://${REF_PROD}.supabase.co`)
+  expect(CSP).toContain(`https://${REF_APP}.supabase.co`)
+  expect(CSP).toContain(`wss://${REF_APP}.supabase.co`)
   expect(CSP).not.toMatch(/\*|http:\/\//)
 })
 
