@@ -895,7 +895,7 @@
       "prompt": null,
       "images": [],
       "deploy": false,
-      "evidence": "",
+      "evidence": "src/games/banda (logica con 26 pruebas); niveles = color de banda 2–10 kg al doble de largo; reposo automático (±2 % por 2 s) o botón; poses reposo/pico de ambas manos; e2e banda (guion sintético banda) 6/6 con repeat-each 2, ejercicios/preparar/smoke en verde tras unir; capturas banda-elastica y banda-elastica-resumen revisadas. Sin cámara real.",
       "owner": "coordinación",
       "id": "F36",
       "name": "Juego Banda elástica",
@@ -904,7 +904,7 @@
         "F09",
         "F35"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Se juega con las dos manos; con una sola visible lo dice y no mide",
         "Marca el reposo (automático al estar 2 s quieta y tensa, o con botón) y muestra en vivo estiramiento en cm y %",
@@ -922,7 +922,7 @@
       "prompt": null,
       "images": [],
       "deploy": false,
-      "evidence": "",
+      "evidence": "src/games/muneca (30 pruebas de la matemática); neutro automático 2 s y \"Repetir neutro\"; fases flexión/extensión/radial/cubital con objetivo por nivel; aviso de antebrazo; máximos p98; R0 en metricas.juego r0_00…r0_22 + pose neutro; e2e muneca (sintético: 45/38/22/28° ±8°, poses y R0 en BD) en verde; capturas muneca-3d* revisadas. Sin cámara real.",
       "owner": "coordinación",
       "id": "F37",
       "name": "Juego Muñeca 3D",
@@ -931,7 +931,7 @@
         "F09",
         "F35"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Toma el neutro automáticamente al estar 2 s quieta y lo puede repetir",
         "Muestra en vivo los tres ángulos con \"aprox.\" y guía por fases",
@@ -948,7 +948,7 @@
       "prompt": null,
       "images": [],
       "deploy": false,
-      "evidence": "",
+      "evidence": "src/comparar: /terapeuta/pacientes/:id/comparar (enlace \"Comparar sesiones\" en cada paciente) y /progreso/comparar; escenas 3D Muñeca, Banda, Movilidad, Caja y genérica; mano real con poses, modelo sin ellas (lo dice). Chunks Estadio 49 kB y Comparar 22 kB, three fuera del bundle principal. vitest 484; e2e comparar+csp 11/11; capturas comparar-carmen y demos (?demo=) revisadas; arreglado el deslavado de color (environmentIntensity 0,35 con three 0.187). Banda/Muñeca reales: pendientes de sesiones con cámara.",
       "owner": "coordinación",
       "id": "F38",
       "name": "Comparar sesiones en 3D (terapeuta y paciente)",
@@ -958,7 +958,7 @@
         "F16",
         "F14"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "El terapeuta llega desde la fila del paciente y ve primera vs última sesión del juego elegido, con delta por métrica",
         "El paciente llega desde Progreso a la misma vista de sus propias sesiones",

@@ -117,6 +117,8 @@ export function crearMotor(host: HTMLElement, capaEtiquetas: HTMLElement): Motor
   const entorno = new RoomEnvironment()
   const envRT = pmrem.fromScene(entorno, 0.04)
   escena.environment = envRT.texture
+  // three ≥ 0.163 hizo RoomEnvironment mucho más intenso: con ACES dejaba los colores deslavados (prototipos en 0.160)
+  escena.environmentIntensity = 0.35
   entorno.traverse((o) => {
     const m = o as THREE.Mesh
     m.geometry?.dispose?.()

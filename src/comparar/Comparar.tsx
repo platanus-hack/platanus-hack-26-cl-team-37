@@ -69,7 +69,11 @@ function Pantalla({ rol, pacienteId }: { rol: 'paciente' | 'terapeuta'; paciente
 
 function Contenido({ d, paciente, terapeuta }: { d: Datos; paciente: Paciente; terapeuta: boolean }) {
   const grupos = useMemo(() => juegosComparables(d.sesiones), [d.sesiones])
-  const [juegoElegido, setJuegoElegido] = useState<string | null>(null)
+  // ?juego=<id> (o ?demo=<id> en desarrollo) abre directo esa pestaña
+  const [juegoElegido, setJuegoElegido] = useState<string | null>(() => {
+    const q = new URLSearchParams(window.location.search)
+    return q.get('juego') ?? q.get('demo')?.replace(/-modelo$/, '') ?? null
+  })
   const [sel, setSel] = useState<Record<string, { antes: string; despues: string }>>({})
 
   if (grupos.length === 0)

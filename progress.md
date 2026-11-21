@@ -270,3 +270,5 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Nuevas features F34–F38 (salir del terapeuta, poses clave, juegos Banda elástica y Muñeca 3D, comparar sesiones en 3D). Sin la guía de voz.
 - F34 done (botón Salir del terapeuta, e2e). F35 done (muestras.poses + ctx.guardarPose, pruebas). Siguen F36, F37 y F38.
 - Manos más cercanas (2 en juegos, 1 en calibración) y calibración con más margen; pruebas en cercanas.test.ts y calibracion.test.ts (408 unitarias). e2e calibrar/tracking/smoke/caja/movilidad: 43 de 44; el que falla es el conteo exacto de Caja, inestable conocido (solo, pasa 1 de 2 veces; Caja no usa estos umbrales).
+- F36 Banda elástica, F37 Muñeca 3D y F38 Comparar sesiones en 3D: hechos por 3 agentes en paralelo y unidos en la línea R. 484 unitarias; e2e de lo nuevo en verde; progreso.spec (4 semanas) falla por una sesión sintética de hoy en la BD de desarrollo de Carmen (apertura 9,3), no por este código.
+- Pendientes menores: en el resumen de Banda el anillo dice "/3 repeticiones" muy justo, las barras Izq./Der. (agarres) salen en 0 y el cambio del pico no muestra el signo +. Probar Banda y Muñeca con cámara real.
