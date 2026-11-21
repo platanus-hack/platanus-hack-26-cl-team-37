@@ -190,14 +190,14 @@ test.describe('calibración', () => {
     await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica&debug=1`)
     const panel = page.getByTestId('debug')
     await expect(panel.locator('[data-campo="marco"]')).toContainText('21/21 ✓')
-    await expect(panel.locator('[data-campo="espera"]')).toContainText('apertura ≥ 0,80')
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('apertura ≥ 0,70')
     await expect(panel.locator('[data-campo="apertura"]')).toContainText(/\d,\d\d/)
     await expect(panel.locator('[data-campo="mano"]')).toContainText('derecha')
     // Mano abierta 2 s → paso 2: ahora espera el cierre.
-    await expect(panel.locator('[data-campo="espera"]')).toContainText('cerrar: apertura ≤ 0,30', { timeout: 10_000 })
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('cerrar: apertura ≤ 0,40', { timeout: 10_000 })
     await page.evaluate(() => (globalThis as unknown as Ventana).__manoviva!.fuente!.fijarPose({ apertura: 0 }))
     await expect(panel.locator('[data-campo="cerrada"]')).toContainText('sí')
-    await expect(panel.locator('[data-campo="espera"]')).toContainText('abrir: apertura ≥ 0,80')
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('abrir: apertura ≥ 0,70')
     expect(escrituras).toEqual([])
 
     await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica`)
