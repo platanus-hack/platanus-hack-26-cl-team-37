@@ -17,6 +17,7 @@ import {
   chequeoDistancia,
   chequeoLuz,
   elegirMano,
+  estadoPinza,
   medidasMano,
   numeroPaso,
   puntosDentro,
@@ -31,6 +32,7 @@ import { useFuenteManos } from '../../tracking/useFuenteManos'
 import { dibujarManos } from '../../ui/dibujoMano'
 import { Icono } from '../../ui/Icono'
 import { avisar, BarraProgreso, Encabezado, Estados, Vacio } from '../../ui/piezas'
+import './calibrar.css'
 
 interface DatosCalibrar {
   sesion: Sesion | null
@@ -83,9 +85,11 @@ interface Vista {
   confianza: number | null
   largoCm: number | null
   fps: number
+  /** Cercanía pulgar–índice (para guiar el paso 3). */
+  pinza: 'junta' | 'casi' | 'lejos' | null
 }
 
-const VISTA_INICIAL: Vista = { paso: 'abierta', repeticiones: 0, progreso: 0, hayMano: false, puntos: 0, dentro: false, luminancia: null, distanciaCm: null, confianza: null, largoCm: null, fps: 0 }
+const VISTA_INICIAL: Vista = { paso: 'abierta', repeticiones: 0, progreso: 0, hayMano: false, puntos: 0, dentro: false, luminancia: null, distanciaCm: null, confianza: null, largoCm: null, fps: 0, pinza: null }
 const MS_REFRESCO = 150
 const MS_CONTINUAR = 2000
 const NOMBRE_FUENTE = { camara: 'Cámara frontal', sintetica: 'Mano simulada', grabacion: 'Grabación' } as const
@@ -155,6 +159,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
         confianza: mano?.confianza ?? null,
         largoCm: e.n > 0 ? e.sumaLargo / e.n : mano ? med.largoCm : null,
         fps: fuente.fps,
+        pinza: mano ? estadoPinza(med) : null,
       })
     })
   }, [fuente, largoReglaCm, sesion.parametros.mano])
@@ -210,7 +215,11 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
         ? 'Hay demasiada luz detrás: evita ventanas de frente'
         : vista.hayMano && vista.dentro && distancia.consejo
           ? distancia.consejo
-          : `Paso ${numeroPaso(vista.paso)} de 3`
+          : vista.paso === 'pinza' && vista.dentro && vista.pinza === 'casi'
+            ? 'Casi: acerca un poco más las puntas'
+            : vista.paso === 'pinza' && vista.dentro && vista.pinza === 'junta'
+              ? 'Así, mantén los dedos juntos'
+              : `Paso ${numeroPaso(vista.paso)} de 3`
 
   return (
     <div className={`calibrar-vista ${fuente?.tipo === 'camara' ? 'con-video' : ''}`} ref={raiz}>
