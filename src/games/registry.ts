@@ -1,7 +1,5 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
 import { NIVELES_BURBUJAS } from './burbujas/logica'
-}))
-
 import { NIVELES_CARTAS } from './memoria/logica'
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
 import { NIVELES_PIANO } from './piano/logica'
