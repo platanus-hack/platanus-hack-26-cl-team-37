@@ -58,6 +58,7 @@ Fuente de las reglas: `docs/equipo/propiedad.json` (gana la ruta más larga). El
 - Supabase: solo el proyecto `iniposctftmzxkqasikh`. Cambios de esquema = **migración nueva** en `supabase/migrations/` + `supabase db push`. Nunca editar una migración ya aplicada. Nunca borrar ni pausar proyectos.
 - Vercel: solo el proyecto `manoviva`. El deploy a producción lo hace la CI al unir a `main` (o P1 / coordinación); el resto no despliega a producción.
 - Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `main`. Prohibido empujar a `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
+- **Pull antes de unir (merge).** Antes de unir un PR a `main`, o de unir `main` a tu rama, trae lo último: `git fetch origin && git rebase origin/main` si la rama es tuya (o `gh pr update-branch <n>` sin `--rebase` si es ajena, o pídeselo al autor), vuelve a correr `npm run verify` y espera la CI en verde **sobre ese commit nuevo**. GitHub no exige rama al día: un PR verde contra un `main` viejo puede romper `main` al unirse. Si el rebase choca con archivos ajenos, no resuelvas el conflicto tú: avisa a su dueño.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
 
 ## Definición de terminado — Definition of Done (por feature)

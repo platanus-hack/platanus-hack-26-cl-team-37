@@ -7,6 +7,7 @@
   Una rama = una cosa. Vida máxima: unas horas. Hoy no hay ramas de larga duración.
 - Commits: `feat(F17): …`, `fix(shell): …`, `chore(ci): …`, `docs(equipo): …`.
 - **Antes de abrir el PR:** `git fetch && git rebase origin/main`, luego `npm run verify` y los e2e de tu área.
+- **Antes de unir el PR (también quien une un PR ajeno, persona o agente):** vuelve a traer `main` (`git fetch origin && git rebase origin/main` en tu rama, o `gh pr update-branch <n>` en una ajena), corre `npm run verify` y espera la CI en verde sobre el commit actualizado. Como no exigimos "branch up to date", este paso es el que evita que dos PR verdes por separado rompan `main` juntos.
 - PR chico (idealmente < 400 líneas), con la plantilla de `.github/pull_request_template.md`. Se une con **squash**.
 - Revisión: con **un visto bueno basta**, de otra persona. Los archivos con dueño (CODEOWNERS) piden el visto bueno de su dueño.
   Un PR que solo toca lo tuyo y tiene la CI en verde se puede unir sin esperar horas: pide la revisión y avisa en el chat.
