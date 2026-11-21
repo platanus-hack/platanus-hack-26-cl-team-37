@@ -98,15 +98,20 @@ test.describe('catálogo de ejercicios', () => {
 
   test("'Próximamente' no navega; un juego disponible lleva a /sesion/:juego/preparar", async ({ page }) => {
     await page.goto('/ejercicios')
-    const proximo = TODOS.find((x) => !DISPONIBLES.includes(x))!
-    const torre = tarjeta(page, proximo)
-    await expect(torre).toHaveAttribute('aria-disabled', 'true')
-    await expect(torre.locator('a')).toHaveCount(0)
-    await torre.click()
-    await page.waitForTimeout(300)
-    await expect(page).toHaveURL(/\/ejercicios$/)
-    for (const id of TODOS.filter((x) => !DISPONIBLES.includes(x))) {
-      expect(await tarjeta(page, id).evaluate((e) => e.tagName)).not.toBe('A')
+    // Con todos los juegos habilitados ya no queda ninguno "Próximamente": esa mitad se omite y se deja el aviso.
+    const proximos = TODOS.filter((x) => !DISPONIBLES.includes(x))
+    if (proximos.length) {
+      const proximo = tarjeta(page, proximos[0])
+      await expect(proximo).toHaveAttribute('aria-disabled', 'true')
+      await expect(proximo.locator('a')).toHaveCount(0)
+      await proximo.click()
+      await page.waitForTimeout(300)
+      await expect(page).toHaveURL(/\/ejercicios$/)
+      for (const id of proximos) {
+        expect(await tarjeta(page, id).evaluate((e) => e.tagName)).not.toBe('A')
+      }
+    } else {
+      test.info().annotations.push({ type: 'aviso', description: 'sin juegos Próximamente en el catálogo: solo se prueba el disponible' })
     }
     await tarjeta(page, 'caja-juguetes').click()
     await expect(page).toHaveURL(/\/sesion\/caja-juguetes\/preparar$/)
