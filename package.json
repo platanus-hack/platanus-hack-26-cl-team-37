@@ -20,7 +20,8 @@
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "captura": "node scripts/captura.mjs",
     "iconos": "node scripts/generar-iconos.mjs",
-    "lab:video": "node scripts/probar-banda-video.mjs"
+    "lab:video": "node scripts/probar-banda-video.mjs",
+    "lab:telefono": "node scripts/https-telefono.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",

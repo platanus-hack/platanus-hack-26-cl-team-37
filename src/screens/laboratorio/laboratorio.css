@@ -153,6 +153,30 @@
   .lab-como { grid-area: como; }
 }
 
+/* Teléfono en horizontal (como conviene usarlo: caben las manos estiradas): la cámara tiene que verse sin bajar.
+   El encabezado y el título quedan solo para lectores de pantalla y los pasos se compactan. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .laboratorio { padding: 8px max(12px, env(safe-area-inset-right, 0px)) 24px max(12px, env(safe-area-inset-left, 0px)); gap: 8px; }
+  .lab-cabeza, .lab-titulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .lab-pasos { gap: 6px; }
+  .lab-pasos li { flex-direction: row; align-items: center; min-height: 34px; padding: 4px 10px; gap: 8px; font-size: 13px; border-radius: 12px; }
+  .lab-paso-num { width: 22px; height: 22px; font-size: 12px; }
+  .lab-grilla { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-areas: 'escena lectura' 'escena reps' 'banda reporte' 'banda como'; align-items: start; gap: 10px; }
+  .lab-escena { grid-area: escena; }
+  .lab-lectura { grid-area: lectura; }
+  .lab-reps { grid-area: reps; }
+  .lab-banda { grid-area: banda; }
+  .lab-reporte { grid-area: reporte; }
+  .lab-como { grid-area: como; }
+  .lab-camara { max-height: calc(100dvh - 58px); }
+  .lab-lectura { gap: 8px; padding: 12px 14px; }
+  .lab-lectura .arco { transform: scale(0.8); margin: -14px 0 -18px; }
+  .lab-hud { top: 10px; right: 10px; padding: 6px 10px 7px 12px; border-radius: 14px; }
+  .lab-hud b { font-size: 28px; }
+  .lab-hud span { font-size: 12px; }
+  .lab-indicacion { right: auto; max-width: min(70%, 460px); padding: 8px 12px; font-size: 15px; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .lab-avance { transition: scale 100ms linear; }
   .lab-chip.grabando .lab-punto { animation: lab-latido 1.2s ease-in-out infinite; }
