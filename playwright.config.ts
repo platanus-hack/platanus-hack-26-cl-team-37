@@ -2,7 +2,7 @@
 // Levanta el servidor dev en :5176 (5174 queda para npm run dev y 5175 para npm run captura).
 import { defineConfig, devices } from '@playwright/test'
 
-const PUERTO = 5176
+const PUERTO = Number(process.env.E2E_PUERTO ?? 5176)
 
 export default defineConfig({
   testDir: 'e2e',

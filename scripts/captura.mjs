@@ -22,7 +22,7 @@ const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d)
 const como = opt('--como', ruta.startsWith('/terapeuta') ? 'terapeuta' : ruta === '/acceso' ? 'nadie' : 'paciente')
 const espera = Number(opt('--espera', 1500))
 const horizontal = args.includes('--horizontal')
-const PUERTO = 5175
+const PUERTO = Number(process.env.CAPTURA_PUERTO ?? 5175)
 const BASE = `http://localhost:${PUERTO}`
 
 const env = Object.fromEntries(
