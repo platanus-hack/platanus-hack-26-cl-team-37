@@ -4,6 +4,9 @@ import './fuentes.css'
 import './index.css'
 import './pwa.css'
 import App from './App.tsx'
+import { actualizarSola } from './lib/actualizacion'
+
+actualizarSola()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
