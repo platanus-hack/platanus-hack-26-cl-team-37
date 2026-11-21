@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, PALMA_MIN, REPOSO_CORTO_CM, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, PALMA_MIN, REPOSO_CORTO_CM, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
@@ -51,8 +51,8 @@ function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, r
   if (v.medida?.alBorde) return 'Una mano se sale del cuadro: aléjate un poco o toma la banda más corta.'
   if (v.medida && v.medida.palma < PALMA_MIN) return 'Acércate al teléfono: las manos se ven pequeñas y se miden peor.'
   if (v.medida && v.medida.desnivel > DESNIVEL_MAX) return 'Pon las dos manos a la misma distancia del teléfono.'
-  if (capturando) return 'Quieto un segundo…'
-  if (reposoCm == null) return 'Sostén la banda tensa, sin estirar, y marca el reposo.'
+  if (capturando || (reposoCm == null && v.progresoReposo > 0.25)) return 'Quieto un segundo…'
+  if (reposoCm == null) return 'Sostén la banda tensa, sin estirar, y quédate quieto: el reposo se marca solo.'
   return 'Estira despacio y vuelve. Cada ida y vuelta cuenta una repetición.'
 }
 
@@ -126,11 +126,25 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   // Cada cuadro: medir la banda, dibujarla y contar. La vista de React se refresca cada MS_REFRESCO.
   useEffect(() => {
     if (!fuente) return
-    const captura = new CapturaReposo()
+    // `captura` marca el reposo: sola, la primera vez que la banda queda quieta (con las dos manos ocupadas no se puede
+    // tocar un botón), o al pedirlo con el botón. `vigia` lo corrige si después aparece un largo estable más corto.
+    const captura = new CapturaReposo(MS_REPOSO_AUTO)
+    const capturaPedida = new CapturaReposo()
+    const vigia = new CapturaReposo(MS_REPOSO_AUTO)
     const filtro = new FiltroOneEuro(1.2, 0.05)
     let trazo: PuntoTrazo[] = []
     let ultimo = -Infinity
     let t0Grabacion: number | null = null
+    let estabaCapturando = false
+    const fijarReposo = (cm: number, cfg: typeof config.current) => {
+      // Se actualiza al tiro para los cuadros que lleguen antes del próximo render.
+      config.current = { ...cfg, reposoCm: cm, capturando: false }
+      captura.cortar()
+      capturaPedida.cortar()
+      vigia.cortar()
+      setReposoCm(cm)
+      setCapturando(false)
+    }
     return fuente.alCuadro((c) => {
       const g = grabador.current
       if (g) {
@@ -138,26 +152,34 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         t0Grabacion ??= c.t
       } else t0Grabacion = null
       const cfg = config.current
+      // Cada pedido con el botón parte con la ventana vacía (si se canceló antes, no quedan muestras viejas).
+      if (cfg.capturando && !estabaCapturando) capturaPedida.cortar()
+      estabaCapturando = cfg.capturando
       const cruda = medirBanda(c, cfg.agarre)
       const medida = cruda && { ...cruda, largoCm: filtro.filtrar(cruda.largoCm, c.t) }
       let e: number | null = null
+      let progreso = 0
       if (!medida) {
         filtro.reiniciar()
         captura.cortar()
+        capturaPedida.cortar()
+        vigia.cortar()
         contador.current.cortar()
+      } else if (cfg.capturando || cfg.reposoCm == null) {
+        const c2 = cfg.capturando ? capturaPedida : captura
+        const reposo = c2.agregar(c.t, medida.largoCm)
+        progreso = c2.progreso(c.t)
+        if (reposo != null) {
+          contador.current.reiniciar()
+          trazo = []
+          fijarReposo(reposo, cfg)
+        }
       } else {
-        if (cfg.capturando) {
-          const reposo = captura.agregar(c.t, medida.largoCm)
-          if (reposo != null) {
-            // Se actualiza al tiro para los cuadros que lleguen antes del próximo render.
-            config.current = { ...cfg, reposoCm: reposo, capturando: false }
-            contador.current.reiniciar()
-            trazo = []
-            setReposoCm(reposo)
-            setCapturando(false)
-          }
-        } else captura.cortar()
-        if (cfg.reposoCm != null && !cfg.capturando) {
+        const estable = vigia.agregar(c.t, medida.largoCm)
+        if (estable != null && reposoMalMarcado(cfg.reposoCm, estable) && !contador.current.estirando) {
+          fijarReposo(estable, cfg)
+          avisar('Reposo corregido: la banda estaba estirada al marcarlo.')
+        } else {
           contador.current.agregar(c.t, medida.largoCm, cfg.reposoCm, cfg.curva)
           e = estiramiento(medida.largoCm, cfg.reposoCm)
           trazo.push({ t: c.t, kg: cargaEn(cfg.curva, e).kg })
@@ -170,7 +192,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
       setVista({
         manos: c.manos.length,
         medida,
-        progresoReposo: cfg.capturando ? captura.progreso(c.t) : 0,
+        progresoReposo: progreso,
         repeticiones: [...contador.current.repeticiones],
         estirando: contador.current.estirando,
         trazo: [...trazo],
@@ -199,7 +221,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
 
   const pasos: { texto: string; estado: EstadoPaso }[] = [
     { texto: 'Toma la banda con las dos manos', estado: vista.manos >= 2 || reposoCm != null ? 'hecho' : 'actual' },
-    { texto: 'Márcala en reposo', estado: reposoCm != null ? 'hecho' : vista.manos >= 2 ? 'actual' : 'pendiente' },
+    { texto: 'Sostenla quieta en reposo', estado: reposoCm != null ? 'hecho' : vista.manos >= 2 ? 'actual' : 'pendiente' },
     { texto: 'Estira y vuelve', estado: reposoCm == null ? 'pendiente' : t.n > 0 ? 'hecho' : 'actual' },
   ]
 
@@ -282,7 +304,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
             <p className="lab-indicacion" role="status" data-testid="indicacion">
               {indicacion(estado, error, vista, reposoCm, capturando)}
             </p>
-            {capturando && <span className="lab-avance" style={{ scale: `${vista.progresoReposo} 1` }} />}
+            {(capturando || reposoCm == null) && vista.progresoReposo > 0 && <span className="lab-avance" style={{ scale: `${vista.progresoReposo} 1` }} />}
           </div>
           <div className="lab-barra">
             <button type="button" className="lab-boton-grabar" aria-pressed={grabando} disabled={!fuente} onClick={alternarGrabacion}>

@@ -18,10 +18,9 @@ test('marca el reposo, mide el estiramiento y cuenta repeticiones', async ({ pag
   const v = vigilarErrores(page)
   await page.goto(URL_SIMULADA)
   await expect(page.getByRole('heading', { name: 'Laboratorio de banda', level: 1 })).toBeVisible()
-  await expect(texto(page, 'indicacion')).toHaveText(/marca el reposo/)
   await expect(texto(page, 'largo')).toHaveText(/\d+ cm/)
 
-  await page.getByRole('button', { name: 'Marcar reposo' }).click()
+  // Con la banda quieta el reposo se marca solo (las manos están ocupadas con la banda).
   await expect(texto(page, 'reposo')).toHaveText(/\d+ cm/, { timeout: 10_000 })
   await expect(texto(page, 'indicacion')).toHaveText(/Estira despacio/)
   await expect(page.getByRole('button', { name: 'Volver a marcar reposo' })).toBeVisible()
@@ -34,6 +33,16 @@ test('marca el reposo, mide el estiramiento y cuenta repeticiones', async ({ pag
   // La interfaz habla de la carga de la banda, nunca de la persona.
   await expect(page.locator('body')).not.toContainText(/fuerza|presión/i)
   v.sinErrores()
+})
+
+test('el reposo se puede volver a marcar con el botón y cancelar', async ({ page }) => {
+  await page.goto(URL_SIMULADA)
+  await expect(texto(page, 'reposo')).toHaveText(/\d+ cm/, { timeout: 10_000 })
+  await page.getByRole('button', { name: 'Volver a marcar reposo' }).click()
+  await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await page.getByRole('button', { name: 'Volver a marcar reposo' }).click()
+  await expect(page.getByRole('button', { name: 'Volver a marcar reposo' })).toBeVisible({ timeout: 10_000 })
 })
 
 test('las tiras escalan la curva y la meta se marca en las repeticiones', async ({ page }) => {

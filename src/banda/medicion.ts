@@ -112,16 +112,30 @@ export function estiramiento(largoCm: number, reposoCm: number): number {
 
 /** Cuánto hay que sostener la banda quieta para marcar el reposo (ms) y cuánto puede variar el largo (fracción). */
 export const MS_REPOSO = 1000
+/** Sin reposo todavía, se marca solo tras este tiempo quieto: con las dos manos en la banda no se puede tocar un botón. */
+export const MS_REPOSO_AUTO = 1500
 export const VARIACION_REPOSO = 0.06
+/**
+ * Si con el reposo ya marcado aparece un largo estable al menos esta fracción más corto, el reposo se había marcado
+ * con la banda estirada (pasa cuando se sostiene el estiramiento, como se indica en terapia) y se corrige.
+ * Prueba con video de manos reales, 21-nov-2026: con 1 s de estiramiento sostenido el reposo quedó en 73 cm en vez
+ * de 52 cm y no contó ninguna repetición.
+ */
+export const AJUSTE_REPOSO = 0.08
 
 /**
- * Junta largos durante MS_REPOSO y devuelve su promedio. Si en la ventana el largo varía más de VARIACION_REPOSO
- * (la persona se movió), la ventana se reinicia desde esa muestra.
+ * Junta largos durante `ms` y devuelve su promedio. Si en la ventana el largo varía más de VARIACION_REPOSO
+ * (la persona se movió), la ventana se reinicia desde esa muestra. Tras completarse sigue devolviendo el promedio
+ * de la ventana mientras la banda siga quieta.
  */
 export class CapturaReposo {
   private muestras: { t: number; cm: number }[] = []
+  private readonly ms: number
+  constructor(ms = MS_REPOSO) {
+    this.ms = ms
+  }
 
-  /** Agrega una muestra; devuelve el reposo en cm cuando la ventana se completa, si no null. */
+  /** Agrega una muestra; devuelve el largo estable en cm cuando la ventana se completa, si no null. */
   agregar(t: number, cm: number): number | null {
     this.muestras.push({ t, cm })
     const valores = this.muestras.map((m) => m.cm)
@@ -131,19 +145,26 @@ export class CapturaReposo {
       this.muestras = [{ t, cm }]
       return null
     }
-    if (t - this.muestras[0].t < MS_REPOSO) return null
-    return valores.reduce((s, v) => s + v, 0) / valores.length
+    // Solo se guarda la ventana necesaria (más un margen), para no crecer sin límite con la banda quieta.
+    while (this.muestras.length > 2 && t - this.muestras[1].t >= this.ms) this.muestras.shift()
+    if (t - this.muestras[0].t < this.ms) return null
+    return this.muestras.reduce((s, m) => s + m.cm, 0) / this.muestras.length
   }
 
   /** Avance de la ventana, 0..1. */
   progreso(t: number): number {
-    return this.muestras.length ? Math.min(1, (t - this.muestras[0].t) / MS_REPOSO) : 0
+    return this.muestras.length ? Math.min(1, (t - this.muestras[0].t) / this.ms) : 0
   }
 
-  /** Se perdió una mano: se parte de nuevo. */
+  /** Se perdió una mano o ya se usó el valor: se parte de nuevo. */
   cortar() {
     this.muestras = []
   }
+}
+
+/** ¿Un largo estable dice que el reposo marcado era con la banda estirada? */
+export function reposoMalMarcado(reposoCm: number, estableCm: number): boolean {
+  return estableCm < reposoCm * (1 - AJUSTE_REPOSO)
 }
 
 // ── Repeticiones ────────────────────────────────────────────────────────────────────────────────────────────────

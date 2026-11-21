@@ -3,7 +3,7 @@ import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sint
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, PALMA_MIN, alcanzaMeta, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
+import { CapturaReposo, ContadorReps, MS_REPOSO, MS_REPOSO_AUTO, PALMA_MIN, alcanzaMeta, reposoMalMarcado, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -193,6 +193,21 @@ describe('marcar el reposo', () => {
     let r: number | null = null
     for (let t = 0; t <= MS_REPOSO; t += 100) r = c.agregar(t, 20 + (t % 200 ? 0.2 : -0.2))
     expect(r).toBeCloseTo(20, 0)
+  })
+
+  it('con otra ventana espera más y sigue entregando el valor mientras la banda siga quieta', () => {
+    const c = new CapturaReposo(MS_REPOSO_AUTO)
+    expect(c.agregar(0, 30)).toBeNull()
+    expect(c.agregar(1000, 30)).toBeNull()
+    expect(c.agregar(1500, 30)).toBeCloseTo(30)
+    expect(c.agregar(4000, 30.5)).toBeCloseTo(30.25, 1)
+    expect(c.progreso(4000)).toBe(1)
+  })
+
+  it('detecta un reposo marcado con la banda estirada', () => {
+    expect(reposoMalMarcado(73, 52)).toBe(true)
+    expect(reposoMalMarcado(52, 50)).toBe(false)
+    expect(reposoMalMarcado(52, 60)).toBe(false)
   })
 
   it('si la persona se mueve, parte de nuevo', () => {
