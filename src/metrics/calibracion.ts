@@ -7,6 +7,7 @@
 
 import type { Calibracion, Mano } from '../domain/types'
 import type { ManoSeguida } from '../tracking/tipos'
+import { escalaPerspectivaDebil } from '../tracking/distancia'
 import { aperturaMano, aperturaPinza, clasificarLuz, escalaCm, largoMano, type NivelLuz } from './geometria'
 
 export type PasoCalibracion = 'abierta' | 'abrir-cerrar' | 'pinza' | 'lista'
@@ -38,8 +39,14 @@ export interface MuestraCalibracion {
   dentro: boolean
   /** aperturaMano 0..~1,2. */
   apertura: number
-  /** Distancia pulgar–índice en cm (con la escala del mundo o de la regla). */
+  /** Distancia pulgar–índice en cm (3D, con la escala del mundo o de la regla). */
   pinzaCm: number
+  /**
+   * Distancia pulgar–índice en el plano de la imagen, en cm (aprox.). Con la palma hacia la cámara el pulgar tapa
+   * al índice y MediaPipe estima mal la profundidad: la 3D queda en varios cm aunque los dedos se toquen. La pinza
+   * se reconoce si cualquiera de las dos baja del umbral. null si no se pudo calcular.
+   */
+  pinzaVistaCm?: number | null
   /** Largo muñeca→punta del medio estimado con worldLandmarks (cm, escala MediaPipe). */
   largoCm: number
   confianza: number
@@ -126,7 +133,7 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
       s.progreso = tercio(2, 0)
     } else s.progreso = tercio(1, (s.repeticiones + (s.cerrada ? 0.5 : 0)) / UMBRALES.repeticiones)
   } else if (s.paso === 'pinza') {
-    if (valida && m.pinzaCm <= UMBRALES.pinzaCm) {
+    if (valida && pinzaGesto(m) <= UMBRALES.pinzaCm) {
       s.desdePinza ??= m.t
       const f = (m.t - s.desdePinza) / UMBRALES.msPinza
       if (f >= 1) {
@@ -151,6 +158,11 @@ export function esperaCalibracion(e: Pick<EstadoCalibracion, 'paso' | 'cerrada'>
   if (e.paso === 'abrir-cerrar') return e.cerrada ? `abrir: apertura ≥ ${d2(UMBRALES.abierta)}` : `cerrar: apertura ≤ ${d2(UMBRALES.cerrada)}`
   if (e.paso === 'pinza') return `pinza ≤ ${UMBRALES.pinzaCm} cm por ${String(UMBRALES.msPinza / 1000).replace('.', ',')} s`
   return 'nada (lista)'
+}
+
+/** Distancia que se usa para reconocer el gesto de pinza: la menor entre la 3D y la de la imagen. */
+export function pinzaGesto(m: Pick<MuestraCalibracion, 'pinzaCm' | 'pinzaVistaCm'>): number {
+  return Math.min(m.pinzaCm, m.pinzaVistaCm ?? Infinity)
 }
 
 /** Número del paso (1..3) para mostrar "Paso 1 de 3"; 3 cuando está lista. */
@@ -182,11 +194,26 @@ export function resultadoCalibracion(e: EstadoCalibracion, largoReglaCm: number 
   }
 }
 
-/** Medidas de una mano para la calibración (todas con worldLandmarks: no dependen de la distancia). */
-export function medidasMano(m: Pick<ManoSeguida, 'worldLandmarks'>, largoReglaCm: number | null) {
+/**
+ * Medidas de una mano para la calibración. apertura, pinzaCm y largoCm usan worldLandmarks (no dependen de la
+ * distancia). pinzaVistaCm usa los puntos de la imagen y, para pasar a cm, la escala px/m de perspectiva débil
+ * (tracking/distancia): necesita el tamaño de la imagen; sin él queda null.
+ */
+export function medidasMano(
+  m: Pick<ManoSeguida, 'worldLandmarks'> & Partial<Pick<ManoSeguida, 'landmarks'>>,
+  largoReglaCm: number | null,
+  imagen?: { ancho: number; alto: number },
+) {
   const largoM = largoMano(m.worldLandmarks)
   const escala = escalaCm(largoM, largoReglaCm)
-  return { apertura: aperturaMano(m.worldLandmarks), pinzaCm: aperturaPinza(m.worldLandmarks) * escala, largoCm: largoM * 100 }
+  let pinzaVistaCm: number | null = null
+  if (imagen && m.landmarks && m.landmarks.length >= 21) {
+    const pxPorM = escalaPerspectivaDebil(m.landmarks, m.worldLandmarks, imagen.ancho, imagen.alto)
+    const a = m.landmarks[4]
+    const b = m.landmarks[8]
+    if (pxPorM) pinzaVistaCm = (Math.hypot((a.x - b.x) * imagen.ancho, (a.y - b.y) * imagen.alto) / pxPorM) * escala
+  }
+  return { apertura: aperturaMano(m.worldLandmarks), pinzaCm: aperturaPinza(m.worldLandmarks) * escala, pinzaVistaCm, largoCm: largoM * 100 }
 }
 
 /** Mano a calibrar: la del lado indicado en la sesión si está; si no (o 'ambas'), la de mayor confianza. */

@@ -11,6 +11,7 @@ import {
   elegirMano,
   esperaCalibracion,
   medidasMano,
+  pinzaGesto,
   numeroPaso,
   puntosDentro,
   resultadoCalibracion,
@@ -165,5 +166,32 @@ describe('mano elegida, checklist y vista', () => {
     expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: false })).toBe('cerrar: apertura ≤ 0,30')
     expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: true })).toBe('abrir: apertura ≥ 0,80')
     expect(esperaCalibracion({ paso: 'pinza', cerrada: false })).toBe('pinza ≤ 2 cm por 0,4 s')
+  })
+
+  it('pinza de frente: si MediaPipe separa las puntas en profundidad, la distancia en la imagen igual la reconoce', () => {
+    const img = { ancho: 480, alto: 640 }
+    const cerrada = manoSintetica({ ...POSE_BASE, apertura: 0.7, dedos: { indice: 0.5 }, pinzaCm: 0.5 }, img) // como el guion 'pinza'
+    // Lo que pasa con la palma a la cámara: la punta del pulgar queda 3 cm "delante" solo en el mundo 3D.
+    const conError = { ...cerrada, worldLandmarks: cerrada.worldLandmarks.map((p, i) => (i === 4 ? { ...p, z: p.z - 0.03 } : p)) }
+    const med = medidasMano(conError, null, img)
+    expect(med.pinzaCm).toBeGreaterThan(UMBRALES.pinzaCm)
+    expect(med.pinzaVistaCm).not.toBeNull()
+    expect(med.pinzaVistaCm!).toBeLessThan(UMBRALES.pinzaCm)
+    expect(pinzaGesto(med)).toBeLessThan(UMBRALES.pinzaCm)
+    // Sin error de profundidad, la de la imagen se parece a la 3D (aprox.).
+    const bien = medidasMano(cerrada, null, img)
+    expect(Math.abs(bien.pinzaVistaCm! - bien.pinzaCm)).toBeLessThan(0.5)
+    // Mano abierta sin pinza: ninguna de las dos la reconoce.
+    const abierta = medidasMano(manoSintetica({ ...POSE_BASE, apertura: 1 }, img), null, img)
+    expect(pinzaGesto(abierta)).toBeGreaterThan(UMBRALES.pinzaCm)
+    // Sin tamaño de imagen no hay distancia en la imagen: manda la 3D.
+    expect(medidasMano(conError, null).pinzaVistaCm).toBeNull()
+
+    // En la máquina de estados: paso 3 con la 3D en 3,5 cm y la de la imagen en 0,8 cm → lista.
+    let e: EstadoCalibracion = { ...calibracionInicial(), paso: 'pinza' }
+    e = avanzarCalibracion(e, muestra(0, { pinzaCm: 3.5, pinzaVistaCm: 0.8 }))
+    e = avanzarCalibracion(e, muestra(500, { pinzaCm: 3.5, pinzaVistaCm: 0.8 }))
+    expect(e.paso).toBe('lista')
+    expect(e.pinzaMaxCm).toBe(3.5) // la línea base sigue siendo la 3D
   })
 })

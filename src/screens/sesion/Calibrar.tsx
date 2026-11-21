@@ -94,6 +94,7 @@ interface DatosDebug {
   aperturaMin: number | null
   aperturaMax: number | null
   pinzaCm: number | null
+  pinzaVistaCm: number | null
   cerrada: boolean
   espera: string
   lado: string | null
@@ -153,7 +154,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       const rect = { x: m.left - caja.left, y: m.top - caja.top, ancho: m.width, alto: m.height }
       const puntos = mano ? puntosDentro(mano.landmarks.map((p) => aVista(p, c, { ancho: caja.width, alto: caja.height })), rect) : 0
       const dentro = !!mano && puntos === mano.landmarks.length
-      const med = mano ? medidasMano(mano, largoReglaCm) : { apertura: 0, pinzaCm: 0, largoCm: 0 }
+      const med = mano ? medidasMano(mano, largoReglaCm, c) : { apertura: 0, pinzaCm: 0, pinzaVistaCm: null, largoCm: 0 }
       const antes = calib.current
       const e = avanzarCalibracion(antes, { t: c.t, mano: !!mano, dentro, ...med, confianza: mano?.confianza ?? 0, fps: fuente.fps })
       calib.current = e
@@ -183,6 +184,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
               aperturaMin: ventana.length ? Math.min(...ventana.map((v) => v.a)) : null,
               aperturaMax: ventana.length ? Math.max(...ventana.map((v) => v.a)) : null,
               pinzaCm: mano ? med.pinzaCm : null,
+              pinzaVistaCm: mano ? med.pinzaVistaCm : null,
               cerrada: e.cerrada,
               espera: esperaCalibracion(e),
               lado: mano?.lado ?? null,
@@ -323,7 +325,8 @@ function PanelDebug({ v, d }: { v: Vista; d: DatosDebug }) {
     ['mín/máx 3 s', `${n2(d.aperturaMin)} / ${n2(d.aperturaMax)}`],
     ['cerrada', d.cerrada ? 'sí' : 'no'],
     ['reps', `${v.repeticiones}/${UMBRALES.repeticiones}`],
-    ['pinza', d.pinzaCm == null ? '—' : `${num(d.pinzaCm)} cm`],
+    ['pinza 3D', d.pinzaCm == null ? '—' : `${num(d.pinzaCm)} cm`],
+    ['pinza vista', d.pinzaVistaCm == null ? '—' : `${num(d.pinzaVistaCm)} cm`],
     ['marco', `${v.puntos}/21 ${v.dentro ? '✓' : '✗'}`],
     ['mano', d.lado ? `${d.lado} · ${pctCorto(d.confianza)}` : '—'],
     ['fps', entero(v.fps)],
