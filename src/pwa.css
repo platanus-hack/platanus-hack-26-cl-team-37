@@ -1,0 +1,16 @@
+/* PWA (F20): zonas seguras en horizontal y aviso de "sin conexión". Se carga después de index.css. */
+
+/* Juego en horizontal: el panel izquierdo/derecho ya respetan el notch (--borde-juego*, left/right); aquí se suman
+   arriba y abajo (barra de inicio del iPhone, esquinas redondeadas) sin cambiar nada donde el inset es 0. */
+.juego-panel, .juego-barra, .juego-menu { top: calc(10px + env(safe-area-inset-top, 0px)); }
+.juego-metricas, .juego-camara { bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.juego-depuracion { top: calc(66px + env(safe-area-inset-top, 0px)); }
+.juego-centro { top: calc(84px + env(safe-area-inset-top, 0px)); }
+.juego-girar { padding: calc(24px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(24px + env(safe-area-inset-left, 0px)); }
+/* Pantallas normales vistas en horizontal (p. ej. calibrar): bordes laterales seguros. */
+.pantalla { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.barra-inferior { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+
+/* Aviso de conexión */
+.estado-red { position: fixed; z-index: 55; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 32px); display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(33, 49, 64, 0.96); border: 1px solid var(--borde-fuerte); color: var(--texto); font-size: 14px; text-align: center; pointer-events: none; }
+.estado-red::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--acento); flex: none; }

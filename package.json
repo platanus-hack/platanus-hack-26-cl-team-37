@@ -8,6 +8,7 @@
     "dev:https": "vite --port 5174 --host",
     "build": "vite build",
     "preview": "vite preview --port 5174",
+    "preview:https": "vite build && vite preview --port 5174 --host",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "test": "vitest run",
@@ -15,8 +16,10 @@
     "verify:db": "tsx scripts/verificar-rls.ts",
     "db:seed": "tsx scripts/seed.ts",
     "e2e": "playwright test",
+    "e2e:offline": "playwright test -c playwright.preview.config.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
-    "captura": "node scripts/captura.mjs"
+    "captura": "node scripts/captura.mjs",
+    "iconos": "node scripts/generar-iconos.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",

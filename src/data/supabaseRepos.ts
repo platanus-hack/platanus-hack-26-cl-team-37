@@ -12,7 +12,7 @@ import type {
   Usuario,
 } from '../domain/types'
 import { hashSesion, idSesion } from '../domain/integridad'
-import { encolar, hayPendientes, vaciarCola, type Pendiente } from './colaLocal'
+import { encolar, esErrorDeRed, guardarAlias, hayPendientes, resolverAlias, vaciarCola, type Pendiente } from './colaLocal'
 import type { Repos } from './repos'
 import { supabase } from './supabase'
 
@@ -150,18 +150,36 @@ const SELECT_PACIENTE = '*, perfil:perfiles!pacientes_usuario_id_fkey(nombre)'
 const SELECT_PLAN = '*, autor:perfiles!planes_creado_por_fkey(nombre, titulo)'
 
 // ---------------------------------------------------------------- escrituras con cola local
-function esErrorDeRed(e: unknown): boolean {
-  const m = e instanceof Error ? e.message : String(e)
-  return !navigator.onLine || /fetch|network|Failed to fetch|NetworkError|Load failed/i.test(m)
+async function crearEnServidor(datos: Omit<Sesion, 'id'>): Promise<Sesion> {
+  const ahora = new Date()
+  const dia = idSesion(ahora, 1).slice(2, 10)
+  for (let intento = 0; intento < 4; intento++) {
+    const id = ok(await supabase.rpc('siguiente_id_sesion', { p_dia: dia })) as string
+    const r = await supabase.from('sesiones').insert({ id, ...aFilaSesion(datos) }).select('*').single()
+    if (!r.error) return aSesion(r.data)
+    if (!/duplicate key/i.test(r.error.message)) throw new Error(r.error.message)
+  }
+  throw new Error('No se pudo asignar un ID de sesión. Intenta de nuevo.')
 }
 
 async function ejecutarPendiente(p: Pendiente) {
+  // Una sesión creada sin conexión tiene id provisional; al sincronizarla el servidor le da el real (alias en la base local).
+  if (p.tipo === 'crearSesion') {
+    if (await resolverAlias(p.sesionId)) return // ya se creó (la cola se cortó antes de borrar este ítem)
+    const creada = await crearEnServidor(p.payload as Omit<Sesion, 'id'>)
+    await guardarAlias(p.sesionId, creada.id)
+    return
+  }
+  const sesionId = (await resolverAlias(p.sesionId)) ?? p.sesionId
   if (p.tipo === 'eventos') {
-    const filas = (p.payload as EventoSesion[]).map(aFilaEvento)
+    const filas = (p.payload as EventoSesion[]).map((e) => aFilaEvento({ ...e, sesionId }))
     // upsert ignorando duplicados: reintentos idempotentes
     ok(await supabase.from('eventos_sesion').upsert(filas, { onConflict: 'sesion_id,seq', ignoreDuplicates: true }))
   } else if (p.tipo === 'actualizarSesion') {
-    ok(await supabase.from('sesiones').update(aFilaSesion(p.payload as Partial<Sesion>)).eq('id', p.sesionId))
+    ok(await supabase.from('sesiones').update(aFilaSesion(p.payload as Partial<Sesion>)).eq('id', sesionId))
+  } else if (p.tipo === 'crearAlerta') {
+    const a = p.payload as { pacienteId: string; tipo: 'dolor'; valor: number }
+    ok(await supabase.from('alertas').insert({ paciente_id: a.pacienteId, sesion_id: sesionId, tipo: a.tipo, valor: a.valor }))
   }
 }
 
@@ -290,15 +308,7 @@ export const supabaseRepos: Repos = {
       return f ? aSesion(f) : null
     },
     async crear(datos) {
-      const ahora = new Date()
-      const dia = idSesion(ahora, 1).slice(2, 10)
-      for (let intento = 0; intento < 4; intento++) {
-        const id = ok(await supabase.rpc('siguiente_id_sesion', { p_dia: dia })) as string
-        const r = await supabase.from('sesiones').insert({ id, ...aFilaSesion(datos) }).select('*').single()
-        if (!r.error) return aSesion(r.data)
-        if (!/duplicate key/i.test(r.error.message)) throw new Error(r.error.message)
-      }
-      throw new Error('No se pudo asignar un ID de sesión. Intenta de nuevo.')
+      return crearEnServidor(datos)
     },
     async actualizar(id, cambios) {
       try {

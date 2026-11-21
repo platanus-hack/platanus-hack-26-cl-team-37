@@ -13,7 +13,8 @@ import type {
   Sesion,
   Usuario,
 } from '../domain/types'
-import { supabaseRepos } from './supabaseRepos'
+import { conRespaldoLocal } from './sinConexion'
+import { sincronizarCola, supabaseRepos } from './supabaseRepos'
 
 export interface AuthService {
   usuarioActual(): Promise<Usuario | null>
@@ -92,4 +93,5 @@ export interface Repos {
 }
 
 // Implementación activa. Las pantallas importan `repos` desde aquí.
-export const repos: Repos = supabaseRepos
+// Con respaldo local (F20): lecturas en caché y escrituras de sesión en cola cuando no hay red (src/data/sinConexion.ts).
+export const repos: Repos = conRespaldoLocal(supabaseRepos, sincronizarCola)
