@@ -17,7 +17,9 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: `http://localhost:${PUERTO}`,
     viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 2,
+    // En la CI no hay GPU: WebGL corre por software y a 2x los juegos bajan de 24 fps sin que la app tenga la culpa
+    // (12 a 23 fps en caja, movilidad y shell). A 1x se sigue midiendo el fps y el tope de pixel ratio con la misma escena.
+    deviceScaleFactor: process.env.CI ? 1 : 2,
     isMobile: false,
     hasTouch: true,
     locale: 'es-CL',
