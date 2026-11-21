@@ -15,6 +15,7 @@
 //   true, duracionMs, rango }. Con 'ambas' cuenta cada mano por separado (abrir y cerrar las dos = 2 ciclos). Al llegar a la meta deja de contar
 //   (la base muestra "¡Meta cumplida!" y termina 2,5 s después), así el contador queda exacto.
 import * as THREE from 'three'
+import { NEUTRO } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import { CONEXIONES } from '../../metrics/geometria'
 import { manoSintetica } from '../../tracking/sintetica'
@@ -70,9 +71,9 @@ function texturaHalo(): THREE.Texture {
   c.width = c.height = 128
   const g = c.getContext('2d')!
   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
-  grad.addColorStop(0.35, 'rgba(255,255,255,0.45)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
+  grad.addColorStop(0.35, kuwuAlfa('blanco', 0.45))
+  grad.addColorStop(1, kuwuAlfa('blanco', 0))
   g.fillStyle = grad
   g.fillRect(0, 0, 128, 128)
   const t = new THREE.CanvasTexture(c)
@@ -130,9 +131,9 @@ class ManoGuia {
     this.lado = lado
     this.zona = { ...ZONA_BASE, x: [ancla.x, ancla.x], y: [ancla.y, ancla.y], z: [ancla.z, ancla.z] }
     const r = 0.0085 * ZONA_BASE.escala
-    const mat = new THREE.MeshStandardMaterial({ color: 0x9af5d6, emissive: COLOR_GUIA, emissiveIntensity: 0.55, roughness: 0.3, transparent: true, opacity: 0.72, depthWrite: false })
-    const matPunta = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: COLOR_GUIA, emissiveIntensity: 0.9, roughness: 0.25, transparent: true, opacity: 0.9, depthWrite: false })
-    const matPalma = new THREE.MeshStandardMaterial({ color: 0x9af5d6, emissive: COLOR_GUIA, emissiveIntensity: 0.35, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
+    const mat = new THREE.MeshStandardMaterial({ color: COLOR_GUIA, emissive: COLOR_GUIA, emissiveIntensity: 0.55, roughness: 0.3, transparent: true, opacity: 0.72, depthWrite: false })
+    const matPunta = new THREE.MeshStandardMaterial({ color: NEUTRO, emissive: COLOR_GUIA, emissiveIntensity: 0.9, roughness: 0.25, transparent: true, opacity: 0.9, depthWrite: false })
+    const matPalma = new THREE.MeshStandardMaterial({ color: COLOR_GUIA, emissive: COLOR_GUIA, emissiveIntensity: 0.35, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
     const gHueso = new THREE.CylinderGeometry(r * 1.05, r * 1.05, 1, 10, 1, true)
     const gArt = new THREE.SphereGeometry(r * 1.55, 14, 10)
     const gPalma = new THREE.BufferGeometry()
@@ -305,7 +306,7 @@ export const crearMovilidad: CrearJuego = () => {
     if (n <= 0) return
     const radio = n > 8 ? 0.07 : 0.08
     const geo = new THREE.SphereGeometry(radio, 18, 12)
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.05 })
+    const mat = new THREE.MeshStandardMaterial({ color: NEUTRO, roughness: 0.35, metalness: 0.05 })
     geometrias.push(geo)
     materiales.push(mat)
     cuentas = new THREE.InstancedMesh(geo, mat, n)
@@ -344,7 +345,7 @@ export const crearMovilidad: CrearJuego = () => {
       m4.compose(posCuentas[i], qId, escala3.set(escala, escala, escala))
       cuentas.setMatrixAt(i, m4)
       if (i < llenas) col.setHex(COLOR_ACENTO)
-      else if (siguiente) col.setHex(0x8fa3b5)
+      else if (siguiente) col.setHex(kuwuNum('control'))
       else col.setHex(COLOR_PENDIENTE)
       cuentas.setColorAt(i, col)
     }
@@ -497,7 +498,7 @@ export const crearMovilidad: CrearJuego = () => {
       for (const lado of lados) {
         const v: VisualMano = {
           anillo: anillo(0.86, COLOR_ACENTO, 0.95),
-          ref: anillo(0.965, 0xffffff, 0.55, 128),
+          ref: anillo(0.965, NEUTRO, 0.55, 128),
           disco: disco(tHalo, COLOR_ACENTO, 0.28),
           onda: anillo(0.93, COLOR_ACENTO, 0.8),
           ondaT: -1,

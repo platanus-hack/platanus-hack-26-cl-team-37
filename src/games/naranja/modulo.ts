@@ -14,6 +14,7 @@
 // Decisión: el paso 1 pide la mano abierta; no se exige que esté justo sobre el vaso (la posición de la mano depende de
 // cómo se sostiene el teléfono), pero la zona de manos se acota para que quede siempre sobre el centro de la mesa.
 import * as THREE from 'three'
+import { NATURAL, NEUTRO } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -39,9 +40,9 @@ import {
 import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
-const COLOR_EXPRIMIDA = new THREE.Color(0xc2570f)
+const COLOR_EXPRIMIDA = new THREE.Color(NATURAL.naranjaExprimida)
 
-const COLOR_NARANJA = 0xf08a24
+const COLOR_NARANJA = NATURAL.naranja
 const COLOR_ACENTO = kuwuNum('amarillo')
 const COLOR_OK = kuwuNum('menta')
 
@@ -91,9 +92,9 @@ function texturaHalo(): THREE.Texture {
   c.width = c.height = 128
   const g = c.getContext('2d')!
   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
-  grad.addColorStop(0.4, 'rgba(255,255,255,0.45)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
+  grad.addColorStop(0.4, kuwuAlfa('blanco', 0.45))
+  grad.addColorStop(1, kuwuAlfa('blanco', 0))
   g.fillStyle = grad
   g.fillRect(0, 0, 128, 128)
   const t = new THREE.CanvasTexture(c)
@@ -190,9 +191,9 @@ export const crearNaranja: CrearJuego = () => {
 
   function crearNaranja3d(radio: number): THREE.Group {
     const g = new THREE.Group()
-    const cuerpo = new THREE.Mesh(geo(new THREE.SphereGeometry(radio, 28, 20)), material(COLOR_NARANJA, { roughness: 0.5, emissive: 0x3a1500, emissiveIntensity: 0.35 }))
+    const cuerpo = new THREE.Mesh(geo(new THREE.SphereGeometry(radio, 28, 20)), material(COLOR_NARANJA, { roughness: 0.5, emissive: NATURAL.naranjaBrillo, emissiveIntensity: 0.35 }))
     cuerpo.castShadow = true
-    const hoja = new THREE.Mesh(geo(new THREE.SphereGeometry(radio * 0.3, 12, 8)), material(0x4fa05a, { roughness: 0.6 }))
+    const hoja = new THREE.Mesh(geo(new THREE.SphereGeometry(radio * 0.3, 12, 8)), material(NATURAL.hoja, { roughness: 0.6 }))
     hoja.scale.set(1.5, 0.35, 0.9)
     hoja.position.set(radio * 0.18, radio * 0.97, 0)
     hoja.rotation.z = -0.35
@@ -207,21 +208,21 @@ export const crearNaranja: CrearJuego = () => {
     texturas.push(tHalo)
 
     // Vaso: jugo (sube con las repeticiones) dentro de un cilindro de vidrio.
-    const matJugo = material(0xf2a02a, { roughness: 0.35, transparent: true, opacity: 0.94, emissive: 0x5a2a00, emissiveIntensity: 0.25 })
+    const matJugo = material(NATURAL.jugo, { roughness: 0.35, transparent: true, opacity: 0.94, emissive: NATURAL.jugoBrillo, emissiveIntensity: 0.25 })
     jugo = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.375, 0.345, 1, 32).translate(0, 0.5, 0)), matJugo)
     jugo.position.set(VASO.x, y0 + JUGO_BASE, VASO.z)
     jugo.renderOrder = 2
-    superficie = new THREE.Mesh(geo(new THREE.CircleGeometry(0.372, 32).rotateX(-Math.PI / 2)), material(0xffd37a, { roughness: 0.3, emissive: 0x7a4a00, emissiveIntensity: 0.3 }))
+    superficie = new THREE.Mesh(geo(new THREE.CircleGeometry(0.372, 32).rotateX(-Math.PI / 2)), material(NATURAL.pulpa, { roughness: 0.3, emissive: NATURAL.pulpaBrillo, emissiveIntensity: 0.3 }))
     superficie.renderOrder = 2
     const vidrio = new THREE.Mesh(
       geo(new THREE.CylinderGeometry(0.44, 0.4, VASO_ALTO, 36, 1, true)),
-      material(0xcfe6f2, { roughness: 0.08, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
+      material(NATURAL.vidrio, { roughness: 0.08, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
     )
     vidrio.position.set(VASO.x, y0 + VASO_ALTO / 2, VASO.z)
     vidrio.renderOrder = 3
-    const fondo = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.4, 0.4, JUGO_BASE, 36)), material(0xcfe6f2, { roughness: 0.1, transparent: true, opacity: 0.45 }))
+    const fondo = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.4, 0.4, JUGO_BASE, 36)), material(NATURAL.vidrio, { roughness: 0.1, transparent: true, opacity: 0.45 }))
     fondo.position.set(VASO.x, y0 + JUGO_BASE / 2, VASO.z)
-    const borde = new THREE.Mesh(geo(new THREE.TorusGeometry(0.44, 0.016, 8, 48).rotateX(Math.PI / 2)), material(0xffffff, { transparent: true, opacity: 0.55, roughness: 0.2 }))
+    const borde = new THREE.Mesh(geo(new THREE.TorusGeometry(0.44, 0.016, 8, 48).rotateX(Math.PI / 2)), material(NEUTRO, { transparent: true, opacity: 0.55, roughness: 0.2 }))
     borde.position.set(VASO.x, y0 + VASO_ALTO, VASO.z)
     borde.renderOrder = 3
     // Anillo de la mesa bajo el vaso: late amarillo en el paso 1 ("abre la mano aquí") y onda al completar una repetición.
@@ -238,7 +239,7 @@ export const crearNaranja: CrearJuego = () => {
     grupo.add(jugo, superficie, fondo, vidrio, borde, anilloVaso, onda)
 
     // Fuente con naranjas (izquierda).
-    const fuente = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.72, 0.58, 0.3, 40)), material(0xe9dfca, { roughness: 0.7 }))
+    const fuente = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.72, 0.58, 0.3, 40)), material(kuwuNum('crema'), { roughness: 0.7 }))
     fuente.position.set(-1.9, y0 + 0.15, -0.6)
     fuente.castShadow = fuente.receiveShadow = true
     grupo.add(fuente)
@@ -250,7 +251,7 @@ export const crearNaranja: CrearJuego = () => {
 
     // Mitades exprimidas (derecha): aparecen de a una.
     const geoMitad = geo(new THREE.SphereGeometry(0.3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2))
-    const matMitad = material(0xe27a1c, { roughness: 0.5 })
+    const matMitad = material(NATURAL.naranjaMitad, { roughness: 0.5 })
     MITADES.forEach((m) => {
       const h = new THREE.Mesh(geoMitad, matMitad)
       h.position.set(m.x, y0, m.z)
@@ -275,7 +276,7 @@ export const crearNaranja: CrearJuego = () => {
 
     // Gotas.
     const geoGota = geo(new THREE.SphereGeometry(0.075, 12, 10))
-    const matGota = material(COLOR_NARANJA, { roughness: 0.3, emissive: 0x5a2a00, emissiveIntensity: 0.5 })
+    const matGota = material(COLOR_NARANJA, { roughness: 0.3, emissive: NATURAL.jugoBrillo, emissiveIntensity: 0.5 })
     for (let i = 0; i < MAX_GOTAS; i++) {
       const mesh = new THREE.Mesh(geoGota, matGota)
       mesh.visible = false

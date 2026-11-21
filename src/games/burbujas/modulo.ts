@@ -22,6 +22,7 @@
 // planes (P2) no los ofrece ni están en ParametrosSesion: en la práctica siempre rigen los valores por defecto (sin límite
 // de zona, umbral 80 %). Lo prueba el e2e inyectando el parámetro directo en la sesión; ver docs/equipo/registro-P3.md.
 import * as THREE from 'three'
+import { NEUTRO, tono } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -72,12 +73,12 @@ const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) =>
 
 /** Burbujas de adorno: [x, y, z, radio, color, fase]. No se pueden reventar. */
 const ADORNOS: [number, number, number, number, number, number][] = [
-  [-1.9, 1.35, -0.9, 0.34, 0x3fae8a, 0.0],
-  [-0.4, 1.7, -1.1, 0.4, 0x4a86c5, 1.3],
-  [1.9, 1.5, -0.8, 0.3, 0x8a63c0, 2.1],
-  [2.1, 0.8, -0.2, 0.36, 0x4a86c5, 3.4],
-  [-2.2, 0.55, 0.3, 0.32, 0x8a63c0, 4.2],
-  [0.2, 0.45, -0.6, 0.3, 0x5fbf8a, 5.0],
+  [-1.9, 1.35, -0.9, 0.34, kuwuNum('menta'), 0.0],
+  [-0.4, 1.7, -1.1, 0.4, kuwuNum('azul'), 1.3],
+  [1.9, 1.5, -0.8, 0.3, kuwuNum('azul-suave'), 2.1],
+  [2.1, 0.8, -0.2, 0.36, kuwuNum('azul'), 3.4],
+  [-2.2, 0.55, 0.3, 0.32, kuwuNum('azul-suave'), 4.2],
+  [0.2, 0.45, -0.6, 0.3, kuwuNum('menta'), 5.0],
 ]
 
 const rnd = (x: number, d = 2) => Math.round(x * 10 ** d) / 10 ** d
@@ -110,9 +111,9 @@ function texturaHalo(): THREE.CanvasTexture {
   c.width = c.height = 128
   const g = c.getContext('2d')!
   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
-  grad.addColorStop(0.4, 'rgba(255,255,255,0.45)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
+  grad.addColorStop(0.4, kuwuAlfa('blanco', 0.45))
+  grad.addColorStop(1, kuwuAlfa('blanco', 0))
   g.fillStyle = grad
   g.fillRect(0, 0, 128, 128)
   const t = new THREE.CanvasTexture(c)
@@ -124,7 +125,7 @@ function texturaAnillo(): THREE.CanvasTexture {
   const c = document.createElement('canvas')
   c.width = c.height = 128
   const g = c.getContext('2d')!
-  g.strokeStyle = '#ffffff'
+  g.strokeStyle = KUWU.blanco
   g.lineWidth = 6
   g.beginPath()
   g.arc(64, 64, 58, 0, Math.PI * 2)
@@ -227,7 +228,7 @@ export const crearBurbujas: CrearJuego = () => {
     const e = new THREE.Mesh(geoBurbuja, mat)
     e.scale.setScalar(r)
     g.add(e)
-    const { s } = sprite(texHalo, 0xffffff, false, 0.9)
+    const { s } = sprite(texHalo, NEUTRO, false, 0.9)
     s.scale.setScalar(r * 0.42)
     s.position.set(-r * 0.3, r * 0.38, r * 0.85)
     g.add(s)
@@ -238,11 +239,11 @@ export const crearBurbujas: CrearJuego = () => {
 
   function crearTarjeta() {
     const g = new THREE.Group()
-    const mat = new THREE.MeshStandardMaterial({ color: COLOR_ACENTO, emissive: 0x8a6200, emissiveIntensity: 0.9, roughness: 0.2, transparent: true, opacity: 0.88 })
+    const mat = new THREE.MeshStandardMaterial({ color: COLOR_ACENTO, emissive: tono('amarillo', 0.35), emissiveIntensity: 0.9, roughness: 0.2, transparent: true, opacity: 0.88 })
     materiales.push(mat)
     const esfera = new THREE.Mesh(geoBurbuja, mat)
     g.add(esfera)
-    const brillo = sprite(texHalo, 0xffffff, false, 0.95)
+    const brillo = sprite(texHalo, NEUTRO, false, 0.95)
     brillo.s.position.set(-0.3, 0.38, 0.85)
     brillo.s.scale.setScalar(0.42)
     esfera.add(brillo.s)
@@ -271,7 +272,7 @@ export const crearBurbujas: CrearJuego = () => {
         grupo.add(m)
         return m
       })
-      const { s, m } = sprite(tMas, 0xffffff, false, 0)
+      const { s, m } = sprite(tMas, NEUTRO, false, 0)
       s.scale.set(0.8, 0.4, 1)
       s.visible = false
       s.renderOrder = 8
@@ -410,12 +411,12 @@ export const crearBurbujas: CrearJuego = () => {
     t.halo.scale.setScalar(escala * (2.7 + 0.25 * latido))
     ;(t.halo.material as THREE.SpriteMaterial).color.setHex(color)
     ;(t.halo.material as THREE.SpriteMaterial).opacity = 0.65 * parpadeo
-    t.matEsfera.emissive.setHex(color === COLOR_ACENTO ? 0x8a6200 : color === COLOR_OK ? 0x1f6e55 : 0x8a4a00)
+    t.matEsfera.emissive.setHex(color === COLOR_ACENTO ? tono('amarillo', 0.35) : color === COLOR_OK ? tono('menta', 0.35) : tono('rojo', 0.35))
     // Aro: con vida limitada se achica hacia la burbuja a medida que se agota.
     t.aro.visible = nivel.vidaMs > 0
     if (t.aro.visible) {
       t.aro.scale.setScalar(escala * 2 * (1.08 + 0.55 * restante))
-      ;(t.aro.material as THREE.SpriteMaterial).color.setHex(urgente ? COLOR_AVISO : 0xffffff)
+      ;(t.aro.material as THREE.SpriteMaterial).color.setHex(urgente ? COLOR_AVISO : NEUTRO)
       ;(t.aro.material as THREE.SpriteMaterial).opacity = 0.8
     }
   }

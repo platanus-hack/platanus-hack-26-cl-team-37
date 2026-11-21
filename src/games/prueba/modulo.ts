@@ -4,6 +4,8 @@
 //  - 'prueba-fisica': lo mismo, y además deja caer una bola con Rapier (usaFisica: true) para probar que la física
 //    se carga solo cuando el juego la declara. Su tercera métrica en vivo es la altura de la bola sobre la mesa.
 import * as THREE from 'three'
+import { kuwuNum } from '../../ui/paleta'
+import { tono } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, ModuloJuego, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 
@@ -52,7 +54,7 @@ function crearPrueba(conFisica: boolean): ModuloJuego {
 
     montar(c) {
       ctx = c
-      material = new THREE.MeshStandardMaterial({ color: 0x4fd1a1, roughness: 0.35, emissive: 0x0b3d2c })
+      material = new THREE.MeshStandardMaterial({ color: kuwuNum('menta'), roughness: 0.35, emissive: tono('menta', 0.15) })
       const r = Number(c.nivel.radio ?? 0.25)
       esfera = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 20), material)
       esfera.position.set(0, c.mesa.altura + r, c.mesa.z)
@@ -63,7 +65,7 @@ function crearPrueba(conFisica: boolean): ModuloJuego {
         const radio = 0.16
         const cuerpo = mundo.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0.9, 1.6, -0.3))
         mundo.createCollider(RAPIER.ColliderDesc.ball(radio).setRestitution(0.35), cuerpo)
-        const malla = new THREE.Mesh(new THREE.SphereGeometry(radio, 24, 16), new THREE.MeshStandardMaterial({ color: 0x5ab0ff, roughness: 0.4 }))
+        const malla = new THREE.Mesh(new THREE.SphereGeometry(radio, 24, 16), new THREE.MeshStandardMaterial({ color: kuwuNum('azul'), roughness: 0.4 }))
         malla.castShadow = true
         c.escena.add(malla)
         bola = { malla, cuerpo }
@@ -91,7 +93,7 @@ function crearPrueba(conFisica: boolean): ModuloJuego {
       }
       if (esfera && material) {
         const alguna = cerrada.izquierda || cerrada.derecha
-        material.color.setHex(alguna ? 0xffc83d : 0x4fd1a1)
+        material.color.setHex(alguna ? kuwuNum('amarillo') : kuwuNum('menta'))
         esfera.rotation.y += dt * 0.8
         esfera.scale.setScalar(alguna ? 0.85 : 1 + Math.sin(tiempo * 3) * 0.03)
       }

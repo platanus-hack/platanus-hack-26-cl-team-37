@@ -17,6 +17,7 @@
 //
 // Toda la lógica (giro, sostenido, tablero, métricas) está en logica.ts. Los grados son estimaciones SIN VALIDAR.
 import * as THREE from 'three'
+import { PASTELES_CSS } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import { ZONA_BASE } from '../shell/manos3d'
@@ -45,7 +46,7 @@ import {
   type NivelCartas,
   type Tablero,
 } from './logica'
-import { kuwuNum } from '../../ui/paleta'
+import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 
 /** Cuánto se ven abiertas dos cartas distintas antes de volver a taparse (ms). */
 export const VER_NO_PAR_MS = 1300
@@ -59,8 +60,9 @@ const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) =>
 
 const COLOR_ACENTO = kuwuNum('amarillo')
 const COLOR_OK = kuwuNum('menta')
-const COLORES_FIGURA = ['#f5b82e', '#e0453a', '#3fb88a', '#f28c28', '#8a6bd6', '#3aa0e0']
-const FONDOS_CARA = ['#eef3f7', '#f4efe6', '#e9f3ee', '#eef0fa', '#f6ece8', '#e8f2f6']
+/** Figuras en los pastel del brandbook con borde marino (se distinguen por forma y color); caras sobre blanco y crema. */
+const COLORES_FIGURA = PASTELES_CSS
+const FONDOS_CARA = [KUWU.blanco, KUWU.crema]
 
 /** Estado legible para e2e y depuración (window.__manoviva.juego.estado()). */
 export interface EstadoCartasDepuracion {
@@ -125,6 +127,11 @@ function dibujarFigura(g: CanvasRenderingContext2D, figura: number, cx: number, 
       g.closePath()
   }
   g.fill()
+  // Borde marino: los pastel solos se pierden sobre la cara blanca.
+  g.strokeStyle = KUWU.marino
+  g.lineWidth = Math.max(2, r * 0.08)
+  g.lineJoin = 'round'
+  g.stroke()
 }
 
 const TAM_TEX = 192
@@ -143,7 +150,7 @@ function texturaCara(figura: number): THREE.CanvasTexture {
   return texturaDeLienzo((g) => {
     g.fillStyle = FONDOS_CARA[figura % FONDOS_CARA.length]
     g.fillRect(0, 0, TAM_TEX, TAM_TEX)
-    g.strokeStyle = 'rgba(40,60,80,0.18)'
+    g.strokeStyle = kuwuAlfa('marino', 0.18)
     g.lineWidth = 6
     g.strokeRect(3, 3, TAM_TEX - 6, TAM_TEX - 6)
     dibujarFigura(g, figura, TAM_TEX / 2, TAM_TEX / 2, 56, COLORES_FIGURA[figura % COLORES_FIGURA.length])
@@ -153,13 +160,13 @@ function texturaCara(figura: number): THREE.CanvasTexture {
 /** Reverso azul con un círculo amarillo; en "sin memoria" lleva la figura de la carta en pequeño. */
 function texturaReverso(figura: number | null): THREE.CanvasTexture {
   return texturaDeLienzo((g) => {
-    g.fillStyle = '#2f5fb0'
+    g.fillStyle = KUWU.marino
     g.fillRect(0, 0, TAM_TEX, TAM_TEX)
-    g.fillStyle = '#3f78c4'
+    g.fillStyle = KUWU['noche-borde']
     g.fillRect(14, 14, TAM_TEX - 28, TAM_TEX - 28)
-    if (figura == null) dibujarFigura(g, 0, TAM_TEX / 2, TAM_TEX / 2, 30, '#f5b82e')
+    if (figura == null) dibujarFigura(g, 0, TAM_TEX / 2, TAM_TEX / 2, 30, KUWU.amarillo)
     else {
-      g.fillStyle = 'rgba(255,255,255,0.88)'
+      g.fillStyle = kuwuAlfa('blanco', 0.88)
       g.beginPath()
       g.arc(TAM_TEX / 2, TAM_TEX / 2, 46, 0, Math.PI * 2)
       g.fill()
@@ -238,7 +245,7 @@ export const crearMemoria: CrearJuego = () => {
     const geo = new THREE.BoxGeometry(ancho, grosor, fondo)
     const geoHalo = new THREE.PlaneGeometry(ancho + 0.16, fondo + 0.16)
     geometrias.push(geo, geoHalo)
-    const lado = new THREE.MeshStandardMaterial({ color: 0x24457f, roughness: 0.6 })
+    const lado = new THREE.MeshStandardMaterial({ color: kuwuNum('marino'), roughness: 0.6 })
     materiales.push(lado)
 
     for (let i = 0; i < filas * columnas; i++) {

@@ -13,6 +13,7 @@
 // Eventos: nota_mostrada {dedo, posicion}, acierto {dedo, desfase, independencia}, dedo_equivocado {dedo, pedido, simultaneo},
 // nota_perdida {dedo}. El contador es notas resueltas / total (la meta del plan); sin meta, práctica libre.
 import * as THREE from 'three'
+import { NEUTRO } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -237,7 +238,7 @@ export const crearPiano: CrearJuego = () => {
         por[f] = m
       }
       teclas[lado] = por
-      const matLinea = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false })
+      const matLinea = new THREE.MeshBasicMaterial({ color: NEUTRO, transparent: true, opacity: 0.75, depthWrite: false })
       materiales.push(matLinea)
       const linea = new THREE.Mesh(geoTecla, matLinea)
       lineas[lado] = linea
@@ -246,7 +247,7 @@ export const crearPiano: CrearJuego = () => {
     const geoNota = new THREE.BoxGeometry(ANCHO_TECLA, 0.14, 0.3)
     geometrias.push(geoNota)
     for (let i = 0; i < POOL_NOTAS; i++) {
-      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.4, transparent: true })
+      const mat = new THREE.MeshStandardMaterial({ color: NEUTRO, emissive: NEUTRO, emissiveIntensity: 0.2, roughness: 0.4, transparent: true })
       materiales.push(mat)
       const malla = new THREE.Mesh(geoNota, mat)
       malla.castShadow = true

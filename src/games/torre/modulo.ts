@@ -17,6 +17,8 @@
 // `caida {alturaCubos}` al caer la torre.
 import type RAPIER_NS from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
+import { kuwuNum } from '../../ui/paleta'
+import { NATURAL } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -137,7 +139,7 @@ export const crearTorre: CrearJuego = () => {
     const { RAPIER, mundo } = c.fisica!
     const geo = new THREE.CylinderGeometry(BASE.radio, BASE.radio, BASE.grosor, 48)
     geometrias.push(geo)
-    const malla = new THREE.Mesh(geo, material(0xe6d9bd, { roughness: 0.8 }))
+    const malla = new THREE.Mesh(geo, material(NATURAL.maderaBase, { roughness: 0.8 }))
     malla.position.set(BASE.x, c.mesa.altura + BASE.grosor / 2, BASE.z)
     malla.castShadow = true
     malla.receiveShadow = true
@@ -152,7 +154,7 @@ export const crearTorre: CrearJuego = () => {
     const r = nivel.toleranciaCm * U_POR_CM
     const aro = new THREE.RingGeometry(Math.max(0.01, r - 0.012), r, 48)
     geometrias.push(aro)
-    const mAro = new THREE.MeshBasicMaterial({ color: 0xffc83d, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
+    const mAro = new THREE.MeshBasicMaterial({ color: kuwuNum('amarillo'), transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
     materiales.push(mAro)
     const m2 = new THREE.Mesh(aro, mAro)
     m2.rotation.x = -Math.PI / 2
@@ -165,8 +167,8 @@ export const crearTorre: CrearJuego = () => {
     const g = new THREE.Group()
     const caja = new THREE.BoxGeometry(lado, lado, lado)
     const bordes = new THREE.EdgesGeometry(caja)
-    const mRelleno = new THREE.MeshBasicMaterial({ color: 0xffc83d, transparent: true, opacity: 0.22, depthWrite: false })
-    const mLinea = new THREE.LineBasicMaterial({ color: 0xffd45a })
+    const mRelleno = new THREE.MeshBasicMaterial({ color: kuwuNum('amarillo'), transparent: true, opacity: 0.22, depthWrite: false })
+    const mLinea = new THREE.LineBasicMaterial({ color: kuwuNum('amarillo') })
     geometrias.push(caja, bordes)
     materiales.push(mRelleno, mLinea)
     g.add(new THREE.Mesh(caja, mRelleno), new THREE.LineSegments(bordes, mLinea))

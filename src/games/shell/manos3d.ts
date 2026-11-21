@@ -10,6 +10,7 @@
 //   escalados (`escala` unidades por metro) e inclinados `inclinacionDeg` hacia el fondo, para que una mano con
 //   los dedos hacia arriba frente al teléfono se vea "entrando" a la mesa como en la imagen de referencia.
 import * as THREE from 'three'
+import { MANO } from './colores'
 import type { LadoMano } from '../../domain/types'
 import { CONEXIONES, type P3 } from '../../metrics/geometria'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -88,10 +89,10 @@ export function puntosEnEscena(mano: Pick<ManoSeguida, 'landmarks' | 'worldLandm
 
 // ── Malla ─────────────────────────────────────────────────────────────────────────────────────────
 
-const COLOR_HUESO = 0xe9edf2
-const COLOR_ARTICULACION = 0xf5b82e
-const COLOR_PUNTA = 0x4a9df0
-const COLOR_ANTEBRAZO = 0xd5dbe2
+const COLOR_HUESO = MANO.hueso
+const COLOR_ARTICULACION = MANO.articulacion
+const COLOR_PUNTA = MANO.punta
+const COLOR_ANTEBRAZO = MANO.antebrazo
 
 const ARRIBA = new THREE.Vector3(0, 1, 0)
 const tmpA = new THREE.Vector3()
@@ -131,7 +132,7 @@ class ManoVirtual {
     geo.setAttribute('position', new THREE.BufferAttribute(this.posPalma, 3))
     this.palma = new THREE.Mesh(
       geo,
-      new THREE.MeshStandardMaterial({ color: 0xf2f4f7, roughness: 0.6, transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
+      new THREE.MeshStandardMaterial({ color: MANO.palma, roughness: 0.6, transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
     )
     const radioBrazo = 0.026 * escala
     const geoBrazo = new THREE.CapsuleGeometry(radioBrazo, 1, 6, 14)

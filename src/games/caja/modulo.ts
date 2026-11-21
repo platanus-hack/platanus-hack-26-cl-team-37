@@ -18,6 +18,7 @@
 // src/metrics/suavidad.ts; la sesión reporta el promedio (escala 0–100). En vivo se muestra el promedio hasta ahora.
 import type RAPIER_NS from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
+import { NATURAL } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import { contarAgarres } from '../../metrics/sesion'
@@ -181,8 +182,8 @@ export const crearCaja: CrearJuego = () => {
     const { RAPIER, mundo } = c.fisica!
     const k = CAJA
     const y0 = c.mesa.altura
-    const madera = new THREE.MeshStandardMaterial({ color: 0xece2cf, roughness: 0.75 })
-    const fondo = new THREE.MeshStandardMaterial({ color: 0xd8c9ad, roughness: 0.85 })
+    const madera = new THREE.MeshStandardMaterial({ color: NATURAL.maderaClara, roughness: 0.75 })
+    const fondo = new THREE.MeshStandardMaterial({ color: NATURAL.maderaSombra, roughness: 0.85 })
     materiales.push(madera, fondo)
     const piezas: { w: number; h: number; d: number; x: number; y: number; z: number; mat: THREE.Material }[] = [
       { w: k.ancho, h: k.piso, d: k.fondo, x: 0, y: k.piso / 2, z: 0, mat: fondo },

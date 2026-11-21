@@ -11,6 +11,7 @@
 // error {dedo tocado}, no_alcanzado {dedo, distanciaMinCm}. Con mano 'ambas' las secuencias se alternan entre
 // derecha e izquierda (la mano que corresponde lleva los anillos).
 import * as THREE from 'three'
+import { NEUTRO } from '../shell/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -85,7 +86,7 @@ function texturaAnillo(): THREE.Texture {
   const c = document.createElement('canvas')
   c.width = c.height = 128
   const g = c.getContext('2d')!
-  g.strokeStyle = '#ffffff'
+  g.strokeStyle = KUWU.blanco
   g.lineWidth = 9
   g.beginPath()
   g.arc(64, 64, 54, 0, Math.PI * 2)
@@ -100,9 +101,9 @@ function texturaHalo(): THREE.Texture {
   c.width = c.height = 128
   const g = c.getContext('2d')!
   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
-  grad.addColorStop(0.45, 'rgba(255,255,255,0.5)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
+  grad.addColorStop(0.45, kuwuAlfa('blanco', 0.5))
+  grad.addColorStop(1, kuwuAlfa('blanco', 0))
   g.fillStyle = grad
   g.fillRect(0, 0, 128, 128)
   const t = new THREE.CanvasTexture(c)
@@ -316,9 +317,9 @@ export const crearPinza: CrearJuego = () => {
       } else if (vista === 'hecho') {
         ajustar(v.anillo, 0.36, 0.85, COLOR_OK)
         halo = 0.55
-      } else if (vista === 'perdido') ajustar(v.anillo, 0.32, 0.35, 0x9fb2c4)
-      else if (vista === 'pendiente') ajustar(v.anillo, 0.34, 0.55, 0xffffff)
-      else ajustar(v.anillo, 0, 0, 0xffffff)
+      } else if (vista === 'perdido') ajustar(v.anillo, 0.32, 0.35, kuwuNum('noche-texto-2'))
+      else if (vista === 'pendiente') ajustar(v.anillo, 0.34, 0.55, NEUTRO)
+      else ajustar(v.anillo, 0, 0, NEUTRO)
       // Dedo equivocado: un destello suave, sin castigo.
       if (error[f] > 0) {
         halo = Math.max(halo, 0.5 * error[f])
@@ -331,7 +332,7 @@ export const crearPinza: CrearJuego = () => {
       else {
         anilloPulgar.position.copy(c.manos.punto(lado, PUNTA_PULGAR))
         const tocaObjetivo = estado.contacto != null && estado.contacto === estado.objetivo
-        ajustar(anilloPulgar, 0.3, estado.contacto ? 0.9 : 0.5, tocaObjetivo ? COLOR_OK : estado.contacto ? COLOR_AVISO : 0xffffff)
+        ajustar(anilloPulgar, 0.3, estado.contacto ? 0.9 : 0.5, tocaObjetivo ? COLOR_OK : estado.contacto ? COLOR_AVISO : NEUTRO)
       }
     }
     dibujarLuces()
@@ -408,11 +409,11 @@ export const crearPinza: CrearJuego = () => {
       const tHalo = texturaHalo()
       texturas.push(tAnillo, tHalo)
       for (const f of DEDOS_PINZA) {
-        const v = { anillo: sprite(tAnillo, 0xffffff), halo: sprite(tHalo, COLOR_ACENTO, true) }
+        const v = { anillo: sprite(tAnillo, NEUTRO), halo: sprite(tHalo, COLOR_ACENTO, true) }
         visual[f] = v
         grupo.add(v.halo, v.anillo)
       }
-      anilloPulgar = sprite(tAnillo, 0xffffff)
+      anilloPulgar = sprite(tAnillo, NEUTRO)
       grupo.add(anilloPulgar)
       c.escena.add(grupo)
 
