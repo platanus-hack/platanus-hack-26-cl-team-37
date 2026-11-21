@@ -22,3 +22,8 @@ Qué hiciste, qué probaste y qué quedó pendiente. Agrega al final; un bloque 
 - Primer e2e real en Actions contra desarrollo: falló en 4 pruebas. Mínimos de fps ≥ 24 en `movilidad.spec` y `shell.spec` (el runner sin GPU da 12–20 fps) y `sensacion`/`privacidad`, que usan el paciente de prueba compartido. Además, con 5 PR abiertos a la vez, el candado global `e2e-supabase` dejó solo uno en espera y GitHub **canceló** el e2e de los demás.
 - Qué: `e2e` corre en cada PR y push en paralelo (candado por rama), con 1 worker y sin las pruebas del paciente de prueba; `e2e-compartidas` (csp, flujo-paciente, historial, privacidad, sensacion y sin conexión) corre solo al unir a `dev`, una a la vez. Los deploys solo exigen `verificar`: los e2e se ven en rojo pero no frenan. Token de Vercel por ambiente: `VERCEL_DEV_TOKEN` para desarrollo (si falta, usa `VERCEL_TOKEN`) y `VERCEL_TOKEN` para producción.
 - Pendiente: cargar `VERCEL_DEV_TOKEN` y `VERCEL_TOKEN`; pedir a P2 que el mínimo de fps de `caja`, `movilidad` y `shell` sea configurable en la CI, y que revise `caja.spec` (inestable).
+
+## 2026-11-21 · Acceso centrado en computador (rama p1/acceso-ancho)
+- Revisión visual de https://manoviva-dev.vercel.app: en computador `/acceso` se estiraba a todo el ancho (1440 px) mientras el resto de la app usa la columna de 520 px. Causa: `SoloPublica` devolvía `<Outlet/>` sin el contenedor `.app`. Ahora lo envuelve.
+- Pruebas: tipos, lint y 284 unitarias; mirado en 1440×900 (columna centrada) y 375×812 (sin cambios); "Entrar con cuenta demo" llega a `/inicio`; consola sin errores.
+- Avisado a P2 en un issue: la calibración se traba con el teléfono en horizontal.
