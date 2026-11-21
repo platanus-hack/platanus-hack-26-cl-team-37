@@ -5,6 +5,9 @@
 // Rendimiento: pixel ratio ≤ 1,5. Si el promedio de fps de una ventana de 2 s cae bajo 24, se abarata en pasos:
 // 1) pixel ratio 1; 2) sombras de 512; 3) sin sombras. Nunca se vuelve a subir en la sesión (evita oscilar).
 import * as THREE from 'three'
+import { kuwuNum } from '../../ui/paleta'
+import { LUZ, NATURAL } from '../assets/colores'
+import { crearMesa, MEDIDAS_MESA } from '../assets/mesa'
 import type { MesaEscena } from './contrato'
 import { ManosVirtuales } from './manos3d'
 
@@ -12,33 +15,8 @@ export const PIXEL_RATIO_MAX = 1.5
 export const FPS_OBJETIVO = 24
 const VENTANA_FPS_MS = 2000
 
-export const COLOR_FONDO = 0x2c3a47
-export const COLOR_MESA = 0xc69463
-
-/** Textura de vetas suaves para la mesa (lienzo de 256×256, se genera una vez). */
-function texturaMadera(): THREE.CanvasTexture | null {
-  if (typeof document === 'undefined') return null
-  const c = document.createElement('canvas')
-  c.width = c.height = 256
-  const g = c.getContext('2d')
-  if (!g) return null
-  g.fillStyle = '#c69463'
-  g.fillRect(0, 0, 256, 256)
-  for (let i = 0; i < 46; i++) {
-    const y = (i * 37) % 256
-    g.strokeStyle = i % 3 ? 'rgba(120, 72, 36, 0.06)' : 'rgba(255, 230, 190, 0.07)'
-    g.lineWidth = 1 + (i % 4)
-    g.beginPath()
-    g.moveTo(0, y)
-    for (let x = 0; x <= 256; x += 32) g.lineTo(x, y + Math.sin((x + i * 13) / 40) * 3)
-    g.stroke()
-  }
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  t.wrapS = t.wrapT = THREE.RepeatWrapping
-  t.repeat.set(2.4, 1.6)
-  return t
-}
+export const COLOR_FONDO = kuwuNum('noche')
+export const COLOR_MESA = NATURAL.madera
 
 export class EscenaBase {
   readonly renderer: THREE.WebGLRenderer
@@ -60,7 +38,7 @@ export class EscenaBase {
   constructor(lienzo: HTMLCanvasElement) {
     this.lienzo = lienzo
     this.renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, alpha: true, powerPreference: 'high-performance' })
-    this.renderer.setClearColor(0x000000, 0)
+    this.renderer.setClearColor(COLOR_FONDO, 0)
     this.renderer.setPixelRatio(Math.min(PIXEL_RATIO_MAX, window.devicePixelRatio || 1))
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
@@ -74,8 +52,8 @@ export class EscenaBase {
     this.camara.position.set(0, 3.3, 4.0)
     this.camara.lookAt(0, 0.1, -0.55)
 
-    this.escena.add(new THREE.HemisphereLight(0xdfe9f3, 0x3a2e24, 1.25))
-    this.luz = new THREE.DirectionalLight(0xfff3e2, 2.1)
+    this.escena.add(new THREE.HemisphereLight(LUZ.cielo, LUZ.suelo, 1.25))
+    this.luz = new THREE.DirectionalLight(LUZ.sol, 2.1)
     this.luz.position.set(-1.6, 5.5, 2.4)
     this.luz.castShadow = true
     this.luz.shadow.mapSize.set(1024, 1024)
@@ -90,18 +68,9 @@ export class EscenaBase {
     s.far = 12
     this.escena.add(this.luz)
 
-    // Mesa: tablero con canto (la cara de arriba en y = 0).
-    const ancho = 5.4
-    const fondo = 3.3
-    const grosor = 0.16
-    const z = -0.25
-    const madera = texturaMadera()
-    const tablero = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho, grosor, fondo),
-      new THREE.MeshStandardMaterial({ color: madera ? 0xffffff : COLOR_MESA, map: madera, roughness: 0.82, metalness: 0 }),
-    )
-    tablero.position.set(0, -grosor / 2, z)
-    tablero.receiveShadow = true
+    // Mesa: tablero con canto (la cara de arriba en y = 0), en assets/mesa.ts.
+    const { ancho, fondo, z } = MEDIDAS_MESA
+    const tablero = crearMesa()
     this.escena.add(tablero)
     this.mesa = { ancho, fondo, altura: 0, z, objeto: tablero }
 

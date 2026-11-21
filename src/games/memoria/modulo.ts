@@ -17,6 +17,8 @@
 //
 // Toda la lógica (giro, sostenido, tablero, métricas) está en logica.ts. Los grados son estimaciones SIN VALIDAR.
 import * as THREE from 'three'
+import { crearCartas } from '../assets/memoria/carta'
+import type { Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import { ZONA_BASE } from '../shell/manos3d'
@@ -59,8 +61,6 @@ const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) =>
 
 const COLOR_ACENTO = kuwuNum('amarillo')
 const COLOR_OK = kuwuNum('menta')
-const COLORES_FIGURA = ['#f5b82e', '#e0453a', '#3fb88a', '#f28c28', '#8a6bd6', '#3aa0e0']
-const FONDOS_CARA = ['#eef3f7', '#f4efe6', '#e9f3ee', '#eef0fa', '#f6ece8', '#e8f2f6']
 
 /** Estado legible para e2e y depuración (window.__manoviva.juego.estado()). */
 export interface EstadoCartasDepuracion {
@@ -82,90 +82,6 @@ export interface EstadoCartasDepuracion {
   supinacionMax: number
   pronacionMax: number
   manos: Partial<Record<LadoMano, { angulo: number | null; crudo: number | null; sobre: number | null; armada: boolean; esperaRetorno: boolean; mantenidoMs: number }>>
-}
-
-function dibujarFigura(g: CanvasRenderingContext2D, figura: number, cx: number, cy: number, r: number, color: string) {
-  g.fillStyle = color
-  g.beginPath()
-  switch (figura) {
-    case 0:
-      g.arc(cx, cy, r, 0, Math.PI * 2)
-      break
-    case 1:
-      g.moveTo(cx, cy - r)
-      g.lineTo(cx + r * 1.05, cy + r * 0.85)
-      g.lineTo(cx - r * 1.05, cy + r * 0.85)
-      g.closePath()
-      break
-    case 2:
-      g.roundRect(cx - r * 0.85, cy - r * 0.85, r * 1.7, r * 1.7, r * 0.12)
-      break
-    case 3:
-      for (let i = 0; i < 10; i++) {
-        const a = -Math.PI / 2 + (i * Math.PI) / 5
-        const rr = i % 2 ? r * 0.45 : r * 1.05
-        if (i === 0) g.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)
-        else g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)
-      }
-      g.closePath()
-      break
-    case 4:
-      g.moveTo(cx, cy - r * 1.1)
-      g.lineTo(cx + r * 0.8, cy)
-      g.lineTo(cx, cy + r * 1.1)
-      g.lineTo(cx - r * 0.8, cy)
-      g.closePath()
-      break
-    default:
-      for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3
-        if (i === 0) g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r)
-        else g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r)
-      }
-      g.closePath()
-  }
-  g.fill()
-}
-
-const TAM_TEX = 192
-
-function texturaDeLienzo(dibujar: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
-  const c = document.createElement('canvas')
-  c.width = c.height = TAM_TEX
-  dibujar(c.getContext('2d')!)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  t.anisotropy = 4
-  return t
-}
-
-function texturaCara(figura: number): THREE.CanvasTexture {
-  return texturaDeLienzo((g) => {
-    g.fillStyle = FONDOS_CARA[figura % FONDOS_CARA.length]
-    g.fillRect(0, 0, TAM_TEX, TAM_TEX)
-    g.strokeStyle = 'rgba(40,60,80,0.18)'
-    g.lineWidth = 6
-    g.strokeRect(3, 3, TAM_TEX - 6, TAM_TEX - 6)
-    dibujarFigura(g, figura, TAM_TEX / 2, TAM_TEX / 2, 56, COLORES_FIGURA[figura % COLORES_FIGURA.length])
-  })
-}
-
-/** Reverso azul con un círculo amarillo; en "sin memoria" lleva la figura de la carta en pequeño. */
-function texturaReverso(figura: number | null): THREE.CanvasTexture {
-  return texturaDeLienzo((g) => {
-    g.fillStyle = '#2f5fb0'
-    g.fillRect(0, 0, TAM_TEX, TAM_TEX)
-    g.fillStyle = '#3f78c4'
-    g.fillRect(14, 14, TAM_TEX - 28, TAM_TEX - 28)
-    if (figura == null) dibujarFigura(g, 0, TAM_TEX / 2, TAM_TEX / 2, 30, '#f5b82e')
-    else {
-      g.fillStyle = 'rgba(255,255,255,0.88)'
-      g.beginPath()
-      g.arc(TAM_TEX / 2, TAM_TEX / 2, 46, 0, Math.PI * 2)
-      g.fill()
-      dibujarFigura(g, figura, TAM_TEX / 2, TAM_TEX / 2, 30, COLORES_FIGURA[figura % COLORES_FIGURA.length])
-    }
-  })
 }
 
 interface VisualCarta {
@@ -219,6 +135,7 @@ export const crearMemoria: CrearJuego = () => {
   const geometrias: THREE.BufferGeometry[] = []
   const materiales: THREE.Material[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas }
 
   const ladoVisible = (l: LadoMano) => !!ctx?.manos.visible(l)
 
@@ -231,43 +148,17 @@ export const crearMemoria: CrearJuego = () => {
     pasoZ = fondo + 0.16
     const grosor = 0.07
 
-    const cara = Array.from({ length: Math.max(...tablero.figuras) + 1 }, (_, f) => texturaCara(f))
-    const reverso = sinMemoria ? cara.map((_, f) => texturaReverso(f)) : [texturaReverso(null)]
-    texturas.push(...cara, ...reverso)
-
-    const geo = new THREE.BoxGeometry(ancho, grosor, fondo)
-    const geoHalo = new THREE.PlaneGeometry(ancho + 0.16, fondo + 0.16)
-    geometrias.push(geo, geoHalo)
-    const lado = new THREE.MeshStandardMaterial({ color: 0x24457f, roughness: 0.6 })
-    materiales.push(lado)
-
-    for (let i = 0; i < filas * columnas; i++) {
-      const f = tablero.figuras[i]
-      const matCara = new THREE.MeshStandardMaterial({ map: cara[f], roughness: 0.55 })
-      const matRev = new THREE.MeshStandardMaterial({ map: sinMemoria ? reverso[f] : reverso[0], roughness: 0.55 })
-      const matHalo = new THREE.MeshBasicMaterial({ color: COLOR_ACENTO, transparent: true, opacity: 0, depthWrite: false })
-      materiales.push(matCara, matRev, matHalo)
-      // Orden de caras de BoxGeometry: +x, −x, +y (reverso, arriba), −y (figura, queda arriba al voltear), +z, −z.
-      const caja = new THREE.Mesh(geo, [lado, lado, matRev, matCara, lado, lado])
-      caja.castShadow = true
-      caja.receiveShadow = true
-      const pivote = new THREE.Group()
-      pivote.add(caja)
+    // Cartas (assets/memoria/carta.ts): el juego solo las ubica en la grilla.
+    const cartas = crearCartas(recursos, { ancho, fondo, grosor }, tablero.figuras.slice(0, filas * columnas), sinMemoria)
+    cartas.forEach(({ grupo: g, pivote, halo }, i) => {
       const fila = Math.floor(i / columnas)
       const col = i % columnas
       const x = centroX + (col - (columnas - 1) / 2) * pasoX
       const z = centroZ + (fila - (filas - 1) / 2) * pasoZ
-      const g = new THREE.Group()
       g.position.set(x, c.mesa.altura, z)
-      const halo = new THREE.Mesh(geoHalo, matHalo)
-      halo.rotation.x = -Math.PI / 2
-      halo.position.y = 0.006
-      halo.renderOrder = 1
-      g.add(halo, pivote)
-      pivote.position.y = grosor / 2
       grupo.add(g)
       visuales.push({ grupo: g, pivote, halo, phi: 0, x, z })
-    }
+    })
 
     // Zona de las manos: la palma recorre la grilla (x: imagen; z: distancia a la cámara; y: altura sobre las cartas).
     const medioX = (columnas * pasoX) / 2 + 0.25

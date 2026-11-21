@@ -17,6 +17,11 @@
 // `caida {alturaCubos}` al caer la torre.
 import type RAPIER_NS from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
+import { kuwuNum } from '../../ui/paleta'
+import { crearAnilloPlano } from '../assets/formas'
+import { crearPiezaFisica } from '../assets/piezas'
+import type { Recursos } from '../assets/recursos'
+import { crearBaseTorre, crearSilueta } from '../assets/torre/base'
 import type { LadoMano } from '../../domain/types'
 import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -108,6 +113,7 @@ export const crearTorre: CrearJuego = () => {
   const escenaExtra: THREE.Object3D[] = []
   const geometrias: THREE.BufferGeometry[] = []
   const materiales: THREE.Material[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas: [] }
   let silueta: THREE.Group | null = null
   let cfg: ConfigAgarre = configDesdeCalibracion(null)
   const agarre: Record<LadoMano, EstadoAgarre> = { izquierda: { agarrando: false }, derecha: { agarrando: false } }
@@ -127,49 +133,20 @@ export const crearTorre: CrearJuego = () => {
   const pinza = (l: LadoMano, destino = new THREE.Vector3()) => destino.addVectors(ctx!.manos.punto(l, 4), ctx!.manos.punto(l, 8)).multiplyScalar(0.5)
   const posDe = (c: Cubo) => (c.estado === 'tomado' ? c.sostenido : c.cuerpo.translation())
 
-  function material(color: number, extra: THREE.MeshStandardMaterialParameters = {}) {
-    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.02, ...extra })
-    materiales.push(m)
-    return m
-  }
-
-  function crearBase(c: ContextoJuego) {
-    const { RAPIER, mundo } = c.fisica!
-    const geo = new THREE.CylinderGeometry(BASE.radio, BASE.radio, BASE.grosor, 48)
-    geometrias.push(geo)
-    const malla = new THREE.Mesh(geo, material(0xe6d9bd, { roughness: 0.8 }))
-    malla.position.set(BASE.x, c.mesa.altura + BASE.grosor / 2, BASE.z)
-    malla.castShadow = true
-    malla.receiveShadow = true
+  function montarBase(c: ContextoJuego) {
+    const malla = crearBaseTorre(recursos, c.fisica!, BASE, c.mesa.altura)
     c.escena.add(malla)
     escenaExtra.push(malla)
-    mundo.createCollider(
-      RAPIER.ColliderDesc.cylinder(BASE.grosor / 2, BASE.radio)
-        .setTranslation(BASE.x, c.mesa.altura + BASE.grosor / 2, BASE.z)
-        .setFriction(0.95),
-    )
     // Aro de tolerancia sobre la base (radio = tolerancia del nivel).
     const r = nivel.toleranciaCm * U_POR_CM
-    const aro = new THREE.RingGeometry(Math.max(0.01, r - 0.012), r, 48)
-    geometrias.push(aro)
-    const mAro = new THREE.MeshBasicMaterial({ color: 0xffc83d, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
-    materiales.push(mAro)
-    const m2 = new THREE.Mesh(aro, mAro)
-    m2.rotation.x = -Math.PI / 2
-    m2.position.set(BASE.x, c.mesa.altura + BASE.grosor + 0.003, BASE.z)
-    c.escena.add(m2)
-    escenaExtra.push(m2)
+    const aro = crearAnilloPlano(recursos, { interno: Math.max(0.01, r - 0.012), externo: r, color: kuwuNum('amarillo'), opacidad: 0.7, segmentos: 48, dobleCara: true, orden: 0 })
+    aro.position.set(BASE.x, c.mesa.altura + BASE.grosor + 0.003, BASE.z)
+    c.escena.add(aro)
+    escenaExtra.push(aro)
   }
 
-  function crearSilueta(c: ContextoJuego) {
-    const g = new THREE.Group()
-    const caja = new THREE.BoxGeometry(lado, lado, lado)
-    const bordes = new THREE.EdgesGeometry(caja)
-    const mRelleno = new THREE.MeshBasicMaterial({ color: 0xffc83d, transparent: true, opacity: 0.22, depthWrite: false })
-    const mLinea = new THREE.LineBasicMaterial({ color: 0xffd45a })
-    geometrias.push(caja, bordes)
-    materiales.push(mRelleno, mLinea)
-    g.add(new THREE.Mesh(caja, mRelleno), new THREE.LineSegments(bordes, mLinea))
+  function montarSilueta(c: ContextoJuego) {
+    const g = crearSilueta(recursos, lado)
     c.escena.add(g)
     escenaExtra.push(g)
     silueta = g
@@ -183,24 +160,20 @@ export const crearTorre: CrearJuego = () => {
   }
 
   function crearCubo(c: ContextoJuego, i: number, pos: { x: number; z: number }): Cubo {
-    const { RAPIER, mundo } = c.fisica!
-    const geo = new THREE.BoxGeometry(lado, lado, lado)
-    geometrias.push(geo)
-    const malla = new THREE.Mesh(geo, material(COLORES[i % COLORES.length]))
-    malla.castShadow = true
-    malla.receiveShadow = true
-    c.escena.add(malla)
     const inicio = { x: pos.x, y: c.mesa.altura + lado / 2 + 0.005, z: pos.z }
     const yaw = ((i * 0.7) % 1.2) - 0.5
-    const cuerpo = mundo.createRigidBody(
-      RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(inicio.x, inicio.y, inicio.z)
-        .setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) })
-        .setLinearDamping(0.4)
-        .setAngularDamping(1.5)
-        .setCcdEnabled(true),
-    )
-    mundo.createCollider(RAPIER.ColliderDesc.cuboid(lado / 2, lado / 2, lado / 2).setFriction(0.9).setRestitution(0.05).setDensity(1), cuerpo)
+    const { malla, cuerpo } = crearPiezaFisica(recursos, c.fisica!, {
+      forma: 'cubo',
+      tam: lado,
+      color: COLORES[i % COLORES.length],
+      rugosidad: 0.5,
+      inicio,
+      rotacion: { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) },
+      amortiguacion: [0.4, 1.5],
+      roce: 0.9,
+      rebote: 0.05,
+    })
+    c.escena.add(malla)
     const cubo: Cubo = {
       id: `cubo-${i + 1}`,
       inicio,
@@ -427,8 +400,8 @@ export const crearTorre: CrearJuego = () => {
       lado = ladoUnidades(nivel)
       cfg = configDesdeCalibracion(c.calibracion?.aperturaPinzaMaxCm)
       c.configurarManos(ZONA_TORRE)
-      crearBase(c)
-      crearSilueta(c)
+      montarBase(c)
+      montarSilueta(c)
       posicionesCubos(nivel.cubos).forEach((pos, i) => cubos.push(crearCubo(c, i, pos)))
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
     },

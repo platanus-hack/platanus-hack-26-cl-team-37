@@ -22,6 +22,9 @@
 // planes (P2) no los ofrece ni están en ParametrosSesion: en la práctica siempre rigen los valores por defecto (sin límite
 // de zona, umbral 80 %). Lo prueba el e2e inyectando el parámetro directo en la sesión; ver docs/equipo/registro-P3.md.
 import * as THREE from 'three'
+import { NEUTRO, tono } from '../assets/colores'
+import { crearBaseBurbujas, crearBurbujaAdorno, crearBurbujaObjetivo, crearEfectoReventar, texturaMasUno, type BaseBurbujas } from '../assets/burbujas/burbuja'
+import { geometria, textura, type Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -51,7 +54,7 @@ import {
   type NivelBurbujas,
   type V3,
 } from './logica'
-import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
+import { kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 
@@ -72,12 +75,12 @@ const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) =>
 
 /** Burbujas de adorno: [x, y, z, radio, color, fase]. No se pueden reventar. */
 const ADORNOS: [number, number, number, number, number, number][] = [
-  [-1.9, 1.35, -0.9, 0.34, 0x3fae8a, 0.0],
-  [-0.4, 1.7, -1.1, 0.4, 0x4a86c5, 1.3],
-  [1.9, 1.5, -0.8, 0.3, 0x8a63c0, 2.1],
-  [2.1, 0.8, -0.2, 0.36, 0x4a86c5, 3.4],
-  [-2.2, 0.55, 0.3, 0.32, 0x8a63c0, 4.2],
-  [0.2, 0.45, -0.6, 0.3, 0x5fbf8a, 5.0],
+  [-1.9, 1.35, -0.9, 0.34, kuwuNum('menta'), 0.0],
+  [-0.4, 1.7, -1.1, 0.4, kuwuNum('azul'), 1.3],
+  [1.9, 1.5, -0.8, 0.3, kuwuNum('azul-suave'), 2.1],
+  [2.1, 0.8, -0.2, 0.36, kuwuNum('azul'), 3.4],
+  [-2.2, 0.55, 0.3, 0.32, kuwuNum('azul-suave'), 4.2],
+  [0.2, 0.45, -0.6, 0.3, kuwuNum('menta'), 5.0],
 ]
 
 const rnd = (x: number, d = 2) => Math.round(x * 10 ** d) / 10 ** d
@@ -103,53 +106,6 @@ export interface EstadoBurbujasDepuracion {
   expiradas: number
   alcanceMax: number
   lados: LadoMano[]
-}
-
-function texturaHalo(): THREE.CanvasTexture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
-  grad.addColorStop(0.4, 'rgba(255,255,255,0.45)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
-  g.fillStyle = grad
-  g.fillRect(0, 0, 128, 128)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
-function texturaAnillo(): THREE.CanvasTexture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  g.strokeStyle = '#ffffff'
-  g.lineWidth = 6
-  g.beginPath()
-  g.arc(64, 64, 58, 0, Math.PI * 2)
-  g.stroke()
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
-function texturaMasUno(): THREE.CanvasTexture {
-  const c = document.createElement('canvas')
-  c.width = 256
-  c.height = 128
-  const g = c.getContext('2d')!
-  g.font = fuenteKuwu(900, 96)
-  g.textAlign = 'center'
-  g.textBaseline = 'middle'
-  g.lineWidth = 10
-  g.strokeStyle = kuwuAlfa('noche', 0.7)
-  g.strokeText('+1', 128, 70)
-  g.fillStyle = KUWU.menta
-  g.fillText('+1', 128, 70)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
 }
 
 interface Objetivo {
@@ -208,75 +164,30 @@ export const crearBurbujas: CrearJuego = () => {
   const efectos: Efecto[] = []
   const adornos: { malla: THREE.Group; base: THREE.Vector3; fase: number }[] = []
   let tarjeta: { grupo: THREE.Group; esfera: THREE.Mesh; matEsfera: THREE.MeshStandardMaterial; halo: THREE.Sprite; aro: THREE.Sprite } | null = null
-  let geoBurbuja: THREE.SphereGeometry
-  let texHalo: THREE.CanvasTexture
+  const recursos: Recursos = { materiales, geometrias, texturas }
+  let base: BaseBurbujas
 
   const metaAlcanzada = () => !!ctx && ctx.meta > 0 && contador >= ctx.meta
 
-  function sprite(tex: THREE.Texture, color: number, aditivo: boolean, opacidad = 1): { s: THREE.Sprite; m: THREE.SpriteMaterial } {
-    const m = new THREE.SpriteMaterial({ map: tex, color, transparent: true, opacity: opacidad, depthWrite: false, blending: aditivo ? THREE.AdditiveBlending : THREE.NormalBlending })
-    materiales.push(m)
-    const s = new THREE.Sprite(m)
-    return { s, m }
-  }
-
   function burbujaDeAdorno(x: number, y: number, z: number, r: number, color: number, fase: number) {
-    const g = new THREE.Group()
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0, transparent: true, opacity: 0.78 })
-    materiales.push(mat)
-    const e = new THREE.Mesh(geoBurbuja, mat)
-    e.scale.setScalar(r)
-    g.add(e)
-    const { s } = sprite(texHalo, 0xffffff, false, 0.9)
-    s.scale.setScalar(r * 0.42)
-    s.position.set(-r * 0.3, r * 0.38, r * 0.85)
-    g.add(s)
+    const g = crearBurbujaAdorno(recursos, base, r, color)
     g.position.set(x, y, z)
     grupo.add(g)
     adornos.push({ malla: g, base: new THREE.Vector3(x, y, z), fase })
   }
 
   function crearTarjeta() {
-    const g = new THREE.Group()
-    const mat = new THREE.MeshStandardMaterial({ color: COLOR_ACENTO, emissive: 0x8a6200, emissiveIntensity: 0.9, roughness: 0.2, transparent: true, opacity: 0.88 })
-    materiales.push(mat)
-    const esfera = new THREE.Mesh(geoBurbuja, mat)
-    g.add(esfera)
-    const brillo = sprite(texHalo, 0xffffff, false, 0.95)
-    brillo.s.position.set(-0.3, 0.38, 0.85)
-    brillo.s.scale.setScalar(0.42)
-    esfera.add(brillo.s)
-    const halo = sprite(texHalo, COLOR_ACENTO, true, 0.75)
-    g.add(halo.s)
-    const tAro = texturaAnillo()
-    texturas.push(tAro)
-    const aro = sprite(tAro, COLOR_ACENTO, false, 0.9)
-    g.add(aro.s)
-    g.visible = false
-    grupo.add(g)
-    tarjeta = { grupo: g, esfera, matEsfera: mat, halo: halo.s, aro: aro.s }
+    tarjeta = crearBurbujaObjetivo(recursos, base)
+    grupo.add(tarjeta.grupo)
   }
 
   function crearEfectos() {
-    const geoGota = new THREE.SphereGeometry(0.05, 8, 6)
-    geometrias.push(geoGota)
-    const tMas = texturaMasUno()
-    texturas.push(tMas)
+    const geoGota = geometria(recursos, new THREE.SphereGeometry(0.05, 8, 6))
+    const tMas = textura(recursos, texturaMasUno())
     for (let i = 0; i < N_EFECTOS; i++) {
-      const matGota = new THREE.MeshBasicMaterial({ color: COLOR_OK, transparent: true })
-      materiales.push(matGota)
-      const gotas = Array.from({ length: N_GOTAS }, () => {
-        const m = new THREE.Mesh(geoGota, matGota)
-        m.visible = false
-        grupo.add(m)
-        return m
-      })
-      const { s, m } = sprite(tMas, 0xffffff, false, 0)
-      s.scale.set(0.8, 0.4, 1)
-      s.visible = false
-      s.renderOrder = 8
-      grupo.add(s)
-      efectos.push({ gotas, matGota, mas: s, matMas: m, centro: new THREE.Vector3(), t: 0, activo: false })
+      const e = crearEfectoReventar(recursos, geoGota, tMas, N_GOTAS)
+      grupo.add(...e.gotas, e.mas)
+      efectos.push({ ...e, centro: new THREE.Vector3(), t: 0, activo: false })
     }
   }
 
@@ -410,12 +321,12 @@ export const crearBurbujas: CrearJuego = () => {
     t.halo.scale.setScalar(escala * (2.7 + 0.25 * latido))
     ;(t.halo.material as THREE.SpriteMaterial).color.setHex(color)
     ;(t.halo.material as THREE.SpriteMaterial).opacity = 0.65 * parpadeo
-    t.matEsfera.emissive.setHex(color === COLOR_ACENTO ? 0x8a6200 : color === COLOR_OK ? 0x1f6e55 : 0x8a4a00)
+    t.matEsfera.emissive.setHex(color === COLOR_ACENTO ? tono('amarillo', 0.35) : color === COLOR_OK ? tono('menta', 0.35) : tono('rojo', 0.35))
     // Aro: con vida limitada se achica hacia la burbuja a medida que se agota.
     t.aro.visible = nivel.vidaMs > 0
     if (t.aro.visible) {
       t.aro.scale.setScalar(escala * 2 * (1.08 + 0.55 * restante))
-      ;(t.aro.material as THREE.SpriteMaterial).color.setHex(urgente ? COLOR_AVISO : 0xffffff)
+      ;(t.aro.material as THREE.SpriteMaterial).color.setHex(urgente ? COLOR_AVISO : NEUTRO)
       ;(t.aro.material as THREE.SpriteMaterial).opacity = 0.8
     }
   }
@@ -497,10 +408,7 @@ export const crearBurbujas: CrearJuego = () => {
       const f = c.fuente.ultimo
       if (f && f.ancho > 0 && f.alto > 0) aspecto = f.alto / f.ancho
 
-      geoBurbuja = new THREE.SphereGeometry(1, 24, 16)
-      geometrias.push(geoBurbuja)
-      texHalo = texturaHalo()
-      texturas.push(texHalo)
+      base = crearBaseBurbujas(recursos)
       for (const a of ADORNOS) burbujaDeAdorno(...a)
       crearTarjeta()
       crearEfectos()

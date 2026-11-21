@@ -7,8 +7,10 @@
 //   juguete en el plano de la mesa, y a no más de 0,7 sobre su cara de arriba. La altura es tolerante porque con
 //   una sola cámara la profundidad y la altura son lo más difícil de controlar.
 // - Dentro de la caja: el juguete quieto con su centro dentro del interior (x, z), hasta 0,5 sobre el borde (apilado).
+import { kuwuNum } from '../../ui/paleta'
+import type { FormaPieza } from '../assets/piezas'
 
-export type Forma = 'cubo' | 'esfera' | 'cilindro' | 'capsula' | 'cono'
+export type Forma = FormaPieza
 
 export interface V3 {
   x: number
@@ -40,7 +42,8 @@ export const ZONA_JUGUETES = { xMax: 2.05, zMin: -0.85, zMax: 0.65 }
 export const Y_CAIDA = -1
 
 export const FORMAS: Forma[] = ['cubo', 'esfera', 'cilindro', 'capsula', 'cubo', 'esfera', 'cono', 'capsula', 'cilindro', 'esfera']
-export const COLORES = [0x8e44c9, 0x2e9e4f, 0x1aa0b0, 0xe03b3b, 0xe8642c, 0xf5b82e, 0x3a7fdc, 0x2e9e4f, 0xe8642c, 0x8e44c9]
+/** Colores de los juguetes: los pastel del brandbook. */
+export const COLORES = (['rojo', 'amarillo', 'azul', 'menta'] as const).map(kuwuNum)
 
 /** Posiciones de inicio (x, z) de `cantidad` juguetes alrededor de la caja, alternando izquierda y derecha. */
 export function posicionesJuguetes(cantidad: number, distanciaCaja: number, caja: Caja = CAJA): { x: number; z: number }[] {
