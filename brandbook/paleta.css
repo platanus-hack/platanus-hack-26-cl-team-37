@@ -1,0 +1,10 @@
+/* Paleta Kuwü (brandbook). Todo elemento de UI usa solo estos colores. */
+:root {
+  --kuwu-crema: #fff9f0; /* Fondo principal de la app y de los íconos. */
+  --kuwu-marino: #24283b; /* Tinta: todo el texto, segmentos y bordes del logo, botones principales y fondo de la versión a una tinta. */
+  --kuwu-rojo: #ff9b93; /* Pastel primario. Nodos, tarjetas de juego, acentos. */
+  --kuwu-amarillo: #ffd66b; /* Pastel primario. Plan del día, destacados, subrayado de la marca. */
+  --kuwu-azul: #8ec5ff; /* Pastel primario. Nodos, tarjetas de juego, información. */
+  --kuwu-menta: #8fe0b8; /* Éxito y progreso (como relleno; el texto encima va en marino). */
+  --kuwu-blanco: #ffffff; /* Tarjetas sobre fondo crema; relleno de nodos en versiones reducida y sobre amarillo. */
+}

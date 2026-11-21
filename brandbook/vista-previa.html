@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kuwü · Brandbook · Vista previa</title>
+<link rel="stylesheet" href="paleta.css" />
+<style>
+  @font-face { font-family: 'Nunito'; src: url('tipografia/Nunito[wght].ttf') format('truetype'); font-weight: 200 1000; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--kuwu-crema); color: var(--kuwu-marino); font: 16px/1.5 'Nunito', system-ui, sans-serif; }
+  .envoltura { max-width: 1200px; margin: 0 auto; padding: 32px 40px 56px; }
+  h1 { font-weight: 900; font-size: 34px; margin: 0; }
+  h2 { font-weight: 800; font-size: 22px; margin: 36px 0 12px; }
+  p { margin: 0; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .pieza { border-radius: 20px; border: 1.5px solid #24283b1a; overflow: hidden; background: var(--kuwu-blanco); }
+  .pieza .lienzo { height: 170px; display: grid; place-items: center; padding: 20px; }
+  .pieza .lienzo img { max-width: 100%; max-height: 130px; }
+  .pieza .nombre { padding: 8px 12px; font-size: 13px; font-weight: 700; border-top: 1.5px solid #24283b1a; background: var(--kuwu-blanco); }
+  .paleta { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .color { border-radius: 18px; padding: 70px 12px 10px; border: 1.5px solid #24283b1a; font-size: 13px; font-weight: 700; }
+  .tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tipo { background: var(--kuwu-blanco); border-radius: 20px; padding: 18px 20px; border: 1.5px solid #24283b1a; }
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <h1>Kuwü · Brandbook</h1>
+  <p>Vista previa de todos los archivos. Ver <code>README.md</code> para reglas de uso.</p>
+
+  <h2>Símbolo</h2>
+  <div class="grilla">
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-crema)"><img src="logos/simbolo.svg" alt="" /></div><div class="nombre">simbolo.svg · normal</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-marino)"><img src="logos/simbolo-una-tinta-sobre-marino.svg" alt="" /></div><div class="nombre">simbolo-una-tinta-sobre-marino.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-blanco)"><img src="logos/simbolo-una-tinta-sobre-claro.svg" alt="" /></div><div class="nombre">simbolo-una-tinta-sobre-claro.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-amarillo)"><img src="logos/simbolo-sobre-amarillo.svg" alt="" /></div><div class="nombre">simbolo-sobre-amarillo.svg</div></div>
+  </div>
+
+  <h2>Logo con nombre</h2>
+  <div class="grilla">
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-crema)"><img src="logos/kuwu-horizontal.svg" alt="" /></div><div class="nombre">kuwu-horizontal.svg · normal</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-marino)"><img src="logos/kuwu-horizontal-una-tinta-sobre-marino.svg" alt="" /></div><div class="nombre">kuwu-horizontal-una-tinta-sobre-marino.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-blanco)"><img src="logos/kuwu-horizontal-una-tinta-sobre-claro.svg" alt="" /></div><div class="nombre">kuwu-horizontal-una-tinta-sobre-claro.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-amarillo)"><img src="logos/kuwu-horizontal-sobre-amarillo.svg" alt="" /></div><div class="nombre">kuwu-horizontal-sobre-amarillo.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-crema)"><img src="logos/kuwu-apilado.svg" alt="" /></div><div class="nombre">kuwu-apilado.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-marino)"><img src="logos/kuwu-apilado-una-tinta-sobre-marino.svg" alt="" /></div><div class="nombre">kuwu-apilado-una-tinta-sobre-marino.svg</div></div>
+  </div>
+
+  <h2>Versión reducida (solo nombre)</h2>
+  <div class="grilla">
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-blanco)"><img src="logos/kuwu-reducida.svg" alt="" /></div><div class="nombre">kuwu-reducida.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="background:var(--kuwu-marino)"><img src="logos/kuwu-reducida-una-tinta-sobre-marino.svg" alt="" /></div><div class="nombre">kuwu-reducida-una-tinta-sobre-marino.svg</div></div>
+  </div>
+
+  <h2>Íconos</h2>
+  <div class="grilla">
+    <div class="pieza"><div class="lienzo"><img src="iconos/icono-app.svg" alt="" style="width:120px;border-radius:26px" /></div><div class="nombre">icono-app.svg (512)</div></div>
+    <div class="pieza"><div class="lienzo"><img src="iconos/icono-app-una-tinta.svg" alt="" style="width:120px;border-radius:26px" /></div><div class="nombre">icono-app-una-tinta.svg</div></div>
+    <div class="pieza"><div class="lienzo" style="gap:14px;display:flex"><img src="iconos/favicon.svg" alt="" style="width:16px" /><img src="iconos/favicon.svg" alt="" style="width:32px" /><img src="iconos/favicon.svg" alt="" style="width:64px" /></div><div class="nombre">favicon.svg · 16 / 32 / 64 px</div></div>
+  </div>
+
+  <h2>Paleta</h2>
+  <div class="paleta" id="paleta"></div>
+
+  <h2>Tipografía</h2>
+  <div class="tipos">
+    <div class="tipo"><div style="font-weight:900;font-size:40px;line-height:1.1">Juega con tus manos</div><p style="margin-top:6px">Nunito 900 · títulos grandes</p></div>
+    <div class="tipo"><div style="font-weight:800;font-size:26px">Plan de hoy · 2 juegos</div><p style="margin-top:6px">Nunito 800 · títulos y botones</p></div>
+    <div class="tipo"><div style="font-weight:600;font-size:17px">Pon la mano dentro del marco y mantenla abierta.</div><p style="margin-top:6px">Nunito 600 · texto de interfaz</p></div>
+    <div class="tipo"><div style="font-weight:800;font-size:34px">12,5 cm · 87 %</div><p style="margin-top:6px">Nunito 800 · cifras destacadas. Nunito <b>no</b> tiene cifras tabulares: para tablas y contadores en vivo, usar Archivo (ver README).</p></div>
+  </div>
+</div>
+<script>
+  fetch('paleta.json').then((r) => r.json()).then((p) => {
+    document.getElementById('paleta').innerHTML = Object.entries(p.colores).map(([n, c]) =>
+      `<div class="color" style="background:${c.hex};color:${n === 'marino' ? '#fff9f0' : '#24283b'}">${n}<br>${c.hex}</div>`).join('')
+  }).catch(() => {
+    document.getElementById('paleta').textContent = 'Abre esta vista con un servidor local para ver la paleta (o mira paleta.css).'
+  })
+</script>
+</body>
+</html>

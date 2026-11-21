@@ -1,0 +1,44 @@
+{
+  "marca": "Kuwü",
+  "colores": {
+    "crema": {
+      "hex": "#fff9f0",
+      "uso": "Fondo principal de la app y de los íconos.",
+      "contraste_con_marino": 13.91
+    },
+    "marino": {
+      "hex": "#24283b",
+      "uso": "Tinta: todo el texto, segmentos y bordes del logo, botones principales y fondo de la versión a una tinta.",
+      "contraste_con_marino": 1.0
+    },
+    "rojo": {
+      "hex": "#ff9b93",
+      "uso": "Pastel primario. Nodos, tarjetas de juego, acentos.",
+      "contraste_con_marino": 7.19
+    },
+    "amarillo": {
+      "hex": "#ffd66b",
+      "uso": "Pastel primario. Plan del día, destacados, subrayado de la marca.",
+      "contraste_con_marino": 10.46
+    },
+    "azul": {
+      "hex": "#8ec5ff",
+      "uso": "Pastel primario. Nodos, tarjetas de juego, información.",
+      "contraste_con_marino": 8.03
+    },
+    "menta": {
+      "hex": "#8fe0b8",
+      "uso": "Éxito y progreso (como relleno; el texto encima va en marino).",
+      "contraste_con_marino": 9.38
+    },
+    "blanco": {
+      "hex": "#ffffff",
+      "uso": "Tarjetas sobre fondo crema; relleno de nodos en versiones reducida y sobre amarillo.",
+      "contraste_con_marino": 14.57
+    }
+  },
+  "reglas": [
+    "El texto siempre va en marino (o en crema sobre marino). Los pasteles no se usan como color de texto.",
+    "No se permiten colores fuera de esta paleta en la UI."
+  ]
+}

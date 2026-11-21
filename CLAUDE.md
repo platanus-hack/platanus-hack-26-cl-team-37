@@ -43,6 +43,11 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - **Pull antes de unir (merge).** Antes de unir un PR, trae lo último de su rama base (`dev` para las ramas `p1/…`, `p2/…`, `p3/…`; `main` solo para el PR `dev` → `main` o un `hotfix/…`): `git fetch origin && git merge origin/dev` en tu rama (o `gh pr update-branch <n>` en una ajena), vuelve a correr `npm run verify` y únelo solo con `verificar` en verde **sobre ese commit nuevo**. GitHub no exige rama al día: un PR verde contra un `dev` viejo puede romper `dev` al unirse. Si el choque está en código de otra persona, avísale.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
 
+## Estilos
+
+Se define un [brandbook](brandbook/).
+Al implementar UI o features de front end se deben respetar las primitivas css definidas, colores y fonts de forma obligatoria. La única excepción es el uso de un componente para cuyo estilo no se encuentra definido en el brandbook. 
+
 ## Definición de terminado — Definition of Done (por feature)
 
 Un feature pasa a `done` solo si (done only when) — y nada fuera de su alcance (scope) se da por cerrado:
