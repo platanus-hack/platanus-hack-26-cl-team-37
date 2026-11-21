@@ -167,6 +167,33 @@ export function reposoMalMarcado(reposoCm: number, estableCm: number): boolean {
   return estableCm < reposoCm * (1 - AJUSTE_REPOSO)
 }
 
+// ── Pérdidas breves de la mano ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hasta este tiempo sin medida (una mano no detectada) se sigue como si nada: MediaPipe pierde manos con frecuencia en
+ * cuadros sueltos (Evaluation of Pose Estimation Systems for Sign Language Translation, arXiv 2604.24609) y cortar
+ * ahí partía una repetición en dos. Pasado este tiempo sí se corta (la persona soltó la banda o salió del cuadro).
+ */
+export const MS_TOLERANCIA_PERDIDA = 500
+
+/** Decide si una falta de medida es un hueco breve (se ignora) o una pérdida real (se corta). */
+export class ToleranciaPerdida {
+  private ultimaMedida: number | null = null
+  private readonly ms: number
+  constructor(ms = MS_TOLERANCIA_PERDIDA) {
+    this.ms = ms
+  }
+
+  /** Registra un cuadro con o sin medida. Devuelve 'medida', 'hueco' (ignorar el cuadro) o 'perdida' (cortar). */
+  cuadro(t: number, hayMedida: boolean): 'medida' | 'hueco' | 'perdida' {
+    if (hayMedida) {
+      this.ultimaMedida = t
+      return 'medida'
+    }
+    return this.ultimaMedida != null && t - this.ultimaMedida <= this.ms ? 'hueco' : 'perdida'
+  }
+}
+
 // ── Repeticiones ────────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Una repetición empieza al pasar INICIO_REP de estiramiento y termina al volver bajo FIN_REP. */

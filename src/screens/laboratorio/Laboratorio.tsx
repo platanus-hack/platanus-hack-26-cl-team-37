@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, PALMA_MIN, REPOSO_CORTO_CM, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, PALMA_MIN, REPOSO_CORTO_CM, ToleranciaPerdida, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
@@ -35,18 +35,30 @@ interface Vista {
   trazo: PuntoTrazo[]
   /** ms grabados en la grabación en curso (null = no se está grabando). */
   grabandoMs: number | null
+  /** Hace rato que no se ven las dos manos: decir qué revisar (luz, encuadre). */
+  sinManos: boolean
 }
-const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null }
+const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false }
+/**
+ * Se dice qué revisar tras este tiempo sin ver las dos manos y con al menos estos cuadros procesados. Se piden los dos:
+ * al iniciar, MediaPipe puede congelar la página varios segundos (Chromium sin GPU: unos 5 s) y ese tiempo no cuenta.
+ */
+const MS_AYUDA_SIN_MANOS = 4000
+const CUADROS_AYUDA_SIN_MANOS = 24
 
 const ETIQUETA_ORIGEN: Record<CurvaBanda['origen'], string> = { medida: 'Calibrada por ti', publicada: 'Medida publicada', etiqueta: 'Referencia sin medir' }
 const NOMBRE_FUENTE: Record<TipoFuente, string | null> = { camara: null, sintetica: 'Manos simuladas', grabacion: 'Grabación' }
 
-function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, reposoCm: number | null, capturando: boolean): string {
+function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, reposoCm: number | null, capturando: boolean, luz: number | null): string {
   if (error) return 'No se pudo abrir la grabación. Vuelve a elegir el archivo.'
   if (estado === 'iniciando') return 'Preparando la cámara…'
   if (estado === 'sin permiso') return 'Permite el uso de la cámara para medir.'
   if (estado === 'sin camara') return 'No encontramos una cámara en este equipo.'
   if (estado === 'error') return 'No pudimos abrir la cámara. Recarga la página.'
+  // MediaPipe deja de detectar manos con poca luz o mucho ruido de imagen (probado con video: con ruido fuerte no ve
+  // ninguna mano aunque se vean claras a simple vista), así que la luz es lo primero que hay que revisar.
+  if (v.manos < 2 && luz != null && clasificarLuz(luz) === 'poca') return 'Hay poca luz: enciende una luz frente a ti o acércate a una ventana.'
+  if (v.manos < 2 && v.sinManos) return 'No vemos las dos manos: que se vean enteras en el cuadro y con buena luz de frente.'
   if (v.manos < 2) return 'Muestra las dos manos sosteniendo la banda.'
   if (v.medida?.alBorde) return 'Una mano se sale del cuadro: aléjate un poco o toma la banda más corta.'
   if (v.medida && v.medida.palma < PALMA_MIN) return 'Acércate al teléfono: las manos se ven pequeñas y se miden peor.'
@@ -132,10 +144,14 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     const capturaPedida = new CapturaReposo()
     const vigia = new CapturaReposo(MS_REPOSO_AUTO)
     const filtro = new FiltroOneEuro(1.2, 0.05)
+    const perdida = new ToleranciaPerdida()
+    let ultimaMedida: MedidaBanda | null = null
     let trazo: PuntoTrazo[] = []
     let ultimo = -Infinity
     let t0Grabacion: number | null = null
     let estabaCapturando = false
+    let sinManosDesde: number | null = null
+    let cuadrosSinManos = 0
     const fijarReposo = (cm: number, cfg: typeof config.current) => {
       // Se actualiza al tiro para los cuadros que lleguen antes del próximo render.
       config.current = { ...cfg, reposoCm: cm, capturando: false }
@@ -151,12 +167,26 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         g.agregar(c)
         t0Grabacion ??= c.t
       } else t0Grabacion = null
+      if (c.manos.length >= 2) {
+        sinManosDesde = null
+        cuadrosSinManos = 0
+      } else {
+        sinManosDesde ??= c.t
+        cuadrosSinManos++
+      }
       const cfg = config.current
       // Cada pedido con el botón parte con la ventana vacía (si se canceló antes, no quedan muestras viejas).
       if (cfg.capturando && !estabaCapturando) capturaPedida.cortar()
       estabaCapturando = cfg.capturando
       const cruda = medirBanda(c, cfg.agarre)
+      const estado = perdida.cuadro(c.t, cruda != null)
+      // Un hueco breve (una mano no detectada unos cuadros) no corta nada: se sigue con la última medida en pantalla.
+      if (estado === 'hueco') {
+        if (lienzo.current) dibujar(lienzo.current, c, ultimaMedida, null, fuente.tipo !== 'camara')
+        return
+      }
       const medida = cruda && { ...cruda, largoCm: filtro.filtrar(cruda.largoCm, c.t) }
+      ultimaMedida = medida
       let e: number | null = null
       let progreso = 0
       if (!medida) {
@@ -197,6 +227,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         estirando: contador.current.estirando,
         trazo: [...trazo],
         grabandoMs: g && t0Grabacion != null ? c.t - t0Grabacion : null,
+        sinManos: sinManosDesde != null && c.t - sinManosDesde > MS_AYUDA_SIN_MANOS && cuadrosSinManos >= CUADROS_AYUDA_SIN_MANOS,
       })
     })
   }, [fuente])
@@ -302,7 +333,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
               </div>
             )}
             <p className="lab-indicacion" role="status" data-testid="indicacion">
-              {indicacion(estado, error, vista, reposoCm, capturando)}
+              {indicacion(estado, error, vista, reposoCm, capturando, camara?.luz ?? null)}
             </p>
             {(capturando || reposoCm == null) && vista.progresoReposo > 0 && <span className="lab-avance" style={{ scale: `${vista.progresoReposo} 1` }} />}
           </div>

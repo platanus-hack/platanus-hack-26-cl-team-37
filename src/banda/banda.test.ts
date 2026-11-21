@@ -3,7 +3,7 @@ import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sint
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, MS_REPOSO_AUTO, PALMA_MIN, alcanzaMeta, reposoMalMarcado, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
+import { CapturaReposo, ContadorReps, MS_REPOSO, MS_REPOSO_AUTO, ToleranciaPerdida, PALMA_MIN, alcanzaMeta, reposoMalMarcado, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -218,6 +218,33 @@ describe('marcar el reposo', () => {
     expect(c.progreso(900)).toBe(0)
     expect(c.agregar(1500, 26)).toBeNull()
     expect(c.agregar(1900, 26)).toBeCloseTo(26)
+  })
+})
+
+describe('pérdidas breves de la mano', () => {
+  it('un hueco corto se ignora y uno largo corta', () => {
+    const p = new ToleranciaPerdida(500)
+    expect(p.cuadro(0, false)).toBe('perdida')
+    expect(p.cuadro(100, true)).toBe('medida')
+    expect(p.cuadro(300, false)).toBe('hueco')
+    expect(p.cuadro(600, false)).toBe('hueco')
+    expect(p.cuadro(700, false)).toBe('perdida')
+    expect(p.cuadro(800, true)).toBe('medida')
+  })
+
+  it('con huecos breves a mitad del estiramiento la repetición no se parte', () => {
+    const c = new ContadorReps()
+    const p = new ToleranciaPerdida()
+    const recta = { puntos: [{ estiramiento: 1, kg: 4 }] }
+    // Ida y vuelta de 2 s a 30 cuadros por segundo; cada décimo cuadro MediaPipe no ve una mano (≈ 33 ms).
+    for (let i = 0; i <= 60; i++) {
+      const t = i * 33
+      const largo = 20 + 10 * Math.sin((Math.PI * i) / 60)
+      const estado = p.cuadro(t, i % 10 !== 5)
+      if (estado === 'medida') c.agregar(t, largo, 20, recta)
+      else if (estado === 'perdida') c.cortar()
+    }
+    expect(c.repeticiones).toHaveLength(1)
   })
 })
 
