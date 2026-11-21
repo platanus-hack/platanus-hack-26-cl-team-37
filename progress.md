@@ -269,3 +269,4 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 ## 2026-11-21 · coordinación · línea R (coord/ejercicios-3d, desde dev 377cd89)
 - Nuevas features F34–F38 (salir del terapeuta, poses clave, juegos Banda elástica y Muñeca 3D, comparar sesiones en 3D). Sin la guía de voz.
 - F34 done (botón Salir del terapeuta, e2e). F35 done (muestras.poses + ctx.guardarPose, pruebas). Siguen F36, F37 y F38.
+- Manos más cercanas (2 en juegos, 1 en calibración) y calibración con más margen; pruebas en cercanas.test.ts y calibracion.test.ts (408 unitarias). e2e calibrar/tracking/smoke/caja/movilidad: 43 de 44; el que falla es el conteo exacto de Caja, inestable conocido (solo, pasa 1 de 2 veces; Caja no usa estos umbrales).
