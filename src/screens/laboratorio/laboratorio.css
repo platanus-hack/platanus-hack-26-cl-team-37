@@ -1,0 +1,88 @@
+/* Laboratorio de banda (/laboratorio). Sistema «Salud»: fondo neutro, tarjetas blancas planas, el arco con la cifra
+   fina, botón negro en píldora y el amarillo solo de relleno. La cámara es el único panel oscuro.
+   Teléfono: una columna, la cámara arriba. Computador: la cámara queda fija a la izquierda y las tarjetas a la derecha. */
+.laboratorio { max-width: 1120px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; }
+.lab-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.lab-interno { padding: 5px 12px; border-radius: var(--pildora); background: var(--pista); color: var(--suave); font-size: 14px; font-weight: 600; }
+.laboratorio .titulo-pantalla { margin: 0; }
+
+.lab-grilla { display: grid; gap: 14px; }
+.laboratorio .tarjeta { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.laboratorio h2 { font-size: 18px; }
+
+/* ——— Cámara ——— */
+.lab-camara { position: relative; overflow: hidden; border-radius: var(--radio); background: #10161c; aspect-ratio: 4 / 3; }
+.lab-fondo, .lab-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lab-fondo video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.lab-lienzo { pointer-events: none; }
+.lab-indicacion { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px; border-radius: 16px; background: rgba(16, 22, 28, 0.82); color: #ffffff; font-size: 16px; font-weight: 600; line-height: 1.25; text-wrap: balance; }
+.lab-avance { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--amarillo); transform-origin: left; }
+
+/* ——— Lectura ——— */
+.lab-lectura { justify-items: center; }
+.lab-lectura .boton { width: 100%; }
+.lab-datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin: 0; text-align: center; }
+.lab-datos dt { color: var(--suave); font-size: 14px; }
+.lab-datos dd { margin: 2px 0 0; font: 400 20px / 1.1 var(--cifras); font-variant-numeric: tabular-nums; }
+.lab-trazo { width: 100%; height: 72px; display: block; }
+.lab-trazo line { stroke: var(--linea); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.lab-trazo polyline { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.lab-aviso { color: var(--dolor-texto); font-size: 14px; }
+
+/* ——— Repeticiones ——— */
+.lab-enlace { min-height: var(--toque); padding: 0 4px; border: 0; background: none; color: var(--tinta); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 0.2em; }
+.lab-enlace:disabled { color: var(--control); text-decoration: none; cursor: default; }
+.lab-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; margin: 0; }
+.lab-cifras div { display: grid; gap: 2px; }
+.lab-cifras dd { margin: 0; font: 300 34px / 1 var(--cifras); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.lab-cifras dt { color: var(--suave); font-size: 14px; }
+.lab-picos { display: flex; align-items: flex-end; gap: 6px; height: 56px; margin: 0; padding: 0; list-style: none; }
+.lab-picos li { flex: 1; max-width: 28px; border-radius: 6px 6px 2px 2px; background: var(--amarillo); }
+
+/* ——— Banda ——— */
+.lab-origen { color: var(--suave); font-size: 14px; }
+.lab-origen span { display: inline-block; margin-right: 8px; padding: 3px 10px; border-radius: var(--pildora); background: var(--pista); color: var(--tinta); font-weight: 600; }
+.lab-origen[data-origen='etiqueta'] span { background: var(--amarillo-suave); color: var(--sobre-amarillo); }
+.lab-curva { width: 100%; max-width: 440px; height: auto; display: block; }
+.lab-curva .eje { stroke: var(--linea); stroke-width: 1; }
+.lab-curva polyline { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; }
+.lab-curva .medida { fill: var(--tarjeta); stroke: var(--tinta); stroke-width: 2; }
+.lab-curva .ahora { fill: var(--amarillo); stroke: var(--tinta); stroke-width: 2; }
+.lab-curva text { fill: var(--suave); font-size: 12px; font-family: var(--letra); }
+.laboratorio select.entrada { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--tinta) 50%), linear-gradient(135deg, var(--tinta) 50%, transparent 50%); background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }
+.lab-banda .segmentos { background: var(--pista); }
+.lab-detalle { border-top: 1px solid var(--linea); padding-top: 4px; }
+.lab-detalle summary { min-height: var(--toque); display: flex; align-items: center; justify-content: space-between; font-weight: 600; cursor: pointer; list-style: none; }
+.lab-detalle summary::-webkit-details-marker { display: none; }
+.lab-detalle summary::after { content: '+'; font: 300 26px / 1 var(--cifras); color: var(--suave); }
+.lab-detalle[open] summary::after { content: '−'; }
+.lab-detalle > .boton { width: 100%; margin-top: 12px; }
+.lab-pesos { display: grid; gap: 12px; padding-top: 4px; }
+.lab-filas { display: grid; grid-template-columns: 1fr 1fr var(--toque); gap: 8px; align-items: center; }
+.lab-filas .rotulo { color: var(--suave); font-size: 14px; font-weight: 600; }
+.lab-fila { display: contents; }
+.lab-quitar { width: var(--toque); height: var(--toque); border-radius: 50%; border: 0; background: var(--pista); color: var(--tinta); font-size: 22px; line-height: 1; }
+.lab-quitar:disabled { color: var(--control); cursor: default; }
+.boton.chico { min-height: var(--toque); font-size: 15px; }
+
+/* ——— Reporte de la cámara ——— */
+.lab-tabla { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; margin: 0; font-size: 15px; }
+.lab-tabla dt { color: var(--suave); }
+.lab-tabla dd { margin: 0; max-width: 22ch; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.lab-pie { color: var(--suave); font-size: 14px; max-width: 62ch; }
+
+@media (min-width: 900px) {
+  .laboratorio { padding: 28px 28px 40px; gap: 18px; }
+  /* La cámara junto a la lectura; debajo, la banda a la izquierda y repeticiones y cámara apiladas a la derecha. */
+  .lab-grilla { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: 'camara lectura' 'banda reps' 'banda reporte'; align-items: start; gap: 18px; }
+  .lab-camara { grid-area: camara; }
+  .lab-lectura { grid-area: lectura; }
+  .lab-reps { grid-area: reps; }
+  .lab-banda { grid-area: banda; }
+  .lab-reporte { grid-area: reporte; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lab-avance { transition: scale 100ms linear; }
+}

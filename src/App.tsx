@@ -27,6 +27,7 @@ const Planes = lazy(() => import('./screens/terapeuta/Planes'))
 const Informes = lazy(() => import('./screens/terapeuta/Informes'))
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
+const Laboratorio = lazy(() => import('./screens/laboratorio/Laboratorio'))
 
 export default function App() {
   return (
@@ -83,6 +84,8 @@ export default function App() {
 
             {/* Vista previa pública del ambiente 3D de la oficina */}
             <Route path="/oficina-3d" element={<VistaOficina3D />} />
+            {/* Prueba interna: carga de una banda elástica desde la cámara, sin sesión ni base de datos */}
+            <Route path="/laboratorio" element={<Laboratorio />} />
 
             <Route path="*" element={<AlInicio />} />
           </Routes>

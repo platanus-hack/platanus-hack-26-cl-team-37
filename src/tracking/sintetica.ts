@@ -6,7 +6,7 @@
 //  manosEnGuion(guion, tMs)           → { manos, luz } del guion en el instante tMs (determinista).
 //  secuencia([[durMs, pose], ...])    → PoseClave[] con t acumulado (cada pose dura/llega en durMs).
 //  guionPreset(nombre, lado?)         → guiones listos: GUIONES_PRESET (quieta, abrir-cerrar, pinza, mover,
-//                                        calibracion, sin-mano, ambas).
+//                                        calibracion, sin-mano, ambas, banda).
 //  Ejemplo:
 //    const g: GuionSintetico = { manos: [{ lado: 'derecha', poses: secuencia([
 //      [0, { apertura: 1 }], [800, { apertura: 0 }], [800, { apertura: 1, pinzaCm: 0.5 }] ]) }] }
@@ -337,7 +337,7 @@ export function secuencia(pasos: [number, Partial<PoseMano>][], desdeMs = 0): Po
 
 // ── Guiones preparados ────────────────────────────────────────────────────────────────────────────
 
-export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas'] as const
+export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda'] as const
 export type NombreGuion = (typeof GUIONES_PRESET)[number]
 
 const X_POR_LADO: Record<LadoMano, number> = { derecha: 0.42, izquierda: 0.58 }
@@ -370,6 +370,16 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
           poses: secuencia([[0, { x: l === 'derecha' ? 0.32 : 0.68 }], [400, {}], [600, { apertura: 0 }], [400, {}], [600, { apertura: 1 }]]),
         })),
       }
+    case 'banda': {
+      // Laboratorio de banda: las dos manos toman la banda en pinza, la sostienen tensa (reposo) y la estiran a los
+      // lados. Reposo ≈ 15 cm entre las manos; estirada ≈ 26 cm (cerca de 75 % de estiramiento).
+      const pinza: Partial<PoseMano> = { apertura: 0.7, dedos: { indice: 0.5 }, pinzaCm: 0.5 }
+      const mano = (l: LadoMano, reposo: number, estirada: number) => ({
+        lado: l,
+        poses: secuencia([[0, { ...pinza, x: reposo }], [2500, {}], [1200, { x: estirada }], [600, {}], [1200, { x: reposo }], [1000, {}]]),
+      })
+      return { manos: [mano('derecha', 0.38, 0.29), mano('izquierda', 0.62, 0.71)] }
+    }
     case 'calibracion': {
       // Los pasos de la calibración (F08): abierta 2,5 s, abrir y cerrar 3 veces, pinza 1,5 s, soltar.
       // Como un teléfono en vertical: cámara 480×640 y mano centrada (x = y = 0,5), para que quepa en el marco guía.
