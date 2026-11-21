@@ -1,0 +1,17 @@
+{
+  "_nota": "PROPUESTA INACTIVA. Para activarla, el dueño la copia a .claude/settings.json (o settings.local.json) tras revisarla. Permite lo que el trabajo autónomo necesita y niega lo destructivo.",
+  "permissions": {
+    "allow": [
+      "Bash(bash init.sh:*)", "Bash(npm run:*)", "Bash(npm test:*)", "Bash(npm install:*)",
+      "Bash(npx vite:*)", "Bash(npx vitest:*)", "Bash(npx tsc:*)", "Bash(npx oxlint:*)", "Bash(npx playwright:*)", "Bash(npx tsx:*)",
+      "Bash(node:*)", "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git add:*)", "Bash(git commit:*)",
+      "Bash(git stash:*)", "Bash(git checkout --:*)", "Bash(supabase db push:*)", "Bash(supabase migration list:*)",
+      "Bash(vercel deploy:*)", "Bash(vercel inspect:*)", "Bash(curl:*)"
+    ],
+    "deny": [
+      "Read(./.env.secrets)", "Bash(git push:*)", "Bash(git reset --hard:*)", "Bash(git clean:*)",
+      "Bash(supabase projects delete:*)", "Bash(supabase db reset:*)", "Bash(vercel remove:*)", "Bash(vercel rm:*)",
+      "Bash(vercel project:*)", "Bash(vercel env rm:*)", "Bash(rm -rf:*)"
+    ]
+  }
+}

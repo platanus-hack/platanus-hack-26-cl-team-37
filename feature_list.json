@@ -1,0 +1,711 @@
+{
+  "project": "ManoViva",
+  "status_values": [
+    "not-started",
+    "in-progress",
+    "done",
+    "blocked"
+  ],
+  "rules": "Un feature a la vez. Pasa a done solo con evidence. Ver CLAUDE.md > Definición de terminado. ref = docs/referencia/",
+  "features": [
+    {
+      "id": "F00",
+      "name": "Base: proyecto, Supabase, métricas puras, deploy de prueba",
+      "description": "Vite+React+TS, esquema Supabase con RLS e inmutabilidad, datos demo, funciones puras de métricas con pruebas, deploy provisorio en Vercel.",
+      "prompt": "ref/prompts/00_contexto_base.md",
+      "images": [
+        "ref/imagenes/00_todas_las_vistas.png"
+      ],
+      "dependencies": [],
+      "status": "done",
+      "acceptance": [
+        "Esquema aplicado (3 migraciones) con RLS, triggers de inmutabilidad y RPCs",
+        "Seed demo re-ejecutable",
+        "Pruebas unitarias de métricas e integridad en verde",
+        "Deploy responde 200"
+      ],
+      "verify": [
+        "npm test",
+        "npm run verify:db",
+        "curl https://manoviva-sigma.vercel.app"
+      ],
+      "deploy": false,
+      "evidence": "2026-11-21: 25 pruebas unitarias OK; verificar-rls 14/14 OK (RLS, inmutabilidad, 19/19 hashes); vercel 200 en /, /acceso y /mediapipe/hand_landmarker.task"
+    },
+    {
+      "id": "F01",
+      "name": "Spec y harness",
+      "description": "docs/manoviva-spec.md (salida del Prompt 0), CLAUDE.md, feature_list.json, init.sh, progress.md, session-handoff.md, scripts de apoyo.",
+      "prompt": "ref/prompts/00_contexto_base.md",
+      "images": [],
+      "dependencies": [
+        "F00"
+      ],
+      "status": "done",
+      "acceptance": [
+        "init.sh termina en INIT OK",
+        "validate-harness sin fallas críticas"
+      ],
+      "verify": [
+        "bash init.sh",
+        "node ../.claude/skills/harness-creator/scripts/validate-harness.mjs --target ."
+      ],
+      "deploy": false,
+      "evidence": "2026-11-21: bash init.sh → INIT OK (tipos, lint, 25 unitarias, build, verify:db 14/14); validate-harness 100/100; captura.mjs probada (390x844 con sesión demo inyectada, conexión BD OK)."
+    },
+    {
+      "id": "F02",
+      "name": "Esqueleto de la app: rutas, sesión, roles, piezas, e2e base",
+      "description": "Router con todas las rutas del spec §3 (pantallas vacías con título), AuthContext sobre repos.auth, protección por rol, barras inferiores de paciente y terapeuta, banner 'datos demo ficticios', avisos. Playwright configurado (viewport 390x844, servidor dev) y script npm run captura.",
+      "prompt": "ref/prompts/00_contexto_base.md",
+      "images": [
+        "ref/imagenes/00_todas_las_vistas.png"
+      ],
+      "spec_refs": [
+        "§2",
+        "§3",
+        "§10"
+      ],
+      "dependencies": [
+        "F01"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Todas las rutas del spec existen y cargan sin error de consola",
+        "Ruta protegida sin sesión redirige a /acceso",
+        "playwright.config.ts + e2e/smoke.spec.ts en verde",
+        "npm run captura -- <ruta> <id> guarda PNG 390x844 en docs/capturas/"
+      ],
+      "verify": [
+        "npm run e2e -- smoke",
+        "npm run captura -- /acceso esqueleto"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F03",
+      "name": "Acceso y roles (Prompt 1)",
+      "description": "Pantalla /acceso: logo, lema, selector de rol, código de clínica CRM-0000 validado, correo y contraseña (Supabase Auth), botón 'Entrar con cuenta demo'. Ingresar deshabilitado hasta datos válidos. Paciente → /inicio, terapeuta → /terapeuta/pacientes. Sesión persiste al recargar.",
+      "prompt": "ref/prompts/01_acceso.md",
+      "images": [
+        "ref/imagenes/01_acceso.png"
+      ],
+      "spec_refs": [
+        "§2",
+        "§9"
+      ],
+      "dependencies": [
+        "F02"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Entro con cada rol, recargo y sigo dentro",
+        "Con rol paciente no puedo abrir rutas de terapeuta (y viceversa)",
+        "Código mal formado o de otra clínica muestra error claro",
+        "Aviso visible de datos de demostración ficticios"
+      ],
+      "verify": [
+        "npm run e2e -- acceso",
+        "npm run captura -- /acceso acceso"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F04",
+      "name": "Inicio del paciente (Prompt 2)",
+      "description": "Saludo y fecha, Plan de hoy con anillo y autor del plan, lista Hecho/Siguiente/Pendiente, racha, adherencia (función pura existente), tira L–D, próxima cita, mensaje nuevo del terapeuta una vez. Todo desde Plan vigente y Sesiones.",
+      "prompt": "ref/prompts/02_inicio_paciente.md",
+      "images": [
+        "ref/imagenes/02_inicio_paciente.png"
+      ],
+      "spec_refs": [
+        "§2"
+      ],
+      "dependencies": [
+        "F03"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con carmen.demo muestra plan, racha, adherencia y semana coherentes con la BD",
+        "Tocar 'Siguiente' lleva a /sesion/:juego/preparar",
+        "El mensaje del terapeuta se muestra una sola vez",
+        "Estados de carga, vacío (sin plan) y error"
+      ],
+      "verify": [
+        "npm run e2e -- inicio",
+        "npm run captura -- /inicio inicio"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F05",
+      "name": "Catálogo de ejercicios (Prompt 3)",
+      "description": "/ejercicios con registro de juegos (src/games/registry.ts), filtros Todos/Pinza/Agarre/Alcance, miniatura, gestos, nivel actual, etiqueta Asignado. Juegos no terminados = 'Próximamente' sin abrir. Miniaturas SVG propias.",
+      "prompt": "ref/prompts/03_ejercicios.md",
+      "images": [
+        "ref/imagenes/03_ejercicios.png",
+        "ref/imagenes_juegos/00_seis_juegos_nuevos.png"
+      ],
+      "dependencies": [
+        "F04"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Filtros funcionan",
+        "Asignado según plan vigente",
+        "Próximamente no navega"
+      ],
+      "verify": [
+        "npm run e2e -- ejercicios",
+        "npm run captura -- /ejercicios ejercicios"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F06",
+      "name": "Preparar la sesión (Prompt 4)",
+      "description": "/sesion/:juego/preparar: mano, dificultad 1–5 con descripción del nivel desde el registro, duración 2–10 con deslizador y +/−, meta del plan bloqueada con autor, consejo de posición. 'Comenzar' crea Sesion 'preparada' con parámetros congelados y planVersion → /sesion/:id/calibrar. Sin consentimiento → /privacidad.",
+      "prompt": "ref/prompts/04_preparar_sesion.md",
+      "images": [
+        "ref/imagenes/04_preparar_sesion.png"
+      ],
+      "dependencies": [
+        "F05"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Valores por defecto vienen del plan",
+        "Comenzar crea fila en sesiones con estado preparada e id S-AAAAMMDD-NN",
+        "Paciente sin consentimiento es enviado a /privacidad"
+      ],
+      "verify": [
+        "npm run e2e -- preparar",
+        "npm run captura -- /sesion/caja-juguetes/preparar preparar"
+      ],
+      "deploy": true,
+      "evidence": ""
+    },
+    {
+      "id": "F07",
+      "name": "Módulo de seguimiento de manos + distancia + fuentes simuladas (Prompt 5, parte técnica)",
+      "description": "src/tracking/: HandLandmarker (VIDEO, 2 manos, GPU→CPU, modelo local), cámara frontal 640x480@30, solo último cuadro, fps, One Euro, estado (sin permiso|buscando|detectada|perdida). Fuentes intercambiables: camara | grabacion (JSON) | sintetica (generador de poses: abrir, cerrar, pinza, mover). Módulo de distancia por ajuste de perspectiva débil con worldLandmarks (spec §6) con pruebas unitarias. Grabador de landmarks a JSON (sin video).",
+      "prompt": "ref/prompts/05_calibracion.md",
+      "images": [],
+      "spec_refs": [
+        "§6"
+      ],
+      "dependencies": [
+        "F02"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Pruebas unitarias: distancia con mano sintética proyectada a 40/50/60 cm estima con error < 5 %",
+        "Fuente sintética produce manos con la misma forma que la cámara (21 puntos image + world, lado)",
+        "Grabación JSON se reproduce de forma determinista",
+        "No se envía ni guarda ningún cuadro de video"
+      ],
+      "verify": [
+        "npm test -- tracking"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F08",
+      "name": "Calibración (Prompt 5, pantalla)",
+      "description": "/sesion/:id/calibrar: video espejado con 21 puntos y conexiones, marco guía verde, pasos guiados (mano abierta 2 s, abrir/cerrar 3 veces, pinza), checklist en vivo (luz, distancia aprox., confianza, largo de mano), comparación con largo por regla, guarda línea base en la Sesion. Maneja permiso denegado, sin cámara, poca luz, mano fuera de cuadro.",
+      "prompt": "ref/prompts/05_calibracion.md",
+      "images": [
+        "ref/imagenes/05_calibracion.png"
+      ],
+      "dependencies": [
+        "F06",
+        "F07"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con ?fuente=sintetica completa los 3 pasos y guarda calibracion en la sesión",
+        "Permiso denegado muestra instrucciones para activarlo",
+        "Lateralidad con cámara real: pendiente de teléfono (marcar en evidence)"
+      ],
+      "verify": [
+        "npm run e2e -- calibrar",
+        "npm run captura -- '/sesion/<id>/calibrar?fuente=sintetica' calibrar"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F09",
+      "name": "Base común de juegos en three.js (J0)",
+      "description": "src/games/shell/: contrato ModuloJuego (spec §7), escena three.js base (mesa, luces, sombras baratas, cámara, manos virtuales articuladas desde landmarks), HUD (panel izquierdo, tiempo y contador, 3 métricas en vivo con minigráfico, miniatura de cámara, Menú), ciclo de sesión (pausa manual, pausa auto >2 s sin mano, fin por tiempo/meta → /sesion/:id/sensacion), registro de eventos y muestras 10 Hz, Wake Lock, 'Gira tu teléfono', pixel ratio ≤ 1,5, fps en depuración. Rapier cargado solo si usaFisica.",
+      "prompt": "ref/prompts_juegos/J0_base_comun_de_juegos.md",
+      "images": [
+        "ref/imagenes/06a_juego_agarre.png",
+        "ref/imagenes_juegos/00_seis_juegos_nuevos.png"
+      ],
+      "spec_refs": [
+        "§7"
+      ],
+      "dependencies": [
+        "F07"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Un juego de prueba mínimo se monta, recibe manos sintéticas, registra eventos y termina",
+        "Pausa automática al quitar la mano > 2 s",
+        "En vertical muestra 'Gira tu teléfono'",
+        "fps ≥ 24 en Chromium headless con escena base (anotar valor)"
+      ],
+      "verify": [
+        "npm run e2e -- shell"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F10",
+      "name": "Juego Caja de juguetes con métricas (Prompt 6)",
+      "description": "Montado sobre la base común con Rapier: objetos según nivel (tamaño, cantidad, distancia), caja destino, agarre por pinza con histéresis (src/metrics/agarre.ts), un agarre cuenta al soltar dentro de la caja, 'Meta cumplida', métricas en vivo (apertura de pinza con minigráfico, flexión del índice, suavidad), agregados al terminar con src/metrics/sesion.ts.",
+      "prompt": "ref/prompts/06_juego_con_metricas.md",
+      "images": [
+        "ref/imagenes/06a_juego_agarre.png",
+        "ref/imagenes/06b_juego_meta_cumplida.png"
+      ],
+      "dependencies": [
+        "F08",
+        "F09"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con grabación sintética de 'tomar y dejar en la caja' cuenta agarres exactos",
+        "Al terminar guarda métricas agregadas y eventos, y va a /sensacion",
+        "Captura horizontal comparable a 06a"
+      ],
+      "verify": [
+        "npm run e2e -- caja",
+        "captura horizontal 844x390 en docs/capturas/caja.png"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F11",
+      "name": "Movilidad guiada (calentamiento)",
+      "description": "Juego simple sin física sobre la base común: abrir y cerrar la mano N veces siguiendo una guía. Cuenta ciclos con aperturaMano normalizada por la calibración. Existe porque el plan demo y el diseño de Inicio lo incluyen.",
+      "prompt": "ref/prompts/02_inicio_paciente.md",
+      "images": [
+        "ref/imagenes/02_inicio_paciente.png"
+      ],
+      "dependencies": [
+        "F09"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con fuente sintética de abrir/cerrar cuenta ciclos exactos y termina la sesión"
+      ],
+      "verify": [
+        "npm run e2e -- movilidad"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F12",
+      "name": "Dolor y esfuerzo (Prompt 7)",
+      "description": "/sesion/:id/sensacion: EVA 0–10 obligatoria sin valor inicial (deslizador + botones), esfuerzo 5 opciones, nota ≤ 280. Guarda en la Sesion. Dolor ≥ umbral del plan crea Alerta y avisa al paciente.",
+      "prompt": "ref/prompts/07_dolor_y_esfuerzo.md",
+      "images": [
+        "ref/imagenes/07_dolor_y_esfuerzo.png"
+      ],
+      "dependencies": [
+        "F10"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "No deja guardar sin EVA",
+        "EVA ≥ umbral crea fila en alertas"
+      ],
+      "verify": [
+        "npm run e2e -- sensacion",
+        "npm run captura -- /sesion/<id>/sensacion sensacion"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F13",
+      "name": "Resumen de sesión y cierre con hash (Prompt 8)",
+      "description": "/sesion/:id/resumen: anillo agarres/meta, barras por mano, 6 tarjetas con diferencia vs sesión anterior del mismo juego y nivel. Al entrar cierra la sesión: SHA-256 canónico, estado cerrada (inmutable). Lee las métricas de resumen declaradas por el juego (contrato J0).",
+      "prompt": "ref/prompts/08_resumen_sesion.md",
+      "images": [
+        "ref/imagenes/08_resumen_sesion.png"
+      ],
+      "dependencies": [
+        "F12"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Flujo completo preparar→calibrar→jugar→sensación→resumen con fuente sintética deja sesión cerrada con hash verificable",
+        "Sin sesión anterior no muestra diferencias"
+      ],
+      "verify": [
+        "npm run e2e -- flujo-paciente",
+        "npm run verify:db"
+      ],
+      "deploy": true,
+      "evidence": ""
+    },
+    {
+      "id": "F14",
+      "name": "Progreso (Prompt 9)",
+      "description": "/progreso: rango 7 días/4 semanas/Todo, línea de apertura de pinza con meta punteada y variación %, barras de rango por dedo como % de meta, tiempo por agarre primera vs última, sesiones hechas/planificadas, estado vacío < 2 sesiones, excluye calidad < 70 % con nota al pie. Recharts.",
+      "prompt": "ref/prompts/09_progreso.md",
+      "images": [
+        "ref/imagenes/09_progreso.png"
+      ],
+      "dependencies": [
+        "F04"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con carmen.demo el gráfico sube de ~4,2 a ~6,1 cm",
+        "Sesión de calidad baja excluida y anotada"
+      ],
+      "verify": [
+        "npm run e2e -- progreso",
+        "npm run captura -- /progreso progreso"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F15",
+      "name": "Historial, registro de sesión, exportar y auditoría (Prompt 10)",
+      "description": "/historial mezcla sesiones y cambios de plan; hoja de registro con parámetros, prescriptor, dispositivo, versiones e integridad (recalcula hash: Verificado/Alterado). Exportar PDF (sesión o período) y CSV (sesiones y eventos), cada exportación en auditoría. Prueba que verifique que no existe código que edite/borre auditoría o sesiones cerradas.",
+      "prompt": "ref/prompts/10_historial_y_trazabilidad.md",
+      "images": [
+        "ref/imagenes/10a_historial.png",
+        "ref/imagenes/10b_registro_sesion.png"
+      ],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "19 sesiones de Carmen muestran Verificado",
+        "PDF y CSV se descargan",
+        "Prueba estática de solo-agregar en verde"
+      ],
+      "verify": [
+        "npm run e2e -- historial",
+        "npm test -- solo-agregar",
+        "npm run captura -- /historial historial"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F16",
+      "name": "Pacientes del terapeuta y alertas (Prompt 11)",
+      "description": "/terapeuta/pacientes: indicadores (activos, alertas, adherencia media), lista con iniciales, condición, semana, minigráfico, adherencia, alertas de dolor e inactividad (N=3 días configurable), orden por alertas, buscador. Pestaña Alertas con marcar revisada (auditoría). Solo pacientes que comparten métricas.",
+      "prompt": "ref/prompts/11_terapeuta_pacientes.md",
+      "images": [
+        "ref/imagenes/11_terapeuta_pacientes.png"
+      ],
+      "dependencies": [
+        "F03"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Luis aparece primero con 'Dolor 6/10'",
+        "Jorge con 'Sin sesiones hace 4 días'",
+        "Marcar revisada escribe auditoría"
+      ],
+      "verify": [
+        "npm run e2e -- terapeuta",
+        "npm run captura -- /terapeuta/pacientes terapeuta"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F17",
+      "name": "Prescripción del plan (Prompt 12) + pestañas Planes e Informes",
+      "description": "/terapeuta/pacientes/:id/plan: tendencia 4 semanas, plan semanal con +/− (nivel por juego, sesiones/semana, meta pinza paso 0,5, aviso por dolor), cambios en amarillo, mensaje, resumen de cambios para confirmar, crea versión nueva vía RPC. Metas por juego (J0). Pestañas Planes (lista de planes vigentes) e Informes (exportar período por paciente).",
+      "prompt": "ref/prompts/12_prescripcion.md",
+      "images": [
+        "ref/imagenes/12_prescripcion.png"
+      ],
+      "dependencies": [
+        "F16",
+        "F15"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Enviar plan crea versión N+1 y auditoría antes/después",
+        "El paciente ve el mensaje nuevo en /inicio y el cambio en /historial"
+      ],
+      "verify": [
+        "npm run e2e -- prescripcion",
+        "npm run captura -- /terapeuta/pacientes/<id>/plan prescripcion"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F18",
+      "name": "Privacidad y datos (Prompt 13)",
+      "description": "/privacidad: tarjeta 'Tu video no se guarda', interruptores (analizar en dispositivo bloqueado, video no disponible, compartir con terapeuta, investigación), consentimiento versionado (texto en archivo aparte: src/legal/consentimiento-v1.md), descargar JSON/CSV, eliminar con doble confirmación, auditoría de cada cambio. Revisión técnica: inventario de llamadas de red y Content-Security-Policy en vercel.json.",
+      "prompt": "ref/prompts/13_privacidad.md",
+      "images": [
+        "ref/imagenes/13_privacidad.png"
+      ],
+      "dependencies": [
+        "F03"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Firmar consentimiento desbloquea la primera sesión",
+        "CSP activa y la app sigue funcionando (sin errores CSP en consola)",
+        "Informe de llamadas de red en progress.md"
+      ],
+      "verify": [
+        "npm run e2e -- privacidad",
+        "curl -I del deploy muestra Content-Security-Policy"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F19",
+      "name": "Perfil del paciente",
+      "description": "/perfil (pestaña de la barra): nombre, terapeuta, mano afectada, largo de mano medido con regla (si se agrega edición, vía RPC nueva con auditoría), enlace a privacidad, cerrar sesión.",
+      "prompt": "ref/prompts/02_inicio_paciente.md",
+      "images": [],
+      "dependencies": [
+        "F18"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Cerrar sesión vuelve a /acceso",
+        "Enlace a /privacidad"
+      ],
+      "verify": [
+        "npm run e2e -- perfil"
+      ],
+      "deploy": true,
+      "evidence": ""
+    },
+    {
+      "id": "F20",
+      "name": "PWA instalable y sin conexión (Prompt 14)",
+      "description": "vite-plugin-pwa: manifest (#0f1720, standalone, íconos), service worker con caché de app, wasm y hand_landmarker.task. Sesión jugable sin red: cola local sincroniza al volver. Zonas seguras en vertical y horizontal. Script dev:https para probar en teléfono por LAN. Nota sobre Capacitor (no implementar).",
+      "prompt": "ref/prompts/14_empaquetar_para_celular.md",
+      "images": [],
+      "dependencies": [
+        "F13"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Lighthouse/Chromium: manifest válido y SW registrado",
+        "e2e: con red cortada (context.setOffline) se completa una sesión y al volver la red se sincroniza",
+        "Instalar en teléfono real y modo avión: pendiente de humano (blocked parcial)"
+      ],
+      "verify": [
+        "npm run e2e -- offline",
+        "npm run build && revisar dist/sw.js"
+      ],
+      "deploy": true,
+      "evidence": ""
+    },
+    {
+      "id": "F21",
+      "name": "Pruebas y validación (Prompt 15)",
+      "description": "Unitarias con manos sintéticas y tolerancias; grabador/reproductor de landmarks integrado en /depuracion; e2e de paciente y terapeuta con cámara simulada; prueba de integridad (alterar sesión → 'Alterado'); docs/validacion.md con protocolo (pinza 2/4/6 cm a 40/50/60 cm, goniómetro, luz, manos, 3 teléfonos); pantalla /depuracion para anotar valor real y calcular error medio y dispersión.",
+      "prompt": "ref/prompts/15_pruebas_y_validacion.md",
+      "images": [],
+      "dependencies": [
+        "F17",
+        "F20"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "npm run e2e completo en verde",
+        "docs/validacion.md existe",
+        "Tabla de error por métrica: 'pendiente de mediciones reales' hasta que un humano mida"
+      ],
+      "verify": [
+        "npm run e2e",
+        "npm test"
+      ],
+      "deploy": true,
+      "evidence": ""
+    },
+    {
+      "id": "F22",
+      "name": "Juego Torre de cubos (J1)",
+      "description": "Rapier. Silueta del próximo cubo, colocado = quieto 1 s sobre la torre, caída reinicia la torre (evento caida). Niveles 1/3/5 según prompt e intermedios. Métricas: desvío al soltar, apertura al tomar, estabilidad 0–100, altura máxima, caídas. Migración que amplía el check de eventos (tomar, colocado, caida).",
+      "prompt": "ref/prompts_juegos/J1_torre_de_cubos.md",
+      "images": [
+        "ref/imagenes_juegos/01_torre_de_cubos.png"
+      ],
+      "dependencies": [
+        "F10",
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Con grabación sintética completa torre de nivel 1 con cada mano",
+        "Resumen muestra desvío por cubo"
+      ],
+      "verify": [
+        "npm run e2e -- torre"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F23",
+      "name": "Juego Pinza fina (J2)",
+      "description": "Sin física. Mano virtual grande, yema objetivo iluminada, toque pulgar–dedo bajo umbral proporcional al largo de mano con histéresis, mantener 0,3 s, nunca se bloquea (no_alcanzado guarda distancia mínima). Niveles 1/3/5. Métricas: tiempo por toque, distancia mínima por dedo, aciertos/errores.",
+      "prompt": "ref/prompts_juegos/J2_pinza_fina.md",
+      "images": [
+        "ref/imagenes_juegos/02_pinza_fina.png"
+      ],
+      "dependencies": [
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Si dejo un dedo sin tocar el juego avanza y el resumen muestra la distancia que faltó"
+      ],
+      "verify": [
+        "npm run e2e -- pinza-fina"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F24",
+      "name": "Juego Atrapa burbujas (J3)",
+      "description": "Burbuja objetivo se revienta solo con mano abierta (extensión ≥ 80 % normalizada por calibración) y palma dentro del radio. Zona de aparición que crece; límite de zona desde el plan. Métricas: extensión, alcance máximo aprox. en cm, tiempo de reacción, mapa de zonas por mano.",
+      "prompt": "ref/prompts_juegos/J3_atrapa_burbujas.md",
+      "images": [
+        "ref/imagenes_juegos/03_atrapa_burbujas.png"
+      ],
+      "dependencies": [
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Mano a medio abrir no revienta; abierta sí",
+        "Resumen muestra alcance por mano"
+      ],
+      "verify": [
+        "npm run e2e -- burbujas"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F25",
+      "name": "Juego Exprime la naranja (J4)",
+      "description": "Cuatro pasos por repetición (abierta sobre vaso, cerrar, sostener N s, abrir completo). Cierre de puño % normalizado por calibración. Sin palabras 'fuerza' ni 'presión'. Repeticiones incompletas con paso en que falló.",
+      "prompt": "ref/prompts_juegos/J4_exprime_la_naranja.md",
+      "images": [
+        "ref/imagenes_juegos/04_exprime_la_naranja.png"
+      ],
+      "dependencies": [
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Soltar antes de tiempo = repetición incompleta con paso anotado",
+        "grep sin 'fuerza'/'presión' en src/"
+      ],
+      "verify": [
+        "npm run e2e -- naranja"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F26",
+      "name": "Juego Memoria de cartas (J5)",
+      "description": "Giro del antebrazo con normal de la palma (0→5 × 0→17 en worldLandmarks), suavizado, mantener 0,3 s, volver a palma abajo entre volteos, modo sin memoria. Grillas 2x2/2x4/3x4 y umbrales 45/60/80°. Es la medida más ruidosa: grados marcados como no validados hasta F21 con datos reales.",
+      "prompt": "ref/prompts_juegos/J5_memoria_de_cartas.md",
+      "images": [
+        "ref/imagenes_juegos/05_memoria_de_cartas.png"
+      ],
+      "dependencies": [
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Giro bajo el umbral inclina pero no voltea",
+        "Resumen muestra giro máximo a cada lado"
+      ],
+      "verify": [
+        "npm run e2e -- cartas",
+        "npm test -- giro"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F27",
+      "name": "Juego Piano de dedos (J6)",
+      "description": "Cinco teclas por mano, notas que caen, dedo abajo por flexión MCP sobre reposo (3 s de reposo inicial), independencia = 1 − mov. otros / mov. objetivo, sonido con WebAudio y botón silenciar. Niveles 1/3/5.",
+      "prompt": "ref/prompts_juegos/J6_piano_de_dedos.md",
+      "images": [
+        "ref/imagenes_juegos/06_piano_de_dedos.png"
+      ],
+      "dependencies": [
+        "F21"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "Bajar dos dedos a la vez no es acierto limpio y baja la independencia de ese dedo"
+      ],
+      "verify": [
+        "npm run e2e -- piano",
+        "npm test -- independencia"
+      ],
+      "deploy": false,
+      "evidence": ""
+    },
+    {
+      "id": "F28",
+      "name": "Cierre: deploy final, README e informe",
+      "description": "Deploy final, README con cómo correr/probar/desplegar, informe final en progress.md: qué funciona, qué quedó bloqueado y por qué, pasos para probar en el teléfono, tabla de confiabilidad de métricas, riesgos (registro público de Supabase Auth, Node 20.17).",
+      "prompt": "",
+      "images": [],
+      "dependencies": [
+        "F22",
+        "F23",
+        "F24",
+        "F25",
+        "F26",
+        "F27",
+        "F19"
+      ],
+      "status": "not-started",
+      "acceptance": [
+        "URL de producción 200 con la app completa",
+        "Informe final escrito"
+      ],
+      "verify": [
+        "bash init.sh",
+        "npm run e2e",
+        "curl https://manoviva-sigma.vercel.app"
+      ],
+      "deploy": true,
+      "evidence": ""
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+.env*
+supabase
+scripts
+node_modules
+dist
+.vercel
+*.test.ts
+docs
