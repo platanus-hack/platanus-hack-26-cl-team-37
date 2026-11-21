@@ -30,8 +30,10 @@ export interface PoseMano {
   apertura: number
   /** Flexión 0..1 por dedo (sobrescribe apertura para ese dedo). */
   dedos: Partial<Record<Dedo, number>>
-  /** Pinza pulgar–índice: distancia entre puntas en cm (null = pulgar libre según apertura). */
+  /** Pinza pulgar–dedo: distancia entre puntas en cm (null = pulgar libre según apertura). */
   pinzaCm: number | null
+  /** Con qué dedo hace la pinza `pinzaCm` (por defecto el índice). Lo usa Pinza fina (F23) para tocar cada dedo. */
+  pinzaDedo: Exclude<Dedo, 'pulgar'>
   /** Centro de la palma en la imagen cruda, 0..1. */
   x: number
   y: number
@@ -76,6 +78,7 @@ export const POSE_BASE: PoseMano = {
   apertura: 1,
   dedos: {},
   pinzaCm: null,
+  pinzaDedo: 'indice',
   x: 0.5,
   y: 0.55,
   distanciaCm: 50,
@@ -120,6 +123,8 @@ const PUNTA_PULGAR_CERRADO: V = [0.005, -0.075, -0.03]
 /** Flexión máxima por articulación (MCP, PIP, DIP) en grados. */
 const FLEX_MAX = [80, 100, 70]
 const PALMA = [0, 5, 9, 13, 17]
+/** Landmark de la punta de cada dedo largo. */
+const PUNTA_DEDO: Record<Exclude<Dedo, 'pulgar'>, number> = { indice: 8, medio: 12, anular: 16, menique: 20 }
 
 function dedoLargo(mcp: V, dir: V, seg: number[], flex: number): V[] {
   const out: V[] = [mcp]
@@ -168,7 +173,7 @@ export function flexionDe(pose: Pick<PoseMano, 'apertura' | 'dedos'>, dedo: Dedo
 }
 
 /** 21 puntos de la mano derecha canónica (m), sin centrar ni rotar. */
-export function puntosCanonicos(pose: Pick<PoseMano, 'apertura' | 'dedos' | 'pinzaCm'>): V[] {
+export function puntosCanonicos(pose: Pick<PoseMano, 'apertura' | 'dedos' | 'pinzaCm'> & { pinzaDedo?: PoseMano['pinzaDedo'] }): V[] {
   const pts: V[] = Array.from({ length: 21 }, () => [0, 0, 0] as V)
   pts[0] = MUNECA
   const dedos: [Exclude<Dedo, 'pulgar'>, number][] = [['indice', 5], ['medio', 9], ['anular', 13], ['menique', 17]]
@@ -180,9 +185,9 @@ export function puntosCanonicos(pose: Pick<PoseMano, 'apertura' | 'dedos' | 'pin
   const fp = flexionDe(pose, 'pulgar')
   let objetivo = mezcla(PULGAR_ABIERTO[3], PUNTA_PULGAR_CERRADO, fp)
   if (pose.pinzaCm != null) {
-    const puntaIndice = pts[8]
-    const dir = unit(res(objetivo, puntaIndice))
-    objetivo = suma(puntaIndice, por(dir, Math.max(0, pose.pinzaCm) / 100))
+    const punta = pts[PUNTA_DEDO[pose.pinzaDedo ?? 'indice']]
+    const dir = unit(res(objetivo, punta))
+    objetivo = suma(punta, por(dir, Math.max(0, pose.pinzaCm) / 100))
   }
   fabrik(PULGAR_ABIERTO, SEG_PULGAR, objetivo).forEach((p, k) => (pts[1 + k] = p))
   return pts
@@ -269,13 +274,16 @@ function interpolar(a: PoseMano, b: PoseMano, k: number): PoseMano {
   else if (a.pinzaCm == null && b.pinzaCm == null) pinzaCm = null
   else {
     const libre = a.pinzaCm == null ? a : b
-    const natural = pinzaNaturalCm({ ...libre, dedos })
+    const natural = pinzaNaturalCm({ ...libre, dedos, pinzaDedo: (a.pinzaCm == null ? b : a).pinzaDedo })
     pinzaCm = a.pinzaCm != null ? lerp(a.pinzaCm, natural, k) : lerp(natural, b.pinzaCm as number, k)
   }
+  // Con pinza en ambos extremos sobre dedos distintos, el dedo cambia a mitad del tramo.
+  const pinzaDedo = a.pinzaCm != null && (b.pinzaCm == null || k < 0.5) ? a.pinzaDedo : b.pinzaCm != null ? b.pinzaDedo : a.pinzaDedo
   return {
     apertura: lerp(a.apertura, b.apertura, k),
     dedos,
     pinzaCm,
+    pinzaDedo,
     x: lerp(a.x, b.x, k),
     y: lerp(a.y, b.y, k),
     distanciaCm: lerp(a.distanciaCm, b.distanciaCm, k),
@@ -287,10 +295,10 @@ function interpolar(a: PoseMano, b: PoseMano, k: number): PoseMano {
   }
 }
 
-/** Distancia pulgar–índice (cm) con el pulgar libre. */
-export function pinzaNaturalCm(pose: Pick<PoseMano, 'apertura' | 'dedos'>): number {
+/** Distancia pulgar–punta del dedo (índice por defecto) en cm con el pulgar libre. */
+export function pinzaNaturalCm(pose: Pick<PoseMano, 'apertura' | 'dedos'> & { pinzaDedo?: PoseMano['pinzaDedo'] }): number {
   const p = puntosCanonicos({ ...pose, pinzaCm: null })
-  return largo(res(p[4], p[8])) * 100
+  return largo(res(p[4], p[PUNTA_DEDO[pose.pinzaDedo ?? 'indice']])) * 100
 }
 
 export function poseEn(poses: PoseClave[], tMs: number, bucle = true): PoseMano {
