@@ -1,0 +1,23 @@
+/* Piano de dedos (F27): botón de sonido sobre la escena. Los estilos de la base viven en src/index.css (P1). */
+.piano-silencio {
+  position: fixed;
+  z-index: 3;
+  top: 10px;
+  right: calc(env(safe-area-inset-right, 0px) + 124px);
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--texto, #fff);
+  background: rgba(15, 20, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+.piano-silencio[aria-pressed='true'] { color: var(--texto-2, #9fb0bf); }
+.piano-silencio:focus-visible { outline: 3px solid var(--acento, #ffc83d); outline-offset: 2px; }
