@@ -141,6 +141,18 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
   return s
 }
 
+/**
+ * Modo depuración (?debug=1): qué condición espera el paso actual para avanzar, con su umbral.
+ * Sirve para ver en el teléfono si falla el cierre, la apertura, la pinza o el marco.
+ */
+export function esperaCalibracion(e: Pick<EstadoCalibracion, 'paso' | 'cerrada'>): string {
+  const d2 = (n: number) => n.toFixed(2).replace('.', ',')
+  if (e.paso === 'abierta') return `apertura ≥ ${d2(UMBRALES.abierta)} por ${UMBRALES.msAbierta / 1000} s`
+  if (e.paso === 'abrir-cerrar') return e.cerrada ? `abrir: apertura ≥ ${d2(UMBRALES.abierta)}` : `cerrar: apertura ≤ ${d2(UMBRALES.cerrada)}`
+  if (e.paso === 'pinza') return `pinza ≤ ${UMBRALES.pinzaCm} cm por ${String(UMBRALES.msPinza / 1000).replace('.', ',')} s`
+  return 'nada (lista)'
+}
+
 /** Número del paso (1..3) para mostrar "Paso 1 de 3"; 3 cuando está lista. */
 export function numeroPaso(p: PasoCalibracion): number {
   return p === 'lista' ? PASOS.length : PASOS.indexOf(p) + 1

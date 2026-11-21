@@ -9,6 +9,7 @@ import {
   chequeoDistancia,
   chequeoLuz,
   elegirMano,
+  esperaCalibracion,
   medidasMano,
   numeroPaso,
   puntosDentro,
@@ -157,5 +158,12 @@ describe('mano elegida, checklist y vista', () => {
     // Cover: el alto llena la vista (y = 0 → 0, y = 1 → 844).
     expect(aVista({ x: 0.5, y: 1 }, img, vista).y).toBeCloseTo(844)
     expect(puntosDentro([{ x: 10, y: 10 }, { x: 50, y: 50 }], { x: 0, y: 0, ancho: 20, alto: 20 })).toBe(1)
+  })
+
+  it('esperaCalibracion (modo debug): dice qué condición falta en cada paso', () => {
+    expect(esperaCalibracion({ paso: 'abierta', cerrada: false })).toBe('apertura ≥ 0,80 por 2 s')
+    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: false })).toBe('cerrar: apertura ≤ 0,30')
+    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: true })).toBe('abrir: apertura ≥ 0,80')
+    expect(esperaCalibracion({ paso: 'pinza', cerrada: false })).toBe('pinza ≤ 2 cm por 0,4 s')
   })
 })
