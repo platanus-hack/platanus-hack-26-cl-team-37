@@ -59,6 +59,8 @@ export interface ConsentimientosRepo {
 
 export interface AlertasRepo {
   abiertas(pacienteIds?: string[]): Promise<Alerta[]>
+  /** Alertas (abiertas o revisadas) de una sesión: evita duplicar la alerta de dolor si se guarda dos veces. */
+  deSesion(sesionId: string): Promise<Alerta[]>
   crear(a: { pacienteId: string; sesionId: string; tipo: 'dolor'; valor: number }): Promise<void>
   revisar(id: string): Promise<void>
 }

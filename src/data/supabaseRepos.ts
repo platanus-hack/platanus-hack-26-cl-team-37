@@ -368,6 +368,9 @@ export const supabaseRepos: Repos = {
       if (ids) q = q.in('paciente_id', ids)
       return (ok(await q) ?? []).map(aAlerta)
     },
+    async deSesion(sesionId) {
+      return (ok(await supabase.from('alertas').select('*').eq('sesion_id', sesionId).order('creada', { ascending: false })) ?? []).map(aAlerta)
+    },
     async crear(a) {
       ok(await supabase.from('alertas').insert({ paciente_id: a.pacienteId, sesion_id: a.sesionId, tipo: a.tipo, valor: a.valor }))
     },

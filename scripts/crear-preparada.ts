@@ -1,6 +1,7 @@
 // Crea una Sesion "preparada" para la paciente demo (Carmen) y escribe su id. Sirve para capturas y pruebas a mano
 // de /sesion/<id>/calibrar y /sesion/<id>/jugar sin pasar por /preparar.
-// Uso: npx tsx scripts/crear-preparada.ts [juego=caja-juguetes] [mano=derecha] [duracionMin=5] [meta=0] [nivel=1]
+// Uso: npx tsx scripts/crear-preparada.ts [juego=caja-juguetes] [mano=derecha] [duracionMin=5] [meta=0] [nivel=1] [en-curso]
+//   "en-curso" (F12) la deja 'en curso', como queda al terminar el juego: sirve para capturar /sesion/<id>/sensacion.
 //   p. ej. el juego de prueba de la base (F09): npx tsx scripts/crear-preparada.ts prueba-shell derecha 5 12
 // Limpieza: npx tsx scripts/limpiar-preparadas.ts <ISO desde>  (borra 'preparada' y 'en curso' de pacientes demo)
 import { readFileSync } from 'node:fs'
@@ -12,6 +13,7 @@ const mano = process.argv[3] ?? 'derecha'
 const duracionMin = Number(process.argv[4] ?? 5)
 const meta = Number(process.argv[5] ?? 0)
 const nivel = Number(process.argv[6] ?? 1)
+const estado = process.argv[7] === 'en-curso' ? 'en curso' : 'preparada'
 
 const env = Object.fromEntries(
   readFileSync(new URL('../.env.local', import.meta.url), 'utf8')
@@ -32,7 +34,7 @@ for (let intento = 0; intento < 4; intento++) {
     id: id.data,
     paciente_id: pac.data.id,
     juego,
-    estado: 'preparada',
+    estado,
     parametros: { mano, nivel, duracionMin, metaAgarres: meta, metaPinzaCm: 0, prescritoPor: null },
   })
   if (!r.error) {

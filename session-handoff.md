@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F11 Movilidad guiada (calentamiento) → done (sin deploy: `deploy: false`).
+- Última sesión: 2026-11-21, F12 Dolor y esfuerzo → done (sin deploy: `deploy: false`). Además se arregló el e2e flaky de `tracking` (Google Fonts).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F12 — Dolor y esfuerzo (Prompt 7)**, `/sesion/:id/sensacion` (`node scripts/siguiente-feature.mjs`).
+- Recommended Next Step: **F13 — Resumen de sesión** (esperado; confirmar con `node scripts/siguiente-feature.mjs`), `/sesion/:id/resumen`.
 
 ## Archivos clave (Files)
 
@@ -110,6 +110,14 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - e2e `e2e/movilidad.spec.ts`; capturas `CAPTURA_MOVILIDAD=1 npm run e2e -- movilidad -g exactos` → `docs/capturas/movilidad.png` y `movilidad-meta.png`; `movilidad-ambas.png` con `crear-preparada.ts movilidad-guiada ambas 3 10 1` + captura `--horizontal`.
 - **Para F13 (Resumen):** leer `modulo.metricasResumen` del juego de la sesión (Movilidad no tiene precisión ni suavidad propias; sus valores están en `metricas.juego`).
 
+## Dolor y esfuerzo (F12, hecho) — `/sesion/:id/sensacion`
+
+- `src/screens/sesion/Sensacion.tsx`: carga sesión + umbral (`planDeSesion`: plan de `planVersion`, si no el vigente) con `useCarga` (el cargador devuelve `{ datos }` porque `<Estados>` trata `null` como "cargando"). Formulario solo si la sesión está 'en curso'; 'cerrada' → "Ver resumen", 'preparada' → "Ir a calibrar", inexistente → "Ver ejercicios".
+- Guardar: `repos.sesiones.actualizar(id, { dolorEVA, esfuerzo, nota })` (estado NO cambia) → si EVA ≥ umbral y no hay alerta de dolor de esa sesión (`repos.alertas.deSesion`), `repos.alertas.crear` + aviso → navega a `/sesion/:id/resumen` + mismo query. Volver a /sensacion muestra lo guardado.
+- Reglas puras: `src/domain/sensacion.ts` (`pasoEva`, `planDeSesion`, `requiereAlerta`, `sensacionAGuardar`, `EVA_MAX`, `NOTA_MAX`).
+- e2e `e2e/sensacion.spec.ts`: función `falsa(page, estado, umbral, extra)` simula sesiones/planes/alertas (ojo: el POST de alertas va a `/rest/v1/alertas` SIN `?`, usar el glob `**/rest/v1/alertas*`). Prueba real crea una sesión 'en curso' (`crearSesion` + update con `clienteComo`) y limpia con `limpiar(desde, id)` (borra también su alerta). Capturas `CAPTURA_SENSACION=1 npm run e2e -- sensacion` → `sensacion-llena.png`, `sensacion-alerta.png`; `sensacion.png` con `ID=$(npx tsx scripts/crear-preparada.ts caja-juguetes derecha 5 12 2 en-curso)` + `npm run captura -- "/sesion/$ID/sensacion?fuente=sintetica" sensacion` + limpiar.
+- **Para F13 (Resumen):** la Sesion llega 'en curso' con `metricas`, `muestras`, `fin`, `dolorEVA` (siempre), `esfuerzo`/`nota` (pueden ser null). F13 cierra con hash (`src/domain/integridad.ts`). Las pantallas de alertas del terapeuta ya tienen filas reales de tipo 'dolor' con `valor`.
+
 ## Cuidado con
 
 - Correr `bash init.sh` antes de nada. Si `npm install` borró los binarios nativos de Windows, init.sh los repone.
@@ -117,6 +125,8 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - En `e2e/` los imports relativos llevan `.ts` (tsconfig.node.json usa nodenext).
 - Git Bash convierte `/ruta` en ruta de Windows: `scripts/captura.mjs` lo deshace; para otros comandos usar `MSYS_NO_PATHCONV=1`.
 - Pantallas siempre vía `repos`, no `supabase` directo.
+- `<Estados>` muestra "Cargando…" si `datos` es null: el cargador de `useCarga` debe devolver un objeto (p. ej. `{ datos: null }`) para poder mostrar un estado vacío. (`Preparar.tsx` de F06 devuelve null sin ficha de paciente: quedaría cargando; no se tocó.)
+- e2e de "nada sale de la app" (`tracking`): se permiten solo GET a fonts.googleapis.com / fonts.gstatic.com. Si F18/F20 autoalojan las fuentes, quitar esa excepción.
 - Fechas: el seed usa la fecha del día en que se corre. Si las vistas se ven vacías, `npm run db:seed`.
 
 ## Bloqueos (Blockers) — pendiente de humano, no frena el avance
@@ -127,5 +137,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F12 (Dolor y esfuerzo, Prompt 7: `docs/referencia/prompts/07_dolor_y_esfuerzo.md`, imagen `07_dolor_y_esfuerzo.png`).
-3. Marcar F12 `in-progress` y seguir CLAUDE.md. Reemplazar `src/screens/sesion/Sensacion.tsx` (provisoria). Llegan ahí desde /jugar con la Sesion 'en curso' (con `metricas`, `muestras`, `fin`) y el query `?fuente=…` (conservarlo hacia /resumen). Guardar EVA/esfuerzo/nota con `repos.sesiones.actualizar` (no cerrar: el cierre con hash es F13). Umbral de dolor desde el plan vigente; la alerta va por `repos` (revisar `src/data/repos.ts` y la tabla `alertas`). Para e2e: `crearSesion`/`sesionFalsa` de `e2e/juegos.ts` y `limpiar(desde, id)`; las alertas creadas por e2e también hay que limpiarlas (posible ampliación de `limpiar_sesiones_prueba` con migración NUEVA).
+2. `node scripts/siguiente-feature.mjs` → F13 esperado (Resumen de sesión, `/sesion/:id/resumen`, imagen `08_resumen_sesion.png`).
+3. Marcarlo `in-progress` y seguir CLAUDE.md. Reemplazar `src/screens/sesion/Resumen.tsx` (provisoria). Llega desde /sensacion con la Sesion 'en curso' y el query `?fuente=…`. Métricas del juego: `metricas.juego` + `modulo.metricasResumen` (ver secciones de Caja y Movilidad). Cerrar con hash es la parte que hace inmutable la sesión: los e2e que cierren sesiones reales NO se pueden limpiar con `limpiar_sesiones_prueba` (solo borra 'preparada'/'en curso'): preferir sesión falsa (`page.route`) para el cierre o pensar una limpieza con migración NUEVA.

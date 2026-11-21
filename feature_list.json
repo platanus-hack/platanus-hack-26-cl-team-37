@@ -325,7 +325,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "No deja guardar sin EVA",
         "EVA ≥ umbral crea fila en alertas"
@@ -335,7 +335,7 @@
         "npm run captura -- /sesion/<id>/sensacion sensacion"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "npm run e2e -- sensacion 4/4 (2 corridas; sesión falsa: Guardar deshabilitado sin EVA, −/+ y deslizador, esfuerzo único, nota 280, PATCH solo dolor_eva/esfuerzo/nota; sobre umbral: aviso + POST alertas; estados inexistente/cerrada/preparada; sesión REAL: EVA = umbral del plan vigente crea 1 fila en alertas (abierta, valor = EVA), guardar de nuevo no la repite, sesión sigue en curso sin hash; limpieza borra sesión y alerta). npm run e2e 74/74 (incluye arreglo del flaky tracking por Google Fonts). vitest 123/123. bash init.sh INIT OK (BD 15/15, 19 sesiones). Capturas docs/capturas/sensacion.png (npm run captura, estado inicial sin EVA), sensacion-llena.png (2/10, Moderado, nota: como la imagen 07) y sensacion-alerta.png (CAPTURA_SENSACION=1 npm run e2e -- sensacion). Diferencias aceptadas con 07: botones − / + a los lados del deslizador (los pide el prompt), contador de nota 0/280, texto de ayuda sobre el botón mientras falta el EVA, banner de datos demo arriba, etiquetas bajo el riel (no bajo los botones)."
     },
     {
       "id": "F13",

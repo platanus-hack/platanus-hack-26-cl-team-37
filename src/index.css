@@ -386,3 +386,29 @@ a.tarjeta-juego:active { background: var(--tarjeta-2); }
 .juego-girar h2 { font-size: 24px; }
 .juego-girar p { max-width: 300px; }
 .juego-girar-icono { width: 88px; height: 88px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--acento-tenue); color: var(--acento); }
+
+/* ---------------------------------------------------------- dolor y esfuerzo (F12, 07_dolor_y_esfuerzo.png) */
+.sensacion { gap: 12px; }
+.sensacion-cabeza { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding: 8px 0 6px; }
+.sensacion-emoji { font-size: 44px; line-height: 1.1; }
+.sensacion-cabeza h1 { font-size: 28px; }
+.sensacion-cabeza p { font-size: 16px; }
+.sensacion-tarjeta { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--radio-l); }
+.sensacion-tarjeta h2 { font-family: var(--cuerpo); font-size: 17px; font-weight: 700; }
+.sensacion-valor { font-family: var(--titulos); color: var(--texto-2); font-size: 16px; white-space: nowrap; }
+.sensacion-valor b { color: var(--acento); font-size: 30px; line-height: 1; }
+.sensacion-valor.vacio b { color: var(--texto-3); font-size: 24px; }
+.sensacion-eva { gap: 8px; }
+.sensacion-eva .boton-paso { width: var(--toque); border-radius: 50%; background: transparent; color: var(--texto-2); }
+input[type='range'].deslizador.eva { --pista: linear-gradient(90deg, #4fd1a1 0%, #ffc83d 50%, #ff6b5c 100%); }
+input[type='range'].deslizador.eva::-webkit-slider-thumb { width: 30px; height: 30px; margin-top: -11px; border: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+input[type='range'].deslizador.eva::-moz-range-thumb { width: 30px; height: 30px; border: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+input[type='range'].deslizador.eva.sin-valor::-webkit-slider-thumb { opacity: 0; }
+input[type='range'].deslizador.eva.sin-valor::-moz-range-thumb { opacity: 0; }
+.sensacion-etiquetas { display: flex; justify-content: space-between; font-size: 14px; padding: 0 52px; margin-top: -6px; }
+.sensacion-aviso { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--alerta-tenue); color: var(--alerta); font-size: 14px; font-weight: 500; }
+.sensacion-chips { display: flex; flex-wrap: wrap; gap: 8px 6px; }
+.sensacion-chips .chip { border: 0; background: var(--tarjeta-2); color: var(--texto-2); font-size: 15px; padding: 0 13px; }
+.sensacion-chips .chip[aria-pressed='true'] { background: var(--acento); color: #1b1300; }
+textarea.entrada.sensacion-nota { border-color: transparent; min-height: 60px; font-size: 16px; caret-color: var(--acento); }
+textarea.entrada.sensacion-nota:focus { border-color: var(--acento); }
