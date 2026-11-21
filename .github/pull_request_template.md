@@ -1,5 +1,8 @@
 ## Qué cambia
 <!-- Una o dos frases. Funcionalidad (F__) o juego si corresponde. -->
+<!-- BASE DEL PR: dev (se despliega a https://manoviva-dev.vercel.app). A main solo llega dev → main (producción), o una rama hotfix/… en una emergencia. -->
+Closes #<!-- número del issue -->
+
 
 ## Rol y carpetas tocadas
 - [ ] P1 · P2 · P3 (marca el tuyo)
