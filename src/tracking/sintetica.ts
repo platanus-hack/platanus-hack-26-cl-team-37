@@ -336,8 +336,8 @@ const X_POR_LADO: Record<LadoMano, number> = { derecha: 0.42, izquierda: 0.58 }
 
 export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): GuionSintetico {
   const x = X_POR_LADO[lado]
-  const una = (pasos: [number, Partial<PoseMano>][]): GuionSintetico => ({
-    manos: [{ lado, poses: secuencia([[0, { x }], ...pasos.map(([d, p]) => [d, p] as [number, Partial<PoseMano>])]) }],
+  const una = (pasos: [number, Partial<PoseMano>][], inicio: Partial<PoseMano> = { x }): GuionSintetico => ({
+    manos: [{ lado, poses: secuencia([[0, inicio], ...pasos.map(([d, p]) => [d, p] as [number, Partial<PoseMano>])]) }],
   })
   switch (nombre) {
     case 'quieta':
@@ -364,15 +364,17 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
       }
     case 'calibracion': {
       // Los pasos de la calibración (F08): abierta 2,5 s, abrir y cerrar 3 veces, pinza 1,5 s, soltar.
+      // Como un teléfono en vertical: cámara 480×640 y mano centrada (x = y = 0,5), para que quepa en el marco guía.
       const ciclo: [number, Partial<PoseMano>][] = [[450, { apertura: 0 }], [200, {}], [450, { apertura: 1 }], [200, {}]]
-      return una([
+      const g = una([
         [2500, {}],
         ...ciclo, ...ciclo, ...ciclo,
         [700, { apertura: 0.7, dedos: { indice: 0.5 }, pinzaCm: 0.5 }],
         [1500, {}],
         [700, { apertura: 1, dedos: {}, pinzaCm: null }],
         [600, {}],
-      ])
+      ], { x: 0.5, y: 0.5 })
+      return { ...g, camara: { ancho: 480, alto: 640 } }
     }
   }
 }

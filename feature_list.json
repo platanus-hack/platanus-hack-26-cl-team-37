@@ -226,7 +226,7 @@
         "F06",
         "F07"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Con ?fuente=sintetica completa los 3 pasos y guarda calibracion en la sesión",
         "Permiso denegado muestra instrucciones para activarlo",
@@ -237,7 +237,7 @@
         "npm run captura -- '/sesion/<id>/calibrar?fuente=sintetica' calibrar"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 · npm run e2e -- calibrar 6/6 (sintética completa los 3 pasos en ~10 s, guarda calibracion + inicio + dispositivo + versionApp/versionModelo en la Sesion y sigue a /jugar?fuente=sintetica; permiso denegado con instrucciones Android/iPhone + Reintentar; sin cámara; poca luz; mano fuera del marco; sin mano; cámara falsa de Chromium con video en espejo; sesión inexistente/cerrada) · npm run e2e 61/61 · vitest 92/92 (calibracion.test.ts 8, version.test.ts 3) · bash init.sh INIT OK · capturas docs/capturas/calibrar.png (npm run captura, paso 1), calibrar-lista.png y calibrar-permiso.png (desde el e2e) comparadas con 05_calibracion.png. Diferencias aceptadas: banner demo arriba; sin video la mano es una silueta dibujada (con cámara va el video en espejo); mano más chica (50 cm reales en un teléfono vertical) y el marco no la llena; la píldora muestra la instrucción de cada paso y 'Paso N de 3' debajo; 'Mano simulada' en vez de 'Cámara frontal' con ?fuente=sintetica; Distancia con 'aprox.'; Largo de la mano muestra la regla del perfil (18,4) y debajo el estimado de cámara. PENDIENTE de teléfono real: lateralidad izquierda/derecha con la cámara frontal en espejo (no verificable sin teléfono)."
     },
     {
       "id": "F09",

@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F07 módulo de seguimiento de manos → done (sin deploy: `deploy: false`).
+- Última sesión: 2026-11-21, F08 calibración (pantalla) → done (sin deploy: `deploy: false`).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F08 — Calibración (pantalla)** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F09 — Base común de juegos en three.js (J0)** (`node scripts/siguiente-feature.mjs` para el detalle).
 
 ## Archivos clave (Files)
 
@@ -65,6 +65,16 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - Métricas de mano: `src/metrics/geometria.ts` (`largoMano`, `aperturaPinza`, `aperturaMano`, `flexionDedo`, `luminanciaMedia`, `clasificarLuz`, `CONEXIONES` para dibujar).
 - e2e: `e2e/tracking.spec.ts` importa `/src/tracking/fuentes.ts` del servidor dev dentro de `page.evaluate` (útil mientras no haya pantalla).
 
+## Calibración (F08, hecho) — `/sesion/:id/calibrar`
+
+- `src/screens/sesion/Calibrar.tsx`: carga sesión + paciente (`largoManoCm` = regla) con `useCarga`; `useFuenteManos(location.search)`; cada cuadro (`fuente.alCuadro`) dibuja (`src/ui/dibujoMano.ts`: `dibujarManos(lienzo, cuadro, elegida, { silueta })`, `colorPunto(i)`), mide y avanza la máquina pura; React se refresca cada 150 ms. El `<video>` de la cámara se monta en `.calibrar-fondo` (espejo por CSS).
+- Lógica pura `src/metrics/calibracion.ts`: `avanzarCalibracion`, `resultadoCalibracion(estado, regla)` → `Calibracion`, `elegirMano(manos, parametros.mano)`, `medidasMano`, `chequeoLuz/Distancia/Confianza`, `aVista(p, img, vista)` (espejo + object-fit cover, útil para la miniatura de cámara del juego), `UMBRALES`.
+- Guarda con `repos.sesiones.actualizar`: `calibracion`, `inicio`, `dispositivo`, `versionApp`, `versionModelo` (`src/lib/version.ts`). **El estado sigue 'preparada'**: F09 debe pasarlo a 'en curso' al empezar a jugar (y entonces los e2e de juego necesitan ampliar `limpiar-preparadas.ts` o re-seed).
+- Al completar navega sola (2 s) a `/sesion/<id>/jugar?fuente=…`. F09 puede leer `sesion.calibracion` (largo de mano, escala cm, rango abrir/cerrar para umbrales de agarre, pinza máx.).
+- Probar a mano: `ID=$(npx tsx scripts/crear-preparada.ts)` → `npm run captura -- "/sesion/$ID/calibrar?fuente=sintetica" calibrar` (o `/jugar`) → `npx tsx scripts/limpiar-preparadas.ts <ISO desde>`.
+- Preset sintético `calibracion` = teléfono vertical (480×640, mano centrada) y `public/grabaciones/demo.json` regenerado igual. Para juegos horizontales usar otros presets o inyectar guion con `camara: { ancho: 640, alto: 480 }`.
+- e2e `e2e/calibrar.spec.ts`: sesión falsa con `page.route('**/rest/v1/sesiones?*')` (GET → `[fila]`; maybeSingle acepta arreglo) para probar estados sin escribir en la BD; permiso denegado = `getUserMedia` rechazado con `DOMException(…, 'NotAllowedError')` en `addInitScript`. En `e2e/` no hay tipos DOM: usar `globalThis as unknown as {...}`.
+
 ## Cuidado con
 
 - Correr `bash init.sh` antes de nada. Si `npm install` borró los binarios nativos de Windows, init.sh los repone.
@@ -82,6 +92,6 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F08.
-3. Marcar F08 `in-progress` y seguir CLAUDE.md. Notas para F08: usar `useFuenteManos(location.search)`; pasos guiados medibles con `aperturaMano` (abierta > 0,8, puño < 0,3) y `aperturaPinza`; distancia con `EstimadorDistancia` (+ `largoManoCm` del paciente como regla); luz con `fuente.luminancia` + `clasificarLuz`; confianza = `mano.confianza`; fps = `fuente.fps`; estados `sin permiso`/`sin camara`/`error` traen `fuente.detalleError`. La sesión de prueba que pase a `en curso` no la borra `limpiar-preparadas.ts`.
+2. `node scripts/siguiente-feature.mjs` → F09.
+3. Marcar F09 `in-progress` y seguir CLAUDE.md. La sesión llega a /jugar 'preparada' con `calibracion` e `inicio` llenos; F09 la pasa a 'en curso'. Si sus e2e dejan sesiones 'en curso', ampliar `scripts/limpiar-preparadas.ts` (hoy borra solo 'preparada') o re-seed.
 4. Notas para F09 (juegos): la pausa automática usa `fuente.ultimaDeteccion` (ms del reloj de la fuente, mismo que `cuadro.t`); los e2e de juegos manejan las manos con `window.__manoviva.fuente.cargarGuion(...)`; para un guion propio de juego (p. ej. "tomar y dejar en la caja") agregar un preset en `GUIONES_PRESET` o inyectarlo.
