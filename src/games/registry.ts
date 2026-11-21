@@ -1,6 +1,7 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
 import { NIVELES_PINZA } from './pinza/logica'
+import { NIVELES_TORRE } from './torre/logica'
 
 export type Gesto =
   | 'Pinza'
@@ -78,6 +79,17 @@ const nivelesPinza: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   detalle: NIVELES_PINZA[n].detalle,
 }))
 
+// Torre de cubos (F22): nombre, detalle, cubos (= meta de altura), lado y tolerancia viven en src/games/torre/logica.ts.
+// `tamano` = lado del cubo en cm, `cantidad` = cubos de la torre; `distanciaCaja` no se usa.
+const nivelesTorre: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_TORRE[n].nombre,
+  tamano: NIVELES_TORRE[n].ladoCm,
+  cantidad: NIVELES_TORRE[n].cubos,
+  distanciaCaja: 0,
+  detalle: NIVELES_TORRE[n].detalle,
+}))
+
 export const JUEGOS: Juego[] = [
   {
     id: 'caja-juguetes',
@@ -110,11 +122,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Precisión', 'Control'],
     filtros: ['Pinza', 'Agarre'],
     descripcionCorta: 'Precisión y control',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'torre',
-    niveles: nivelesCaja,
+    niveles: nivelesTorre,
   },
   {
     id: 'pinza-fina',
