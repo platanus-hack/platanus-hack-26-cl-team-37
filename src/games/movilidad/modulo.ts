@@ -15,9 +15,14 @@
 //   true, duracionMs, rango }. Con 'ambas' cuenta cada mano por separado (abrir y cerrar las dos = 2 ciclos). Al llegar a la meta deja de contar
 //   (la base muestra "¡Meta cumplida!" y termina 2,5 s después), así el contador queda exacto.
 import * as THREE from 'three'
-import { NEUTRO } from '../shell/colores'
+import { NEUTRO } from '../assets/colores'
+import { crearAnilloPlano, crearDisco } from '../assets/formas'
+import { estiloGuia, ModeloMano } from '../assets/mano'
+import { crearCuentas as crearArcoCuentas } from '../assets/movilidad/cuentas'
+import { textura, type Recursos } from '../assets/recursos'
+import { crearSprite } from '../assets/sprites'
+import { texturaHalo } from '../assets/texturas'
 import type { LadoMano } from '../../domain/types'
-import { CONEXIONES } from '../../metrics/geometria'
 import { manoSintetica } from '../../tracking/sintetica'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import { ZONA_BASE, puntosEnEscena, type ZonaManos } from '../shell/manos3d'
@@ -65,22 +70,6 @@ function disposicion(mano: string): { guia: { x: number; y: number; z: number };
   return { guia: { x: -0.95, y: 0.68, z: -0.15 }, zona: { x: [-0.4, 2.0], y: [0.1, 1.35] }, ladoGuia: 'derecha' }
 }
 
-/** Textura de halo radial (blanco → transparente) para brillos aditivos. */
-function texturaHalo(): THREE.Texture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
-  grad.addColorStop(0.35, kuwuAlfa('blanco', 0.45))
-  grad.addColorStop(1, kuwuAlfa('blanco', 0))
-  g.fillStyle = grad
-  g.fillRect(0, 0, 128, 128)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
 /** Rótulo tipo píldora (fondo oscuro, texto claro) como los del HUD. */
 function texturaRotulo(texto: string, punto: string): { textura: THREE.Texture; aspecto: number } {
   const c = document.createElement('canvas')
@@ -111,83 +100,33 @@ function texturaRotulo(texto: string, punto: string): { textura: THREE.Texture; 
   return { textura: t, aspecto: ancho / alto }
 }
 
-const ARRIBA = new THREE.Vector3(0, 1, 0)
-const PALMA_ABANICO = [0, 1, 5, 0, 5, 9, 0, 9, 13, 0, 13, 17]
-
-/** Mano guía fantasma: huesos y articulaciones instanciados + palma, translúcidos y con halo. */
+/** Mano guía fantasma (modelo en assets/mano.ts, estilo guía): se arma con la mano sintética de apertura `a`. */
 class ManoGuia {
-  readonly grupo = new THREE.Group()
-  private huesos: THREE.InstancedMesh
-  private articulaciones: THREE.InstancedMesh
-  private palma: THREE.Mesh
-  private posPalma = new Float32Array(12 * 3)
-  private puntos = Array.from({ length: 21 }, () => new THREE.Vector3())
-  readonly materiales: THREE.Material[] = []
-  readonly geometrias: THREE.BufferGeometry[] = []
+  private readonly modelo: ModeloMano
   private readonly zona: ZonaManos
   private readonly lado: LadoMano
+  private ultima = -1
 
-  constructor(ancla: { x: number; y: number; z: number }, lado: LadoMano) {
+  constructor(ancla: { x: number; y: number; z: number }, lado: LadoMano, recursos: Recursos) {
     this.lado = lado
     this.zona = { ...ZONA_BASE, x: [ancla.x, ancla.x], y: [ancla.y, ancla.y], z: [ancla.z, ancla.z] }
-    const r = 0.0085 * ZONA_BASE.escala
-    const mat = new THREE.MeshStandardMaterial({ color: COLOR_GUIA, emissive: COLOR_GUIA, emissiveIntensity: 0.55, roughness: 0.3, transparent: true, opacity: 0.72, depthWrite: false })
-    const matPunta = new THREE.MeshStandardMaterial({ color: NEUTRO, emissive: COLOR_GUIA, emissiveIntensity: 0.9, roughness: 0.25, transparent: true, opacity: 0.9, depthWrite: false })
-    const matPalma = new THREE.MeshStandardMaterial({ color: COLOR_GUIA, emissive: COLOR_GUIA, emissiveIntensity: 0.35, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
-    const gHueso = new THREE.CylinderGeometry(r * 1.05, r * 1.05, 1, 10, 1, true)
-    const gArt = new THREE.SphereGeometry(r * 1.55, 14, 10)
-    const gPalma = new THREE.BufferGeometry()
-    gPalma.setAttribute('position', new THREE.BufferAttribute(this.posPalma, 3))
-    this.materiales.push(mat, matPunta, matPalma)
-    this.geometrias.push(gHueso, gArt, gPalma)
-    this.huesos = new THREE.InstancedMesh(gHueso, mat, CONEXIONES.length)
-    this.articulaciones = new THREE.InstancedMesh(gArt, matPunta, 21)
-    this.palma = new THREE.Mesh(gPalma, matPalma)
-    for (const m of [this.huesos, this.articulaciones, this.palma]) {
-      m.frustumCulled = false
-      m.renderOrder = 2
-      this.grupo.add(m)
-    }
+    this.modelo = new ModeloMano(ZONA_BASE.escala, estiloGuia(COLOR_GUIA), recursos)
   }
 
-  private ultima = -1
-  private readonly m4 = new THREE.Matrix4()
-  private readonly q = new THREE.Quaternion()
-  private readonly dir = new THREE.Vector3()
-  private readonly medio = new THREE.Vector3()
-  private readonly esc = new THREE.Vector3()
+  get grupo(): THREE.Group {
+    return this.modelo.grupo
+  }
 
   /** Arma la mano guía con apertura `a` (0..1). No hace nada si no cambió (tramos en que la guía se mantiene). */
   actualizar(a: number) {
     if (Math.abs(a - this.ultima) < 1e-4) return
     this.ultima = a
     const mano = manoSintetica({ apertura: a, lado: this.lado, x: 0.5, y: 0.5 })
-    const p = puntosEnEscena(mano, 47, this.zona)
-    p.forEach((q, i) => this.puntos[i].set(q[0], q[1], q[2]))
-    const { m4, q, dir, medio, esc } = this
-    CONEXIONES.forEach(([i, k], n) => {
-      dir.subVectors(this.puntos[k], this.puntos[i])
-      const largo = dir.length()
-      q.setFromUnitVectors(ARRIBA, dir.normalize())
-      medio.addVectors(this.puntos[i], this.puntos[k]).multiplyScalar(0.5)
-      this.huesos.setMatrixAt(n, m4.compose(medio, q, esc.set(1, largo, 1)))
-    })
-    this.huesos.instanceMatrix.needsUpdate = true
-    q.identity()
-    esc.set(1, 1, 1)
-    this.puntos.forEach((v, i) => this.articulaciones.setMatrixAt(i, m4.compose(v, q, esc)))
-    this.articulaciones.instanceMatrix.needsUpdate = true
-    PALMA_ABANICO.forEach((i, k) => this.posPalma.set([p[i][0], p[i][1], p[i][2]], k * 3))
-    const g = this.palma.geometry
-    g.attributes.position.needsUpdate = true
-    g.computeVertexNormals()
-    g.computeBoundingSphere()
+    this.modelo.poner(puntosEnEscena(mano, 47, this.zona))
   }
 
   centro(destino = new THREE.Vector3()): THREE.Vector3 {
-    destino.set(0, 0, 0)
-    for (const i of [0, 5, 9, 13, 17]) destino.add(this.puntos[i])
-    return destino.multiplyScalar(1 / 5)
+    return this.modelo.centroPalma(destino)
   }
 }
 
@@ -228,6 +167,7 @@ export const crearMovilidad: CrearJuego = () => {
   const geometrias: THREE.BufferGeometry[] = []
   const materiales: THREE.Material[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas }
   let guia: ManoGuia | null = null
   let halo: THREE.Sprite | null = null
   let anilloGuia: THREE.Mesh | null = null
@@ -268,27 +208,9 @@ export const crearMovilidad: CrearJuego = () => {
     return lados.find((l) => ctx?.medidas(l)) ?? null
   }
 
-  function anillo(radioInterno: number, color: number, opacidad: number, segmentos = 96): THREE.Mesh {
-    const geo = new THREE.RingGeometry(radioInterno, 1, segmentos)
-    geo.rotateX(-Math.PI / 2)
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false })
-    geometrias.push(geo)
-    materiales.push(mat)
-    const m = new THREE.Mesh(geo, mat)
-    m.renderOrder = 1
-    return m
-  }
-
-  function disco(textura: THREE.Texture, color: number, opacidad: number): THREE.Mesh {
-    const geo = new THREE.PlaneGeometry(2, 2)
-    geo.rotateX(-Math.PI / 2)
-    const mat = new THREE.MeshBasicMaterial({ map: textura, color, transparent: true, opacity: opacidad, depthWrite: false, blending: THREE.AdditiveBlending })
-    geometrias.push(geo)
-    materiales.push(mat)
-    const m = new THREE.Mesh(geo, mat)
-    m.renderOrder = 0
-    return m
-  }
+  const anillo = (interno: number, color: number, opacidad: number, segmentos = 96): THREE.Mesh =>
+    crearAnilloPlano(recursos, { interno, color, opacidad, segmentos })
+  const disco = (tex: THREE.Texture, color: number, opacidad: number): THREE.Mesh => crearDisco(recursos, tex, color, opacidad)
 
   function rotulo(texto: string, punto: string, alto = 0.2): THREE.Sprite {
     const { textura, aspecto } = texturaRotulo(texto, punto)
@@ -304,25 +226,10 @@ export const crearMovilidad: CrearJuego = () => {
   function crearCuentas(c: ContextoJuego) {
     const n = Math.min(MAX_CUENTAS, c.meta)
     if (n <= 0) return
-    const radio = n > 8 ? 0.07 : 0.08
-    const geo = new THREE.SphereGeometry(radio, 18, 12)
-    const mat = new THREE.MeshStandardMaterial({ color: NEUTRO, roughness: 0.35, metalness: 0.05 })
-    geometrias.push(geo)
-    materiales.push(mat)
-    cuentas = new THREE.InstancedMesh(geo, mat, n)
-    cuentas.castShadow = true
-    // Arco suave al fondo de la mesa, centrado.
-    const R = 4.2
-    const cz = 2.55
-    const abertura = Math.min(0.22, 0.04 * (n - 1))
-    posCuentas = Array.from({ length: n }, (_, i) => {
-      const th = n === 1 ? 0 : -abertura + (2 * abertura * i) / (n - 1)
-      return new THREE.Vector3(R * Math.sin(th), c.mesa.altura + radio, cz - R * Math.cos(th))
-    })
-    for (let i = 0; i < n; i++) {
-      popCuenta.push(0)
-      cuentas.setColorAt(i, new THREE.Color(COLOR_PENDIENTE))
-    }
+    const arco = crearArcoCuentas(recursos, n, c.mesa.altura, COLOR_PENDIENTE)
+    cuentas = arco.malla
+    posCuentas = arco.posiciones
+    for (let i = 0; i < n; i++) popCuenta.push(0)
     grupo.add(cuentas)
   }
 
@@ -472,17 +379,12 @@ export const crearMovilidad: CrearJuego = () => {
       const disp = disposicion(mano)
       c.configurarManos(disp.zona)
 
-      const tHalo = texturaHalo()
-      texturas.push(tHalo)
+      const tHalo = textura(recursos, texturaHalo([0.35, 0.45]))
 
       // Mano guía + halo + anillo y disco en la mesa.
-      guia = new ManoGuia(disp.guia, disp.ladoGuia)
-      geometrias.push(...guia.geometrias)
-      materiales.push(...guia.materiales)
+      guia = new ManoGuia(disp.guia, disp.ladoGuia, recursos)
       grupo.add(guia.grupo)
-      const matHalo = new THREE.SpriteMaterial({ map: tHalo, color: COLOR_GUIA, transparent: true, opacity: 0.38, depthWrite: false, blending: THREE.AdditiveBlending })
-      materiales.push(matHalo)
-      halo = new THREE.Sprite(matHalo)
+      halo = crearSprite(recursos, tHalo, { color: COLOR_GUIA, aditivo: true, opacidad: 0.38 }).s
       halo.renderOrder = 1
       grupo.add(halo)
       const yMesa = c.mesa.altura

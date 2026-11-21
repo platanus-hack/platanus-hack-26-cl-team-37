@@ -13,7 +13,8 @@
 // Eventos: nota_mostrada {dedo, posicion}, acierto {dedo, desfase, independencia}, dedo_equivocado {dedo, pedido, simultaneo},
 // nota_perdida {dedo}. El contador es notas resueltas / total (la meta del plan); sin meta, práctica libre.
 import * as THREE from 'three'
-import { NEUTRO } from '../shell/colores'
+import { crearGeoTecla, crearNotas, crearTeclado } from '../assets/piano/tecla'
+import type { Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -148,6 +149,7 @@ export const crearPiano: CrearJuego = () => {
   const materiales: THREE.Material[] = []
   const geometrias: THREE.BufferGeometry[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas }
   const diseno: Record<LadoMano, Diseno> = { derecha: disenoPorDefecto('derecha', 1), izquierda: disenoPorDefecto('izquierda', 1) }
   const teclas: Record<LadoMano, Record<Dedo, THREE.Mesh> | null> = { derecha: null, izquierda: null }
   const lineas: Partial<Record<LadoMano, THREE.Mesh>> = {}
@@ -224,36 +226,16 @@ export const crearPiano: CrearJuego = () => {
   }
 
   function crearTeclas(c: ContextoJuego) {
-    const geoTecla = new THREE.BoxGeometry(1, 1, 1)
-    geometrias.push(geoTecla)
+    const geoTecla = crearGeoTecla(recursos)
     for (const lado of lados) {
-      const por = {} as Record<Dedo, THREE.Mesh>
-      for (const f of DEDOS_PIANO) {
-        const mat = new THREE.MeshStandardMaterial({ color: COLOR_DEDO[f], emissive: COLOR_DEDO[f], emissiveIntensity: 0.12, roughness: 0.5 })
-        materiales.push(mat)
-        const m = new THREE.Mesh(geoTecla, mat)
-        m.castShadow = true
-        m.receiveShadow = true
-        grupo.add(m)
-        por[f] = m
-      }
+      const { teclas: por, linea } = crearTeclado(recursos, geoTecla, DEDOS_PIANO, COLOR_DEDO)
+      grupo.add(...DEDOS_PIANO.map((f) => por[f]), linea)
       teclas[lado] = por
-      const matLinea = new THREE.MeshBasicMaterial({ color: NEUTRO, transparent: true, opacity: 0.75, depthWrite: false })
-      materiales.push(matLinea)
-      const linea = new THREE.Mesh(geoTecla, matLinea)
       lineas[lado] = linea
-      grupo.add(linea)
     }
-    const geoNota = new THREE.BoxGeometry(ANCHO_TECLA, 0.14, 0.3)
-    geometrias.push(geoNota)
-    for (let i = 0; i < POOL_NOTAS; i++) {
-      const mat = new THREE.MeshStandardMaterial({ color: NEUTRO, emissive: NEUTRO, emissiveIntensity: 0.2, roughness: 0.4, transparent: true })
-      materiales.push(mat)
-      const malla = new THREE.Mesh(geoNota, mat)
-      malla.castShadow = true
-      malla.visible = false
-      grupo.add(malla)
-      notasMalla.push({ malla, mat })
+    for (const nota of crearNotas(recursos, ANCHO_TECLA, POOL_NOTAS)) {
+      grupo.add(nota.malla)
+      notasMalla.push(nota)
     }
     c.escena.add(grupo)
   }

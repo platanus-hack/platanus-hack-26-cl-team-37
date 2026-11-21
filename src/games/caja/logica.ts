@@ -8,8 +8,9 @@
 //   una sola cámara la profundidad y la altura son lo más difícil de controlar.
 // - Dentro de la caja: el juguete quieto con su centro dentro del interior (x, z), hasta 0,5 sobre el borde (apilado).
 import { kuwuNum } from '../../ui/paleta'
+import type { FormaPieza } from '../assets/piezas'
 
-export type Forma = 'cubo' | 'esfera' | 'cilindro' | 'capsula' | 'cono'
+export type Forma = FormaPieza
 
 export interface V3 {
   x: number

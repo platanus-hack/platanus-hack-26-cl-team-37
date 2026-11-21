@@ -6,7 +6,8 @@
 // 1) pixel ratio 1; 2) sombras de 512; 3) sin sombras. Nunca se vuelve a subir en la sesión (evita oscilar).
 import * as THREE from 'three'
 import { kuwuNum } from '../../ui/paleta'
-import { LUZ, NATURAL, NEUTRO, VETAS } from './colores'
+import { LUZ, NATURAL } from '../assets/colores'
+import { crearMesa, MEDIDAS_MESA } from '../assets/mesa'
 import type { MesaEscena } from './contrato'
 import { ManosVirtuales } from './manos3d'
 
@@ -16,31 +17,6 @@ const VENTANA_FPS_MS = 2000
 
 export const COLOR_FONDO = kuwuNum('noche')
 export const COLOR_MESA = NATURAL.madera
-
-/** Textura de vetas suaves para la mesa (lienzo de 256×256, se genera una vez). */
-function texturaMadera(): THREE.CanvasTexture | null {
-  if (typeof document === 'undefined') return null
-  const c = document.createElement('canvas')
-  c.width = c.height = 256
-  const g = c.getContext('2d')
-  if (!g) return null
-  g.fillStyle = VETAS.fondo
-  g.fillRect(0, 0, 256, 256)
-  for (let i = 0; i < 46; i++) {
-    const y = (i * 37) % 256
-    g.strokeStyle = i % 3 ? VETAS.oscura : VETAS.clara
-    g.lineWidth = 1 + (i % 4)
-    g.beginPath()
-    g.moveTo(0, y)
-    for (let x = 0; x <= 256; x += 32) g.lineTo(x, y + Math.sin((x + i * 13) / 40) * 3)
-    g.stroke()
-  }
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  t.wrapS = t.wrapT = THREE.RepeatWrapping
-  t.repeat.set(2.4, 1.6)
-  return t
-}
 
 export class EscenaBase {
   readonly renderer: THREE.WebGLRenderer
@@ -92,18 +68,9 @@ export class EscenaBase {
     s.far = 12
     this.escena.add(this.luz)
 
-    // Mesa: tablero con canto (la cara de arriba en y = 0).
-    const ancho = 5.4
-    const fondo = 3.3
-    const grosor = 0.16
-    const z = -0.25
-    const madera = texturaMadera()
-    const tablero = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho, grosor, fondo),
-      new THREE.MeshStandardMaterial({ color: madera ? NEUTRO : COLOR_MESA, map: madera, roughness: 0.82, metalness: 0 }),
-    )
-    tablero.position.set(0, -grosor / 2, z)
-    tablero.receiveShadow = true
+    // Mesa: tablero con canto (la cara de arriba en y = 0), en assets/mesa.ts.
+    const { ancho, fondo, z } = MEDIDAS_MESA
+    const tablero = crearMesa()
     this.escena.add(tablero)
     this.mesa = { ancho, fondo, altura: 0, z, objeto: tablero }
 

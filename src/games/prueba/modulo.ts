@@ -5,7 +5,7 @@
 //    se carga solo cuando el juego la declara. Su tercera métrica en vivo es la altura de la bola sobre la mesa.
 import * as THREE from 'three'
 import { kuwuNum } from '../../ui/paleta'
-import { tono } from '../shell/colores'
+import { tono } from '../assets/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, ModuloJuego, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 

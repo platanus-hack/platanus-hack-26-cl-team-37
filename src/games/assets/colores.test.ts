@@ -1,4 +1,4 @@
-// Los juegos toman sus colores de la paleta del brandbook: ningún archivo de src/games (salvo shell/colores.ts, que
+// Los juegos toman sus colores de la paleta del brandbook: ningún archivo de src/games (salvo assets/colores.ts, que
 // guarda la excepción de los objetos naturales) escribe colores a mano en hexadecimal o rgb().
 import { describe, expect, it } from 'vitest'
 import { KUWU } from '../../ui/paleta'
@@ -7,7 +7,7 @@ import { COLORES as COLORES_CAJA } from '../caja/logica'
 import { COLORES as COLORES_TORRE } from '../torre/logica'
 import { MANO, PASTELES, tono } from './colores'
 
-const FUENTES = import.meta.glob<string>(['/src/games/**/*.{ts,tsx}', '!/src/games/**/*.test.{ts,tsx}', '!/src/games/shell/colores.ts'], {
+const FUENTES = import.meta.glob<string>(['/src/games/**/*.{ts,tsx}', '!/src/games/**/*.test.{ts,tsx}', '!/src/games/assets/colores.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,

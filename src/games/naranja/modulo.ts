@@ -14,7 +14,12 @@
 // Decisión: el paso 1 pide la mano abierta; no se exige que esté justo sobre el vaso (la posición de la mano depende de
 // cómo se sostiene el teléfono), pero la zona de manos se acota para que quede siempre sobre el centro de la mesa.
 import * as THREE from 'three'
-import { NATURAL, NEUTRO } from '../shell/colores'
+import { NATURAL } from '../assets/colores'
+import { crearAnilloPlano } from '../assets/formas'
+import { crearFuente, crearGotas, crearMitades, crearNaranja3d, crearVaso } from '../assets/naranja/naranja'
+import { textura, type Recursos } from '../assets/recursos'
+import { crearSprite } from '../assets/sprites'
+import { texturaHalo } from '../assets/texturas'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
@@ -87,21 +92,6 @@ export interface EstadoNaranjaDepuracion {
   gotas: number
 }
 
-function texturaHalo(): THREE.Texture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
-  grad.addColorStop(0.4, kuwuAlfa('blanco', 0.45))
-  grad.addColorStop(1, kuwuAlfa('blanco', 0))
-  g.fillStyle = grad
-  g.fillRect(0, 0, 128, 128)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
 /**
  * Tarjeta de las dos barras (fija a la cámara, a la derecha). Se diseña en píxeles CSS y se coloca para que mida eso
  * mismo en pantalla (ver ubicarGuia), así la letra de 14-15 px se lee igual en un teléfono de 844x390.
@@ -138,6 +128,7 @@ export const crearNaranja: CrearJuego = () => {
   const geometrias: THREE.BufferGeometry[] = []
   const materiales: THREE.Material[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas }
   const tmp = new THREE.Vector3()
   let jugo: THREE.Mesh | null = null
   let superficie: THREE.Mesh | null = null
@@ -179,84 +170,30 @@ export const crearNaranja: CrearJuego = () => {
     return cierreDeApertura(m.aperturaCalibrada ?? Math.min(1, m.apertura))
   }
 
-  function material(color: number, extra: Partial<THREE.MeshStandardMaterialParameters> = {}): THREE.MeshStandardMaterial {
-    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.55, ...extra })
-    materiales.push(m)
-    return m
-  }
-  function geo<T extends THREE.BufferGeometry>(g: T): T {
-    geometrias.push(g)
-    return g
-  }
-
-  function crearNaranja3d(radio: number): THREE.Group {
-    const g = new THREE.Group()
-    const cuerpo = new THREE.Mesh(geo(new THREE.SphereGeometry(radio, 28, 20)), material(COLOR_NARANJA, { roughness: 0.5, emissive: NATURAL.naranjaBrillo, emissiveIntensity: 0.35 }))
-    cuerpo.castShadow = true
-    const hoja = new THREE.Mesh(geo(new THREE.SphereGeometry(radio * 0.3, 12, 8)), material(NATURAL.hoja, { roughness: 0.6 }))
-    hoja.scale.set(1.5, 0.35, 0.9)
-    hoja.position.set(radio * 0.18, radio * 0.97, 0)
-    hoja.rotation.z = -0.35
-    g.add(cuerpo, hoja)
-    g.userData.cuerpo = cuerpo
-    return g
-  }
-
   function construirEscena(c: ContextoJuego) {
     const y0 = c.mesa.altura
-    const tHalo = texturaHalo()
-    texturas.push(tHalo)
+    const tHalo = textura(recursos, texturaHalo([0.4, 0.45]))
 
-    // Vaso: jugo (sube con las repeticiones) dentro de un cilindro de vidrio.
-    const matJugo = material(NATURAL.jugo, { roughness: 0.35, transparent: true, opacity: 0.94, emissive: NATURAL.jugoBrillo, emissiveIntensity: 0.25 })
-    jugo = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.375, 0.345, 1, 32).translate(0, 0.5, 0)), matJugo)
-    jugo.position.set(VASO.x, y0 + JUGO_BASE, VASO.z)
-    jugo.renderOrder = 2
-    superficie = new THREE.Mesh(geo(new THREE.CircleGeometry(0.372, 32).rotateX(-Math.PI / 2)), material(NATURAL.pulpa, { roughness: 0.3, emissive: NATURAL.pulpaBrillo, emissiveIntensity: 0.3 }))
-    superficie.renderOrder = 2
-    const vidrio = new THREE.Mesh(
-      geo(new THREE.CylinderGeometry(0.44, 0.4, VASO_ALTO, 36, 1, true)),
-      material(NATURAL.vidrio, { roughness: 0.08, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
-    )
-    vidrio.position.set(VASO.x, y0 + VASO_ALTO / 2, VASO.z)
-    vidrio.renderOrder = 3
-    const fondo = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.4, 0.4, JUGO_BASE, 36)), material(NATURAL.vidrio, { roughness: 0.1, transparent: true, opacity: 0.45 }))
-    fondo.position.set(VASO.x, y0 + JUGO_BASE / 2, VASO.z)
-    const borde = new THREE.Mesh(geo(new THREE.TorusGeometry(0.44, 0.016, 8, 48).rotateX(Math.PI / 2)), material(NEUTRO, { transparent: true, opacity: 0.55, roughness: 0.2 }))
-    borde.position.set(VASO.x, y0 + VASO_ALTO, VASO.z)
-    borde.renderOrder = 3
+    // Vaso: jugo (sube con las repeticiones) dentro de un cilindro de vidrio (assets/naranja).
+    const vaso = crearVaso(recursos, { x: VASO.x, z: VASO.z, alto: VASO_ALTO, base: JUGO_BASE }, y0)
+    jugo = vaso.jugo
+    superficie = vaso.superficie
     // Anillo de la mesa bajo el vaso: late amarillo en el paso 1 ("abre la mano aquí") y onda al completar una repetición.
-    anilloVaso = new THREE.Mesh(geo(new THREE.RingGeometry(0.62, 0.7, 56).rotateX(-Math.PI / 2)), new THREE.MeshBasicMaterial({ color: COLOR_ACENTO, transparent: true, opacity: 0.8, depthWrite: false }))
-    materiales.push(anilloVaso.material as THREE.Material)
+    anilloVaso = crearAnilloPlano(recursos, { interno: 0.62, externo: 0.7, segmentos: 56, color: COLOR_ACENTO, opacidad: 0.8 })
     anilloVaso.position.set(VASO.x, y0 + 0.012, VASO.z)
-    anilloVaso.renderOrder = 1
-    onda = new THREE.Mesh(geo(new THREE.RingGeometry(0.9, 1, 64).rotateX(-Math.PI / 2)), new THREE.MeshBasicMaterial({ color: COLOR_OK, transparent: true, opacity: 0.8, depthWrite: false }))
-    materiales.push(onda.material as THREE.Material)
+    onda = crearAnilloPlano(recursos, { interno: 0.9, externo: 1, segmentos: 64, color: COLOR_OK, opacidad: 0.8 })
     onda.position.set(VASO.x, y0 + 0.02, VASO.z)
     onda.visible = false
-    onda.renderOrder = 1
-    for (const m of [vidrio, fondo, jugo]) m.castShadow = m === jugo ? false : true
-    grupo.add(jugo, superficie, fondo, vidrio, borde, anilloVaso, onda)
+    grupo.add(jugo, superficie, vaso.fondo, vaso.vidrio, vaso.borde, anilloVaso, onda)
 
     // Fuente con naranjas (izquierda).
-    const fuente = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.72, 0.58, 0.3, 40)), material(kuwuNum('crema'), { roughness: 0.7 }))
-    fuente.position.set(-1.9, y0 + 0.15, -0.6)
-    fuente.castShadow = fuente.receiveShadow = true
-    grupo.add(fuente)
-    for (const [dx, dy, dz] of [[-0.22, 0.5, 0.12], [0.24, 0.5, 0.08], [0.0, 0.5, -0.26], [0.02, 0.78, -0.02]] as const) {
-      const n = crearNaranja3d(0.3)
-      n.position.set(-1.9 + dx, y0 + dy, -0.6 + dz)
-      grupo.add(n)
-    }
+    grupo.add(crearFuente(recursos, -1.9, -0.6, y0))
 
     // Mitades exprimidas (derecha): aparecen de a una.
-    const geoMitad = geo(new THREE.SphereGeometry(0.3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2))
-    const matMitad = material(NATURAL.naranjaMitad, { roughness: 0.5 })
-    MITADES.forEach((m) => {
-      const h = new THREE.Mesh(geoMitad, matMitad)
+    crearMitades(recursos, MITADES.length).forEach((h, i) => {
+      const m = MITADES[i]
       h.position.set(m.x, y0, m.z)
       h.rotation.y = m.giro
-      h.castShadow = true
       h.scale.setScalar(0.001)
       h.visible = false
       mitades.push(h)
@@ -264,23 +201,16 @@ export const crearNaranja: CrearJuego = () => {
     })
 
     // Naranja en la mano: se achica y se oscurece con el cierre del puño.
-    naranja = crearNaranja3d(0.3)
+    naranja = crearNaranja3d(recursos, 0.3)
     cuerpoNaranja = naranja.userData.cuerpo as THREE.Mesh
     naranja.visible = false
-    const matHalo = new THREE.SpriteMaterial({ map: tHalo, color: COLOR_ACENTO, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending })
-    materiales.push(matHalo)
-    halo = new THREE.Sprite(matHalo)
+    halo = crearSprite(recursos, tHalo, { color: COLOR_ACENTO, aditivo: true, opacidad: 0.4 }).s
     halo.scale.set(1.25, 1.25, 1)
     naranja.add(halo)
     grupo.add(naranja)
 
     // Gotas.
-    const geoGota = geo(new THREE.SphereGeometry(0.075, 12, 10))
-    const matGota = material(COLOR_NARANJA, { roughness: 0.3, emissive: NATURAL.jugoBrillo, emissiveIntensity: 0.5 })
-    for (let i = 0; i < MAX_GOTAS; i++) {
-      const mesh = new THREE.Mesh(geoGota, matGota)
-      mesh.visible = false
-      mesh.scale.set(0.8, 1.15, 0.8)
+    for (const mesh of crearGotas(recursos, MAX_GOTAS)) {
       gotas.push({ mesh, activa: false, t: 0, x0: 0, y0: 0, z0: 0 })
       grupo.add(mesh)
     }

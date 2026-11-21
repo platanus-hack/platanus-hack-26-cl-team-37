@@ -11,7 +11,7 @@
 // error {dedo tocado}, no_alcanzado {dedo, distanciaMinCm}. Con mano 'ambas' las secuencias se alternan entre
 // derecha e izquierda (la mano que corresponde lleva los anillos).
 import * as THREE from 'three'
-import { NEUTRO } from '../shell/colores'
+import { NEUTRO } from '../assets/colores'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -41,6 +41,9 @@ import {
   type Umbrales,
 } from './logica'
 import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
+import { textura, type Recursos } from '../assets/recursos'
+import { crearSprite } from '../assets/sprites'
+import { texturaAnillo, texturaHalo } from '../assets/texturas'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 
@@ -82,35 +85,6 @@ export interface EstadoPinzaDepuracion {
   noAlcanzados: number
 }
 
-function texturaAnillo(): THREE.Texture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  g.strokeStyle = KUWU.blanco
-  g.lineWidth = 9
-  g.beginPath()
-  g.arc(64, 64, 54, 0, Math.PI * 2)
-  g.stroke()
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
-function texturaHalo(): THREE.Texture {
-  const c = document.createElement('canvas')
-  c.width = c.height = 128
-  const g = c.getContext('2d')!
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-  grad.addColorStop(0, kuwuAlfa('blanco', 0.95))
-  grad.addColorStop(0.45, kuwuAlfa('blanco', 0.5))
-  grad.addColorStop(1, kuwuAlfa('blanco', 0))
-  g.fillStyle = grad
-  g.fillRect(0, 0, 128, 128)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
 const COLORES_LUZ: Record<string, string> = { hecho: KUWU.menta, actual: KUWU.amarillo, perdido: KUWU['noche-texto-2'], pendiente: KUWU['noche-borde'] }
 
 export const crearPinza: CrearJuego = () => {
@@ -143,6 +117,7 @@ export const crearPinza: CrearJuego = () => {
   const luces = new THREE.Group()
   const materiales: THREE.Material[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias: [], texturas }
   interface VisualDedo {
     anillo: THREE.Sprite
     halo: THREE.Sprite
@@ -272,9 +247,7 @@ export const crearPinza: CrearJuego = () => {
   }
 
   function sprite(textura: THREE.Texture, color: number, aditivo = false): THREE.Sprite {
-    const mat = new THREE.SpriteMaterial({ map: textura, color, transparent: true, depthWrite: false, depthTest: false, blending: aditivo ? THREE.AdditiveBlending : THREE.NormalBlending })
-    materiales.push(mat)
-    const s = new THREE.Sprite(mat)
+    const { s } = crearSprite(recursos, textura, { color, aditivo, sobreTodo: true })
     s.renderOrder = aditivo ? 4 : 5
     s.visible = false
     return s
@@ -405,9 +378,8 @@ export const crearPinza: CrearJuego = () => {
       // Mano grande y de frente: se acerca a la cámara, casi vertical y centrada en la mesa.
       c.configurarManos({ x: [-1.0, 1.0], y: [0.1, 0.5], z: [0.9, 0.3], escala: 9, inclinacionDeg: 10 })
 
-      const tAnillo = texturaAnillo()
-      const tHalo = texturaHalo()
-      texturas.push(tAnillo, tHalo)
+      const tAnillo = textura(recursos, texturaAnillo(9, 54))
+      const tHalo = textura(recursos, texturaHalo([0.45, 0.5]))
       for (const f of DEDOS_PINZA) {
         const v = { anillo: sprite(tAnillo, NEUTRO), halo: sprite(tHalo, COLOR_ACENTO, true) }
         visual[f] = v

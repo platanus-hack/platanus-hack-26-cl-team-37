@@ -1,5 +1,4 @@
-// Manos virtuales articuladas: cilindros por hueso + esferas por articulación (amarillas) y puntas (azules),
-// palma translúcida y antebrazo, armadas en cada cuadro desde los landmarks (docs: imagenes/06a_juego_agarre.png).
+// Manos virtuales del paciente: mapeo de los landmarks a la escena y una mano 3D por lado (modelo en assets/mano.ts).
 //
 // Mapeo a la escena (puro: puntosEnEscena, con pruebas):
 // - Posición: el centro de la palma en la imagen + la distancia estimada. Como un ESPEJO: la imagen cruda se
@@ -10,9 +9,9 @@
 //   escalados (`escala` unidades por metro) e inclinados `inclinacionDeg` hacia el fondo, para que una mano con
 //   los dedos hacia arriba frente al teléfono se vea "entrando" a la mesa como en la imagen de referencia.
 import * as THREE from 'three'
-import { MANO } from './colores'
+import { ESTILO_JUGADOR, ModeloMano, PALMA } from '../assets/mano'
 import type { LadoMano } from '../../domain/types'
-import { CONEXIONES, type P3 } from '../../metrics/geometria'
+import type { P3 } from '../../metrics/geometria'
 import type { ManoSeguida } from '../../tracking/tipos'
 
 export interface ZonaManos {
@@ -41,8 +40,7 @@ export const ZONA_BASE: ZonaManos = {
   inclinacionDeg: 68,
 }
 
-export const PALMA = [0, 5, 9, 13, 17]
-export const PUNTAS = [4, 8, 12, 16, 20]
+export { PALMA, PUNTAS } from '../assets/mano'
 
 type V3 = [number, number, number]
 
@@ -87,104 +85,32 @@ export function puntosEnEscena(mano: Pick<ManoSeguida, 'landmarks' | 'worldLandm
   })
 }
 
-// ── Malla ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Malla (el modelo está en assets/mano.ts) ─────────────────────────────────────────────────────
 
-const COLOR_HUESO = MANO.hueso
-const COLOR_ARTICULACION = MANO.articulacion
-const COLOR_PUNTA = MANO.punta
-const COLOR_ANTEBRAZO = MANO.antebrazo
-
-const ARRIBA = new THREE.Vector3(0, 1, 0)
-const tmpA = new THREE.Vector3()
-const tmpB = new THREE.Vector3()
-const tmpDir = new THREE.Vector3()
-const tmpQ = new THREE.Quaternion()
-const tmpM = new THREE.Matrix4()
-const tmpS = new THREE.Vector3()
-
-/** Una mano: 3 mallas instanciadas (huesos, articulaciones, puntas) + palma + antebrazo = 5 llamadas de dibujo. */
+/** Una mano del paciente: el modelo y si se vio en el último cuadro. */
 class ManoVirtual {
-  readonly grupo = new THREE.Group()
-  readonly puntos: THREE.Vector3[] = Array.from({ length: 21 }, () => new THREE.Vector3())
+  readonly modelo: ModeloMano
   visible = false
-  private huesos: THREE.InstancedMesh
-  private articulaciones: THREE.InstancedMesh
-  private puntas: THREE.InstancedMesh
-  private palma: THREE.Mesh
-  private antebrazo: THREE.Mesh
-  private posPalma: Float32Array
-  private readonly radio: number
-  private readonly indicesArticulacion = Array.from({ length: 21 }, (_, i) => i).filter((i) => !PUNTAS.includes(i))
 
   constructor(escala: number) {
-    const r = 0.0085 * escala
-    this.radio = r
-    const matHueso = new THREE.MeshStandardMaterial({ color: COLOR_HUESO, roughness: 0.45, metalness: 0.05 })
-    this.huesos = new THREE.InstancedMesh(new THREE.CylinderGeometry(r, r, 1, 10, 1, true), matHueso, CONEXIONES.length)
-    this.articulaciones = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(r * 1.45, 12, 10),
-      new THREE.MeshStandardMaterial({ color: COLOR_ARTICULACION, roughness: 0.4 }),
-      this.indicesArticulacion.length,
-    )
-    this.puntas = new THREE.InstancedMesh(new THREE.SphereGeometry(r * 1.55, 12, 10), new THREE.MeshStandardMaterial({ color: COLOR_PUNTA, roughness: 0.35 }), PUNTAS.length)
-    const geo = new THREE.BufferGeometry()
-    this.posPalma = new Float32Array(PALMA_ABANICO.length * 3)
-    geo.setAttribute('position', new THREE.BufferAttribute(this.posPalma, 3))
-    this.palma = new THREE.Mesh(
-      geo,
-      new THREE.MeshStandardMaterial({ color: MANO.palma, roughness: 0.6, transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
-    )
-    const radioBrazo = 0.026 * escala
-    const geoBrazo = new THREE.CapsuleGeometry(radioBrazo, 1, 6, 14)
-    this.antebrazo = new THREE.Mesh(geoBrazo, new THREE.MeshStandardMaterial({ color: COLOR_ANTEBRAZO, roughness: 0.5 }))
-    for (const m of [this.huesos, this.articulaciones, this.puntas, this.palma, this.antebrazo]) {
-      m.castShadow = true
-      m.frustumCulled = false
-      this.grupo.add(m)
-    }
-    this.grupo.visible = false
+    this.modelo = new ModeloMano(escala, ESTILO_JUGADOR)
+    this.modelo.grupo.visible = false
+  }
+
+  get grupo(): THREE.Group {
+    return this.modelo.grupo
+  }
+
+  get puntos(): THREE.Vector3[] {
+    return this.modelo.puntos
   }
 
   actualizar(p: V3[] | null) {
     this.visible = !!p
-    this.grupo.visible = !!p
-    if (!p) return
-    p.forEach((q, i) => this.puntos[i].set(q[0], q[1], q[2]))
-    CONEXIONES.forEach(([a, b], k) => {
-      tmpA.copy(this.puntos[a])
-      tmpB.copy(this.puntos[b])
-      tmpDir.subVectors(tmpB, tmpA)
-      const largo = tmpDir.length()
-      tmpQ.setFromUnitVectors(ARRIBA, tmpDir.normalize())
-      tmpM.compose(tmpA.add(tmpB).multiplyScalar(0.5), tmpQ, tmpS.set(1, largo, 1))
-      this.huesos.setMatrixAt(k, tmpM)
-    })
-    this.huesos.instanceMatrix.needsUpdate = true
-    tmpQ.identity()
-    tmpS.set(1, 1, 1)
-    this.indicesArticulacion.forEach((i, k) => this.articulaciones.setMatrixAt(k, tmpM.compose(this.puntos[i], tmpQ, tmpS)))
-    this.articulaciones.instanceMatrix.needsUpdate = true
-    PUNTAS.forEach((i, k) => this.puntas.setMatrixAt(k, tmpM.compose(this.puntos[i], tmpQ, tmpS)))
-    this.puntas.instanceMatrix.needsUpdate = true
-    // Palma: abanico de triángulos desde la muñeca.
-    PALMA_ABANICO.forEach((i, k) => this.posPalma.set([p[i][0], p[i][1], p[i][2]], k * 3))
-    const g = this.palma.geometry
-    g.attributes.position.needsUpdate = true
-    g.computeVertexNormals()
-    g.computeBoundingSphere()
-    // Antebrazo: desde la muñeca, en sentido contrario al dedo medio.
-    const muneca = this.puntos[0]
-    tmpDir.subVectors(muneca, this.puntos[9]).normalize()
-    const largoBrazo = muneca.distanceTo(this.puntos[9]) * 1.7
-    tmpA.copy(muneca).addScaledVector(tmpDir, largoBrazo / 2 + this.radio)
-    this.antebrazo.position.copy(tmpA)
-    this.antebrazo.quaternion.setFromUnitVectors(ARRIBA, tmpDir)
-    this.antebrazo.scale.set(1, largoBrazo, 1)
+    this.modelo.grupo.visible = !!p
+    if (p) this.modelo.poner(p)
   }
 }
-
-// Triángulos de la palma: (0,1,5), (0,5,9), (0,9,13), (0,13,17)
-const PALMA_ABANICO = [0, 1, 5, 0, 5, 9, 0, 9, 13, 0, 13, 17]
 
 export class ManosVirtuales {
   readonly grupo = new THREE.Group()
