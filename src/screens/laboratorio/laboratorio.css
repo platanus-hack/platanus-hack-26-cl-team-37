@@ -128,6 +128,15 @@
   .lab-pasos li { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; font-size: 13px; }
 }
 
+/* En teléfonos la lectura sobre el video se achica para no tapar la mano. */
+@media (max-width: 480px) {
+  .lab-hud { top: 10px; right: 10px; padding: 6px 10px 7px 12px; border-radius: 14px; }
+  .lab-hud b { font-size: 28px; }
+  .lab-hud span { font-size: 12px; }
+  .lab-hud .lab-hud-reps { margin-top: 2px; }
+  .lab-chips { top: 10px; left: 10px; right: 110px; }
+}
+
 @media (min-width: 560px) {
   .lab-dos { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
 }

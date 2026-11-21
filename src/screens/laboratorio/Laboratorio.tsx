@@ -502,7 +502,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
               <b>Largo.</b> La distancia entre los dos puntos de agarre se pasa a centímetros con el tamaño de cada mano, que está en el mismo plano que la banda. Así no depende del lente ni de la distancia al teléfono.
             </li>
             <li>
-              <b>Estiramiento.</b> Largo ÷ largo en reposo − 1. Es una razón: el tamaño real de tu mano se cancela.
+              <b>Estiramiento.</b> Largo ÷ largo en reposo − 1. Es una razón: el tamaño real de tu mano se cancela. El reposo se marca solo cuando la banda queda quieta 1,5 s, y se corrige si se marcó estirada.
             </li>
             <li>
               <b>Carga.</b> Se lee en la curva de la banda, que no es una recta: el primer cuarto de estiramiento ya da cerca del 40 % de la carga al doble de largo. Las tiras en paralelo suman.
