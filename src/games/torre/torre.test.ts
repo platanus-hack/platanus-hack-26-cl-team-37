@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { JUEGOS } from '../registry'
+import { crearTorre } from './modulo'
 import {
   BASE,
   MAX_PISOS,
@@ -7,6 +8,7 @@ import {
   REPOSO_MS,
   STD_MAX_CM,
   U_POR_CM,
+  alturaMinimaSostenido,
   alturaSilueta,
   aperturaAlTomar,
   desvioCm,
@@ -47,6 +49,21 @@ describe('niveles', () => {
     const j = JUEGOS.find((x) => x.id === 'torre-cubos')!
     expect(j.disponible).toBe(true)
     expect(j.niveles.map((n) => n.cantidad)).toEqual([3, 4, 5, 5, 6])
+  })
+  it('el texto de cada nivel es coherente: el nombre y el detalle dicen lo mismo del tamaño y de la cantidad', () => {
+    const tam = (t: string) => t.match(/medianos|grandes|pequeños/)?.[0]
+    for (const n of [1, 2, 3, 4, 5] as const) {
+      const v = NIVELES_TORRE[n]
+      expect(v.detalle).toContain(`${v.cubos} cubos ${tam(v.nombre)}`)
+    }
+    expect(NIVELES_TORRE[4].detalle).not.toContain('pequeños')
+  })
+  it('la meta del plan: con metaAgarres 0 es práctica libre (sin meta); con meta, los cubos del nivel', () => {
+    const { desdePlan } = crearTorre().meta
+    const p = { nivel: 3, duracionMin: 5, metaPinzaCm: 0 }
+    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(0)
+    expect(desdePlan({ ...p, metaAgarres: 5 })).toBe(5)
+    expect(desdePlan({ ...p, nivel: 5, metaAgarres: 1 })).toBe(6)
   })
   it('los textos no usan las palabras prohibidas', () => {
     const texto = JSON.stringify(NIVELES_TORRE).toLowerCase()
@@ -186,5 +203,32 @@ describe('posiciones iniciales y resumen', () => {
     const s = resumenTorre(registroVacio())
     expect(s.desvioMedio).toBeNull()
     expect(s.alturaMax).toBe(0)
+  })
+})
+
+describe('piso del cubo sostenido (no empujar la torre)', () => {
+  const lado = ladoUnidades(NIVELES_TORRE[1])
+  const mesa = 0
+  it('sobre la base el piso es la silueta: justo encima del último cubo colocado', () => {
+    for (const k of [0, 1, 2]) expect(alturaMinimaSostenido(BASE.x, BASE.z, k, lado, mesa)).toBeGreaterThanOrEqual(alturaSilueta(k, lado, mesa))
+    // con 2 cubos colocados no puede bajar más que el centro del tercer piso
+    expect(alturaMinimaSostenido(BASE.x + 0.05, BASE.z, 2, lado, mesa)).toBeCloseTo(alturaSilueta(2, lado, mesa), 5)
+  })
+  it('el piso sube con cada cubo colocado y respeta la altura de la mesa', () => {
+    const a = alturaMinimaSostenido(BASE.x, BASE.z, 1, lado, mesa)
+    const b = alturaMinimaSostenido(BASE.x, BASE.z, 2, lado, mesa)
+    expect(b - a).toBeCloseTo(lado, 5)
+    expect(alturaMinimaSostenido(BASE.x, BASE.z, 1, lado, 0.5) - a).toBeCloseTo(0.5, 5)
+  })
+  it('lejos de la base solo cuenta la mesa (no se ve afectado por la torre)', () => {
+    expect(alturaMinimaSostenido(BASE.x + 1.5, BASE.z, 3, lado, mesa)).toBeCloseTo(lado / 2 + 0.02, 5)
+  })
+  it('bajar el cubo hasta la torre y soltarlo da una posición sobre la silueta que cuenta como colocada', () => {
+    // La mano baja el cubo 0,3 por debajo de la silueta (dentro de la torre): el piso lo deja justo encima.
+    const k = 2
+    const y = Math.max(alturaSilueta(k, lado, mesa) - 0.3, alturaMinimaSostenido(BASE.x, BASE.z, k, lado, mesa))
+    const ev = evaluarColocacion({ x: BASE.x, y, z: BASE.z }, k, lado, NIVELES_TORRE[1].toleranciaCm, mesa)
+    expect(y).toBeGreaterThanOrEqual(alturaSilueta(k, lado, mesa))
+    expect(ev.valida).toBe(true)
   })
 })

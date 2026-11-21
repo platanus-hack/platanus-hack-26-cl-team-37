@@ -22,6 +22,7 @@ import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarr
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import { ZONA_BASE, type ZonaManos } from '../shell/manos3d'
 import {
+  alturaMinimaSostenido,
   BASE,
   COLORES,
   MS_MAX_ASENTAR,
@@ -115,6 +116,7 @@ export const crearTorre: CrearJuego = () => {
   const histPosicion: Record<LadoMano, MuestraMano[]> = { izquierda: [], derecha: [] }
   const registro = registroVacio()
   let caidaT: number | null = null
+  let completaT: number | null = null
   let avisoHasta = 0
   let aviso = ''
   let vivoDesvio: number | null = null
@@ -287,7 +289,9 @@ export const crearTorre: CrearJuego = () => {
     const j = s.cubo
     const t = c.ahora()
     // Al abrir los dedos el punto medio de la pinza se corre: el cubo se suelta donde estaba MS_ANTES_SOLTAR antes.
-    const donde = posicionAntes(s.rastro, t) ?? { x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z }
+    const antes = posicionAntes(s.rastro, t) ?? { x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z }
+    // Esa posición puede quedar dentro de la torre: nunca por debajo del piso (mesa / base / último cubo colocado).
+    const donde = { ...antes, y: Math.max(antes.y, alturaMinimaSostenido(antes.x, antes.z, colocados.length, lado, c.mesa.altura)) }
     j.sostenido.set(donde.x, donde.y, donde.z)
     j.desvio = desvioCm(donde)
     j.estab = estabilidad(histPosicion[l], t - MS_ANTES_SOLTAR)
@@ -358,6 +362,7 @@ export const crearTorre: CrearJuego = () => {
     }
     colocados.length = 0
     caidaT = null
+    completaT = null
     posicionarSilueta()
   }
 
@@ -395,20 +400,20 @@ export const crearTorre: CrearJuego = () => {
     gestos: ['Precisión', 'Control'],
     miniatura: 'torre',
     niveles,
-    meta: { etiqueta: 'Altura', unidad: 'cubos', desdePlan: (p) => nivelTorre(p.nivel).cubos },
+    meta: { etiqueta: 'Altura', unidad: 'cubos', desdePlan: (p) => (p.metaAgarres > 0 ? nivelTorre(p.nivel).cubos : 0) },
     tiposEvento: ['tomar', 'agarre_inicio', 'agarre_fin', 'soltar', 'colocado', 'caida'],
     metricasVivo: [
-      { id: 'desvio', nombre: 'Desvío al soltar', unidad: 'cm', formula: 'distancia horizontal entre el centro del cubo y el centro de la silueta al abrir la pinza', aprox: true },
+      { id: 'desvio', nombre: 'Desvío al soltar', unidad: 'cm', formula: 'distancia horizontal entre el centro del cubo y el centro de la silueta al abrir la pinza (cm de la escena, aprox.)', aprox: true },
       { id: 'apertura', nombre: 'Apertura de pinza', unidad: 'cm', formula: 'mayor distancia 4–8 (worldLandmarks × escala) en los 1,5 s antes de cerrar la pinza sobre el cubo', aprox: true },
-      { id: 'estabilidad', nombre: 'Estabilidad', unidad: '%', formula: '100 × (1 − variación del punto de pinza en el último segundo antes de soltar / 5 cm)', mejor: 'mayor' },
+      { id: 'estabilidad', nombre: 'Estabilidad', unidad: '%', formula: '100 × (1 − variación del punto de pinza en el último segundo antes de soltar / 5 cm de la escena, aprox.)', mejor: 'mayor' },
     ],
     metricasResumen: [
-      { id: 'desvioMedio', nombre: 'Desvío medio al soltar', unidad: 'cm', formula: 'promedio del desvío al soltar de los cubos colocados', aprox: true, mejor: 'menor', corto: 'Desvío al soltar' },
+      { id: 'desvioMedio', nombre: 'Desvío medio al soltar', unidad: 'cm', formula: 'promedio del desvío al soltar de los cubos colocados (cm de la escena, aprox.)', aprox: true, mejor: 'menor', corto: 'Desvío al soltar' },
       { id: 'aperturaPinza', nombre: 'Apertura de pinza al tomar', unidad: 'cm', formula: 'promedio de la apertura de pinza al tomar cada cubo', aprox: true, corto: 'Apertura de pinza' },
-      { id: 'estabilidad', nombre: 'Estabilidad', unidad: '%', formula: 'promedio de la estabilidad del último segundo antes de cada soltar (0–100)', mejor: 'mayor' },
+      { id: 'estabilidad', nombre: 'Estabilidad', unidad: '%', formula: 'promedio de la estabilidad del último segundo antes de cada soltar (0–100; la variación se mide en cm de la escena, aprox.)', mejor: 'mayor' },
       { id: 'alturaMax', nombre: 'Altura máxima', unidad: '', formula: 'mayor número de cubos colocados a la vez', mejor: 'mayor', tarjeta: true, corto: 'Altura máxima (cubos)' },
       { id: 'caidas', nombre: 'Caídas de la torre', unidad: '', formula: "eventos 'caida'", mejor: 'menor', tarjeta: true, corto: 'Caídas de la torre' },
-      ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `desvioCubo${n}`, nombre: `Desvío del cubo ${n}`, unidad: 'cm' as const, formula: `desvío al soltar del cubo del piso ${n} (el último colocado ahí)`, aprox: true, mejor: 'menor' as const, tarjeta: false })),
+      ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `desvioCubo${n}`, nombre: `Desvío del cubo ${n}`, unidad: 'cm' as const, formula: `desvío al soltar del cubo del piso ${n} (el último colocado ahí; cm de la escena, aprox.)`, aprox: true, mejor: 'menor' as const, tarjeta: false })),
     ],
     usaFisica: true,
     pista: 'Apila el cubo sobre la torre',
@@ -457,9 +462,10 @@ export const crearTorre: CrearJuego = () => {
         if (!s) continue
         const j = s.cubo
         pinza(l, tmp)
-        const sobreBase = Math.hypot(tmp.x - BASE.x, tmp.z - BASE.z) < BASE.radio + lado * 0.5
-        tmp.y = Math.max(tmp.y, c.mesa.altura + lado / 2 + 0.02 + (sobreBase ? BASE.grosor : 0))
+        // Piso: mesa, base y cubos ya colocados (el sostenido es cinemático y empujaría la torre al tocarla).
+        tmp.y = Math.max(tmp.y, alturaMinimaSostenido(tmp.x, tmp.z, colocados.length, lado, c.mesa.altura))
         j.sostenido.lerp(tmp, k)
+        j.sostenido.y = Math.max(j.sostenido.y, alturaMinimaSostenido(j.sostenido.x, j.sostenido.z, colocados.length, lado, c.mesa.altura))
         s.rastro.push({ t, x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z })
         while (s.rastro.length && s.rastro[0].t < t - 1000) s.rastro.shift()
         j.cuerpo.setNextKinematicTranslation({ x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z })
@@ -498,6 +504,14 @@ export const crearTorre: CrearJuego = () => {
         }
       }
       if (caidaT != null && t - caidaT >= MS_REARMAR) reconstruir('caida')
+      // 5) Práctica libre (sin meta): al completar la torre se rearma sola; la sesión termina solo por tiempo.
+      if (c.meta <= 0 && caidaT == null && colocados.length >= nivel.cubos) {
+        completaT ??= t
+        if (t - completaT >= MS_REARMAR) {
+          mostrarAviso('¡Torre completa! La armamos de nuevo')
+          reconstruir('completa')
+        }
+      }
     },
 
     hud() {

@@ -32,7 +32,7 @@ export const NIVELES_TORRE: Record<1 | 2 | 3 | 4 | 5, NivelTorre> = {
   1: { nombre: 'Cubos grandes', detalle: 'Torre de 3 cubos grandes · tolerancia amplia', cubos: 3, ladoCm: 4.5, toleranciaCm: 2.0 },
   2: { nombre: 'Cubos grandes, torre más alta', detalle: 'Torre de 4 cubos grandes · tolerancia amplia', cubos: 4, ladoCm: 4.0, toleranciaCm: 1.7 },
   3: { nombre: 'Cubos medianos', detalle: 'Torre de 5 cubos medianos · tolerancia media', cubos: 5, ladoCm: 3.5, toleranciaCm: 1.4 },
-  4: { nombre: 'Cubos medianos, más precisión', detalle: 'Torre de 5 cubos pequeños · tolerancia ajustada', cubos: 5, ladoCm: 3.0, toleranciaCm: 1.2 },
+  4: { nombre: 'Cubos medianos, más precisión', detalle: 'Torre de 5 cubos medianos · tolerancia ajustada', cubos: 5, ladoCm: 3.0, toleranciaCm: 1.2 },
   5: { nombre: 'Cubos pequeños', detalle: 'Torre de 6 cubos pequeños · tolerancia estrecha', cubos: 6, ladoCm: 2.6, toleranciaCm: 1.0 },
 }
 
@@ -73,6 +73,22 @@ export const ladoUnidades = (n: NivelTorre) => n.ladoCm * U_POR_CM
 /** Altura (centro) de la silueta del piso `k` (0 = el de abajo), con la cara de arriba de la mesa en `alturaMesa`. */
 export function alturaSilueta(k: number, lado: number, alturaMesa = 0): number {
   return alturaMesa + BASE.grosor + (k + 0.5) * lado
+}
+
+/** ¿El punto (x, z) está sobre la base redonda (donde se arma la torre)? */
+export function sobreLaBase(x: number, z: number, lado: number, base = BASE): boolean {
+  return Math.hypot(x - base.x, z - base.z) < base.radio + lado * 0.5
+}
+
+/**
+ * Altura mínima del centro de un cubo SOSTENIDO (cinemático: para Rapier tiene masa infinita y empujaría lo que toque).
+ * Nunca se hunde en la mesa; sobre la base tampoco en la base ni en los `colocados` ya apilados: el piso es la altura de la
+ * silueta (cubo justo encima del último). Se aplica al seguir la mano y a la posición con que se suelta.
+ */
+export function alturaMinimaSostenido(x: number, z: number, colocados: number, lado: number, alturaMesa = 0, base = BASE): number {
+  const sobre = sobreLaBase(x, z, lado, base)
+  const mesa = alturaMesa + lado / 2 + 0.02 + (sobre ? base.grosor : 0)
+  return sobre ? Math.max(mesa, alturaSilueta(colocados, lado, alturaMesa)) : mesa
 }
 
 /** Desvío horizontal (cm) entre el centro del cubo y el eje de la silueta/torre. */

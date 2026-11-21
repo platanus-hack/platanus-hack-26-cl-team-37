@@ -4,7 +4,9 @@
 // - Sesión REAL, nivel 1 (torre de 3), mano DERECHA y mano IZQUIERDA (dos pruebas): contador exacto, "¡Meta cumplida! 3/3",
 //   eventos tomar/agarre_inicio/agarre_fin/soltar/colocado, desvío de cada cubo en metricas.juego (desvioCubo1..3) y en
 //   los eventos, y /sensacion. La de la derecha mide el fps. Con CAPTURA_TORRE=1 guarda docs/capturas/torre.png y torre-meta.png.
-// - Sesión falsa: un cubo se barre contra la torre a la altura del piso 1 → `caida`, la torre se rearma sola y la sesión sigue.
+// - Sesión falsa: bajar el cubo hasta meterlo en la torre y soltarlo no la derriba (piso de altura del cubo sostenido y al soltar).
+// - Sesión falsa, práctica libre (meta 0): al completar la torre se rearma sola, sin "Meta cumplida"; Reiniciar también rearma.
+//   (La caída se cubre con las pruebas unitarias de `torreCaida`: ya no hay forma de empujar la torre con el cubo sostenido.)
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
 import { HORIZONTAL, ID_FALSO, crearSesion, esperarFase, juego, limpiar, parametros, sesionFalsa, type Ventana } from './juegos.ts'
@@ -219,7 +221,7 @@ test.describe('Torre de cubos', () => {
     await torreCompleta(page, 'izquierda', info)
   })
 
-  test('si la torre cae se rearma la torre (no la sesión) y se anota caida; Reiniciar también rearma', async ({ page }) => {
+  test('bajar el cubo hasta la torre (hasta meterlo en ella) y soltarlo no la derriba: cuenta como colocado', async ({ page }) => {
     test.setTimeout(150_000)
     const escrituras = await sesionFalsa(page, 'torre-cubos', 5, 0, 1)
     await page.setViewportSize(HORIZONTAL)
@@ -233,26 +235,68 @@ test.describe('Torre de cubos', () => {
     const [a, b] = (await estadoTorre(page)).cubos
     await apilar(page, mano, a.id)
     await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(1)
+    const antes = (await estadoTorre(page)).cubos.find((c) => c.id === a.id)!
 
-    // El segundo cubo se lleva por el costado a la altura del primero y empuja la torre.
+    // Segundo cubo: se lleva sobre la silueta y se BAJA la mano hasta 0,3 por debajo de ella (dentro de la torre).
     const e = await estadoTorre(page)
     const cb = e.cubos.find((c) => c.id === b.id)!
     await mano.ir(cb.x, cb.z, cb.y + e.lado / 2 + 0.1)
     await mano.pinzar()
     await expect.poll(async () => (await estadoTorre(page)).cubos.find((c) => c.id === b.id)!.estado, { timeout: 2_000 }).toBe('tomado')
-    await mano.apuntar({ y: 1.0 }, 400, 0.1)
-    await mano.apuntar({ x: e.base.x + 1.1, z: e.base.z, y: 1.0 }, 600, 0.1)
-    await mano.apuntar({ x: e.base.x + 1.1, z: e.base.z, y: e.base.grosor + e.lado / 2 }, 500, 0.06)
-    await mano.apuntar({ x: e.base.x - 0.2, z: e.base.z, y: e.base.grosor + e.lado / 2 }, 1_200, 0.06)
-    await expect.poll(async () => (await estadoTorre(page)).caidas, { timeout: 4_000 }).toBe(1)
+    const s = e.silueta!
+    await mano.ir(s.x, s.z, s.y + 0.12)
+    await mano.apuntar({ y: s.y - 0.3 }, 500, 0.06)
+    // Con la mano dentro de la torre: el cubo se queda justo encima del último cubo, y la torre no se mueve.
+    await mano.mover({}, 700, 0)
+    const dentro = await estadoTorre(page)
+    expect(dentro.punta.derecha!.y).toBeLessThan(s.y - 0.1)
+    const sostenido = dentro.cubos.find((c) => c.id === b.id)!
+    expect(sostenido.estado).toBe('tomado')
+    expect(sostenido.y).toBeGreaterThanOrEqual(s.y - 0.01)
+    expect(dentro.caidas).toBe(0)
+    const colocadoA = dentro.cubos.find((c) => c.id === a.id)!
+    expect(Math.hypot(colocadoA.x - antes.x, colocadoA.y - antes.y, colocadoA.z - antes.z)).toBeLessThan(0.02)
+    // Se suelta ahí mismo (el cubo vuelve a donde estaba 150 ms antes: no debe quedar dentro de la torre).
     await mano.abrir()
-    await expect(page.getByTestId('pista')).toContainText('Se cayó la torre')
+    await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(2)
+    const fin = await estadoTorre(page)
+    expect(fin.caidas).toBe(0)
+    expect(fin.cubos.filter((c) => c.estado === 'colocado').map((c) => c.id).sort()).toEqual([a.id, b.id].sort())
+    expect(fin.cubos.find((c) => c.id === a.id)!.y).toBeGreaterThan(antes.y - 0.05)
+    await expect(page.getByTestId('pista')).not.toContainText('Se cayó la torre')
+    await page.getByRole('button', { name: 'Menú' }).click()
+    await page.getByRole('button', { name: 'Terminar sesión' }).click()
+    await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion\\?fuente=sintetica&guion=quieta$`), { timeout: 10_000 })
+    const eventos = escrituras.filter((x) => x.tabla === 'eventos_sesion').flatMap((x) => x.cuerpo as { tipo: string; datos: Record<string, unknown> | null }[])
+    expect(eventos.filter((x) => x.tipo === 'caida')).toHaveLength(0)
+    expect(eventos.filter((x) => x.tipo === 'colocado').map((x) => x.datos?.piso)).toEqual([1, 2])
+    v.sinErrores()
+  })
 
-    // La torre se rearma sola: contador 0, cubos en su lugar, la sesión sigue en juego.
-    await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(0)
+  test('práctica libre (sin meta): al completar la torre se rearma sola y la sesión sigue; Reiniciar también rearma', async ({ page }) => {
+    test.setTimeout(170_000)
+    // meta 0 = práctica libre: no termina por meta, solo por tiempo o a mano.
+    const escrituras = await sesionFalsa(page, 'torre-cubos', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    const v = vigilarErrores(page)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Torre de cubos' })).toBeVisible({ timeout: 15_000 })
+    const mano = new Mano(page, 'derecha')
+    await mano.mover({}, 100)
+    await esperarFase(page, 'jugando', 15_000)
+    expect((await estadoTorre(page)).meta).toBe(3)
+
+    for (let k = 1; k <= 3; k++) {
+      await apilar(page, mano, (await estadoTorre(page)).cubos.find((c) => c.estado === 'mesa')!.id)
+      if (k < 3) await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(k)
+    }
+    // Torre completa sin meta: no hay "¡Meta cumplida!", se rearma sola (contador 0, cubos en su lugar) y la sesión sigue.
+    await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
+    await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 8_000 }).toBe(0)
     await expect.poll(async () => (await estadoTorre(page)).cubos.every((c) => c.estado === 'mesa' && Math.hypot(c.x - c.inicio.x, c.z - c.inicio.z) < 0.05), { timeout: 4_000 }).toBe(true)
     expect((await juego(page))!.fase).toBe('jugando')
     expect((await estadoTorre(page)).silueta!.y).toBeLessThan(0.4) // otra vez el piso de abajo
+    await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
 
     // Se puede volver a jugar: un cubo vuelve a colocarse.
     await apilar(page, mano, (await estadoTorre(page)).cubos[0].id)
@@ -266,14 +310,12 @@ test.describe('Torre de cubos', () => {
     await page.getByRole('button', { name: 'Menú' }).click()
     await page.getByRole('button', { name: 'Terminar sesión' }).click()
     await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion\\?fuente=sintetica&guion=quieta$`), { timeout: 10_000 })
-    const final = escrituras.filter((x) => x.tabla === 'sesiones' && x.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: { motivoFin: string; juego: Record<string, number | null> } }
+    const final = escrituras.filter((x) => x.tabla === 'sesiones' && x.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: { motivoFin: string; metaCumplida: boolean; juego: Record<string, number | null> } }
     expect(final.metricas.motivoFin).toBe('manual')
-    expect(final.metricas.juego).toMatchObject({ caidas: 1, alturaMax: 1 })
-    expect(final.metricas.juego.desvioCubo1).not.toBeNull()
+    expect(final.metricas.juego).toMatchObject({ caidas: 0, alturaMax: 3 })
     const eventos = escrituras.filter((x) => x.tabla === 'eventos_sesion').flatMap((x) => x.cuerpo as { tipo: string; datos: Record<string, unknown> | null }[])
-    expect(eventos.filter((x) => x.tipo === 'caida')).toHaveLength(1)
-    expect(eventos.find((x) => x.tipo === 'caida')!.datos).toMatchObject({ alturaCubos: 1 })
-    expect(eventos.filter((x) => x.tipo === 'colocado').length).toBeGreaterThanOrEqual(2)
+    expect(eventos.filter((x) => x.tipo === 'caida')).toHaveLength(0)
+    expect(eventos.filter((x) => x.tipo === 'colocado').length).toBeGreaterThanOrEqual(4)
     v.sinErrores()
   })
 })
