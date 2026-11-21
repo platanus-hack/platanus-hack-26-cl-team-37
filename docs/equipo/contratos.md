@@ -73,7 +73,7 @@ juegos y sus pruebas en el mismo PR, y avisar a P3 antes. P3 puede proponer camb
    - Archivo nuevo en `supabase/migrations/`. **Nunca editar una migración ya aplicada.**
    - Solo **aditivas y compatibles**: tablas, columnas con valor por defecto, funciones nuevas. Nada de `drop`, `rename`, `alter … not null` sobre datos existentes ni cambios de políticas que den más acceso.
    - Numeración (para no chocar): **P1** `20261122100NNN_…`, **P2** `20261122200NNN_…`, **P3** `20261122300NNN_…`. Aplicar con `supabase db push --include-all`.
-   - Toda migración se menciona en el PR y la revisa otra persona (CODEOWNERS).
+   - Toda migración se menciona en el PR y la revisa otra persona.
    - Si abandonas un PR con una migración ya aplicada, avisa: la migración se queda igual en `main`.
 4. **Seguridad por filas (RLS):** no se relaja. Una tabla nueva trae sus políticas y su caso en `scripts/verificar-rls.ts`. `npm run verify:db` debe seguir en verde.
 5. Inmutabilidad: sesiones cerradas, auditoría y planes no se editan ni se borran desde código de la app. Hay una prueba estática (`src/domain/solo-agregar.test.ts`) que lo vigila.
@@ -108,13 +108,12 @@ rerun solo ese archivo con `--workers=1`. Si pasa, anótalo; no lo marques como 
 4. Medidas de cámara siempre como estimaciones.
 5. Las claves (`.env.local`, `.env.secrets`) nunca van al repositorio, a la CI en texto plano ni a los logs.
 
-## 7. Mapa de archivos y de quién son
+## 7. Mapa de archivos y quién lleva cada área
 
-**Fuente de verdad ejecutable: `docs/equipo/propiedad.json`.** `node scripts/dueno.mjs --puede <ruta>` dice si puedes editar un archivo;
-`node scripts/dueno.mjs --cambios` revisa todo tu PR (gana la regla de ruta más larga). Claude Code lo consulta solo y **se niega a editar lo de otro rol**
-(`CLAUDE.md`, PASO 0). Tu rol se guarda una vez en `.rol` (`--soy P2`); cambiarlo lo decide la coordinación. La tabla de abajo es el resumen legible.
+Este mapa es **orientativo**: dice a quién avisar y quién revisa mejor cada cosa. No hay bloqueo por dueño: cualquiera puede editar cualquier archivo en su PR
+(se quitaron `scripts/dueno.mjs`, `docs/equipo/propiedad.json` y el paso de la CI que los usaba).
 
-| Ruta | Dueño | Cómo se edita desde fuera |
+| Ruta | Quién lo lleva | Si lo cambias tú |
 |---|---|---|
 | `src/ui/`, `src/index.css`, `.github/`, `vercel.json`, `.vercelignore`, `playwright*.ts` | P1 | PR chico a P1 |
 | `.oxlintrc.json`, `.gitattributes`, `.editorconfig`, `tsconfig*.json`, `vite.config.ts` (lint, tipos, build) | P1 | PR chico a P1 |
@@ -133,7 +132,7 @@ rerun solo ese archivo con `--workers=1`. Si pasa, anótalo; no lo marques como 
 
 ## 8. Cómo pedir algo a otro rol
 
-Mensaje en el chat (y, si queda, issue en GitHub) con este formato corto:
+Pedirlo es opcional: también puedes hacer el cambio tú en tu PR y avisar. Si prefieres que lo haga quien lleva el área, mensaje en el chat (y, si queda, issue en GitHub) con este formato corto:
 
 ```
 Para: P2   De: P3   Urgencia: bloquea mi juego / puede esperar

@@ -1,9 +1,12 @@
 ## Qué cambia
 <!-- Una o dos frases. Funcionalidad (F__) o juego si corresponde. -->
+<!-- BASE DEL PR: dev (se despliega a https://manoviva-dev.vercel.app). A main solo llega dev → main (producción), o una rama hotfix/… en una emergencia. -->
+Closes #<!-- número del issue -->
+
 
 ## Rol y carpetas tocadas
 - [ ] P1 · P2 · P3 (marca el tuyo)
-- [ ] Solo toqué carpetas propias (o avisé al dueño: ver `docs/equipo/contratos.md` §7)
+- [ ] Si toqué algo del área de otro rol, le avisé (mapa orientativo: `docs/equipo/contratos.md` §7)
 - [ ] Si toqué un archivo compartido (registry, modulos, Miniatura, sintetica, repos, piezas): solo agregué, no cambié lo existente
 
 ## Verificación

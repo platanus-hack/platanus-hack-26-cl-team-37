@@ -23,20 +23,16 @@ dist-ssr
 *.sln
 *.sw?
 
-.env.local
-.env.secrets
-.env*.local
+# Claves y configuración local (.env.local, .env.secrets…)
+.env*
 supabase/.temp
 /test-results
 /playwright-report
 .vercel
-
-.vercel
-.env*
 .certs
 
 # La plantilla de variables (solo nombres, sin valores) sí se versiona
 !.env.example
 
-# Rol de esta persona en el equipo (scripts/dueno.mjs)
+# Archivo de rol de la regla de dueños, ya retirada (queda ignorado por si sigue en algún clon)
 .rol

@@ -179,8 +179,8 @@ function Contenido({ paciente, consentimiento, terapeuta, recargar }: { paciente
     <>
       <section className="priv-tarjeta" aria-label="Tu video no se guarda">
         <svg className="priv-escudo" viewBox="0 0 48 56" aria-hidden="true">
-          <path d="M24 2 4 9.5v17C4 39 12.5 49.5 24 54c11.5-4.5 20-15 20-27.5v-17z" fill="var(--exito)" />
-          <path d="M14.5 28.5 21.5 35.5 34 21" fill="none" stroke="#0f1720" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M24 2 4 9.5v17C4 39 12.5 49.5 24 54c11.5-4.5 20-15 20-27.5v-17z" fill="var(--amarillo)" />
+          <path d="M14.5 28.5 21.5 35.5 34 21" fill="none" stroke="var(--sobre-amarillo)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <div>
           <h2>Tu video no se guarda</h2>

@@ -1,0 +1,409 @@
+# CI/CD de ManoViva (F29, dueño P1). Spec: docs/equipo/flujo-git-ci.md §3 y §4.
+#
+# Flujo de ramas:   p1/… p2/… p3/…  ──PR──▶  dev  ──PR──▶  main
+#                                        (desarrollo)   (producción)
+#
+#   verificar         tipos, lint, unitarias y build (en paralelo). Sin claves. Siempre.
+#   rama-base         en PR hacia main: solo se acepta desde dev (o una rama hotfix/… en emergencias).
+#   vista-previa      deploy por PR en el proyecto de Vercel de desarrollo y comentario con la URL. Arranca junto con
+#                     verificar (no lo espera): el check del PR queda verde solo si verificar también pasa.
+#   desplegar-dev     al unir a dev: deploy a https://manoviva-dev.vercel.app (base de desarrollo). Tampoco espera a
+#                     verificar: desarrollo es donde se prueba y cada segundo cuenta en la hack.
+#   desplegar         al unir a main: deploy a https://manoviva-sigma.vercel.app (producción). Sí exige verificar.
+#   e2e, e2e-compartidas   Playwright contra la base de DESARROLLO. Ya NO corren solos (tardaban 5 a 10 min y no
+#                     frenaban nada): se lanzan a mano desde Actions → ci → Run workflow, o `gh workflow run ci --ref dev`.
+#                     Conviene correrlos antes de un PR dev → main.
+#
+# Sin secretos, los jobs que los necesitan se omiten (no fallan) y el resumen de la corrida dice qué falta.
+# Secretos (Settings → Secrets and variables → Actions, o `gh secret set NOMBRE`):
+#   Desarrollo: DEV_SUPABASE_URL, DEV_SUPABASE_ANON_KEY, DEV_SUPABASE_SERVICE_ROLE_KEY
+#   Vercel:     VERCEL_ORG_ID, VERCEL_TOKEN y VERCEL_PROJECT_ID (producción),
+#               VERCEL_DEV_TOKEN y VERCEL_DEV_PROJECT_ID (desarrollo; sin VERCEL_DEV_TOKEN usa VERCEL_TOKEN)
+# Las claves de Supabase de PRODUCCIÓN no van a GitHub: el build de producción usa las variables guardadas
+# en el proyecto de Vercel, igual que el deploy manual.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+  workflow_dispatch: # e2e a mano
+
+permissions:
+  contents: read
+
+env:
+  SITIO: https://manoviva-sigma.vercel.app
+  SITIO_DEV: https://manoviva-dev.vercel.app
+  # Proyecto de Supabase de producción que vercel.json permite en la CSP; los deploys de desarrollo lo cambian por el de desarrollo.
+  REF_PROD: iniposctftmzxkqasikh
+  VERCEL_CLI: 66.6.0
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Un push nuevo a la misma rama o PR cancela el verificar anterior (no toca la base).
+    concurrency:
+      group: verificar-${{ github.ref }}
+      cancel-in-progress: true
+    outputs:
+      supabase: ${{ steps.secretos.outputs.supabase }}
+      vercel: ${{ steps.secretos.outputs.vercel }}
+      vercel_dev: ${{ steps.secretos.outputs.vercel_dev }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+
+      # Los cuatro a la vez (el runner tiene 4 núcleos); si uno falla, su salida queda en el log y el paso falla.
+      - name: Tipos, lint, unitarias y build
+        run: |
+          set +e
+          npm run -s typecheck > "$RUNNER_TEMP/tipos.log" 2>&1 & T=$!
+          npm run -s lint > "$RUNNER_TEMP/lint.log" 2>&1 & L=$!
+          npm test --silent > "$RUNNER_TEMP/unitarias.log" 2>&1 & U=$!
+          npm run -s build > "$RUNNER_TEMP/build.log" 2>&1 & B=$!
+          fallo=0
+          for par in "tipos:$T" "lint:$L" "unitarias:$U" "build:$B"; do
+            nombre=${par%%:*}; wait "${par##*:}"; code=$?
+            echo "::group::$nombre ($([ $code = 0 ] && echo ok || echo FALLÓ))"; cat "$RUNNER_TEMP/$nombre.log"; echo "::endgroup::"
+            [ $code = 0 ] || { echo "::error::$nombre falló"; fallo=1; }
+          done
+          exit $fallo
+
+      # Solo dice si existen (true/false); nunca imprime valores.
+      - name: Secretos disponibles
+        id: secretos
+        env:
+          A: ${{ secrets.DEV_SUPABASE_URL }}
+          B: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          C: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          E: ${{ secrets.VERCEL_TOKEN }}
+          F: ${{ secrets.VERCEL_ORG_ID }}
+          G: ${{ secrets.VERCEL_PROJECT_ID }}
+          H: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
+          I: ${{ secrets.VERCEL_DEV_TOKEN || secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ]; then sb=true; else sb=false; fi
+          if [ -n "$E" ] && [ -n "$F" ] && [ -n "$G" ]; then vc=true; else vc=false; fi
+          if [ -n "$I" ] && [ -n "$F" ] && [ -n "$H" ] && [ $sb = true ]; then vd=true; else vd=false; fi
+          echo "supabase=$sb" >> "$GITHUB_OUTPUT"
+          echo "vercel=$vc" >> "$GITHUB_OUTPUT"
+          echo "vercel_dev=$vd" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Secretos"
+            echo "- Supabase de desarrollo (e2e): $([ $sb = true ] && echo 'listos' || echo 'faltan: e2e se omite')"
+            echo "- Vercel de desarrollo (vista previa y deploy a dev): $([ $vd = true ] && echo 'listos' || echo 'faltan: se omiten')"
+            echo "- Vercel de producción (deploy al unir a main): $([ $vc = true ] && echo 'listos' || echo 'faltan: deploy se omite')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rama-base:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: A main solo se llega desde dev
+        env:
+          RAMA: ${{ github.head_ref }}
+        run: |
+          case "$RAMA" in
+            dev|hotfix/*) echo "OK: $RAMA → main" ;;
+            *) echo "::error::Este PR va de '$RAMA' a main. Cámbiale la base a dev (Edit → base: dev). A main solo se llega desde dev, o desde una rama hotfix/… en una emergencia."; exit 1 ;;
+          esac
+
+  e2e:
+    needs: verificar
+    if: github.event_name == 'workflow_dispatch' && needs.verificar.outputs.supabase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Sin candado global: cada PR corre en paralelo (con un candado global, GitHub solo deja una corrida en espera
+    # y cancela las demás). Por eso aquí no van las pruebas del paciente de prueba compartido (e2e-compartidas).
+    concurrency:
+      group: e2e-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Caché del navegador de Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Archivos de entorno (desarrollo) desde secretos
+        env:
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          DEV_SERVICE: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$DEV_URL" "$DEV_ANON" > .env.local
+          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$DEV_URL" "$DEV_SERVICE" > .env.secrets
+
+      - name: Permisos, inmutabilidad y hashes de la base
+        run: npm run verify:db
+
+      - name: e2e (sin las del paciente de prueba)
+        run: |
+          mapfile -t SPECS < <(grep -L "'prueba'" e2e/*.spec.ts | grep -v offline)
+          echo "Pruebas: ${SPECS[*]}"
+          npx playwright test "${SPECS[@]}" --workers=1 --retries=1
+
+      - name: Guardar trazas si falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trazas-e2e
+          path: test-results/
+          retention-days: 7
+
+
+  e2e-compartidas:
+    needs: verificar
+    if: github.event_name == 'workflow_dispatch' && needs.verificar.outputs.supabase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Usan el paciente de prueba de la base de desarrollo: una corrida a la vez y nunca cortada a mitad (puede dejar
+    # datos sin limpiar). Si se acumulan pushes a dev, GitHub deja solo el más nuevo en espera, que es el que importa.
+    # Quien las corra en su computador usa el candado del chat (flujo-git-ci.md §6).
+    concurrency:
+      group: e2e-compartidas-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Caché del navegador de Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Archivos de entorno (desarrollo) desde secretos
+        env:
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          DEV_SERVICE: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$DEV_URL" "$DEV_ANON" > .env.local
+          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$DEV_URL" "$DEV_SERVICE" > .env.secrets
+
+      - name: e2e del paciente de prueba
+        run: |
+          mapfile -t SPECS < <(grep -l "'prueba'" e2e/*.spec.ts | grep -v offline)
+          echo "Pruebas: ${SPECS[*]}"
+          npx playwright test "${SPECS[@]}" --workers=1 --retries=1
+
+      - name: e2e sin conexión (build + preview)
+        run: npm run e2e:offline
+
+      - name: Guardar trazas si falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trazas-compartidas
+          path: test-results/
+          retention-days: 7
+
+
+  vista-previa:
+    # Los PR que vienen de un fork no reciben secretos: ahí no hay vista previa.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: vista-previa-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      # CLI de Vercel en versión fija y en caché: `npx vercel@latest` lo bajaba entero en cada deploy.
+      - name: Caché del CLI de Vercel
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-vercel-${{ env.VERCEL_CLI }}
+
+      - name: CSP con la base de desarrollo
+        env:
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+        run: |
+          REF_DEV=$(printf '%s' "$DEV_URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
+          grep -q "$REF_PROD" vercel.json || { echo "::error::vercel.json no tiene la ref de producción esperada ($REF_PROD)"; exit 1; }
+          sed -i "s/$REF_PROD/$REF_DEV/g" vercel.json
+
+      # Proyecto de Vercel de desarrollo, con la base de desarrollo: probar un PR nunca toca producción.
+      - name: Deploy de vista previa
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_DEV_TOKEN || secrets.VERCEL_TOKEN }}
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+        run: |
+          URL=$(npx --yes vercel@$VERCEL_CLI deploy --yes --token "$VERCEL_TOKEN" \
+            --build-env "VITE_SUPABASE_URL=$DEV_URL" --build-env "VITE_SUPABASE_ANON_KEY=$DEV_ANON")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Vista previa: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comentar la URL en el PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MARCA='<!-- vista-previa-manoviva -->'
+          CUERPO=$(printf '%s\n**Vista previa** de este PR (base de desarrollo): %s\n\nCommit `%s`. Se actualiza en cada push. Si pide entrar a Vercel, el proyecto tiene la protección de despliegues activada.' "$MARCA" "$URL" "${SHA:0:7}")
+          ID=$(gh api "repos/$REPO/issues/$PR/comments" --paginate -q ".[] | select(.body | contains(\"$MARCA\")) | .id" | tail -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$ID" -f body="$CUERPO" > /dev/null
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -f body="$CUERPO" > /dev/null
+          fi
+
+  desplegar-dev:
+    # Desarrollo es donde se prueba: se despliega en paralelo con verificar, sin esperarlo.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: desplegar-desarrollo
+      cancel-in-progress: false
+    environment:
+      name: desarrollo
+      url: ${{ env.SITIO_DEV }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      # CLI de Vercel en versión fija y en caché: `npx vercel@latest` lo bajaba entero en cada deploy.
+      - name: Caché del CLI de Vercel
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-vercel-${{ env.VERCEL_CLI }}
+
+      - name: CSP con la base de desarrollo
+        env:
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+        run: |
+          REF_DEV=$(printf '%s' "$DEV_URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
+          grep -q "$REF_PROD" vercel.json || { echo "::error::vercel.json no tiene la ref de producción esperada ($REF_PROD)"; exit 1; }
+          sed -i "s/$REF_PROD/$REF_DEV/g" vercel.json
+          echo "REF_DEV=$REF_DEV" >> "$GITHUB_ENV"
+
+      - name: Deploy a desarrollo
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_DEV_TOKEN || secrets.VERCEL_TOKEN }}
+          DEV_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_ANON: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+        run: |
+          URL=$(npx --yes vercel@$VERCEL_CLI deploy --prod --yes --token "$VERCEL_TOKEN" \
+            --build-env "VITE_SUPABASE_URL=$DEV_URL" --build-env "VITE_SUPABASE_ANON_KEY=$DEV_ANON")
+          echo "Deploy: $URL → $SITIO_DEV" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prueba de humo
+        run: |
+          for i in $(seq 1 10); do curl -fsS -o /dev/null "$SITIO_DEV/" && break; sleep 2; done
+          curl -fsS -o /dev/null "$SITIO_DEV/"
+          curl -fsS -o /dev/null "$SITIO_DEV/manifest.webmanifest"
+          curl -fsS -o /dev/null "$SITIO_DEV/mediapipe/hand_landmarker.task" -r 0-0
+          CSP=$(curl -fsSI "$SITIO_DEV/" | grep -i '^content-security-policy:' || true)
+          [ -n "$CSP" ] || { echo "Falta la cabecera Content-Security-Policy"; exit 1; }
+          printf '%s' "$CSP" | grep -q "$REF_DEV" || { echo "La CSP de desarrollo no permite la base de desarrollo"; exit 1; }
+          echo "Prueba de humo OK" >> "$GITHUB_STEP_SUMMARY"
+
+  desplegar:
+    needs: verificar
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.verificar.outputs.vercel == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: desplegar-produccion
+      cancel-in-progress: false
+    environment:
+      name: produccion
+      url: ${{ env.SITIO }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      # CLI de Vercel en versión fija y en caché: `npx vercel@latest` lo bajaba entero en cada deploy.
+      - name: Caché del CLI de Vercel
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-vercel-${{ env.VERCEL_CLI }}
+
+      # Build remoto en Vercel con las variables VITE_* guardadas en el proyecto (como el deploy manual).
+      - name: Deploy a producción
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL=$(npx --yes vercel@$VERCEL_CLI deploy --prod --yes --token "$VERCEL_TOKEN")
+          echo "Deploy: $URL → $SITIO" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prueba de humo
+        run: |
+          for i in $(seq 1 10); do curl -fsS -o /dev/null "$SITIO/" && break; sleep 2; done
+          curl -fsS -o /dev/null "$SITIO/"
+          curl -fsS -o /dev/null "$SITIO/manifest.webmanifest"
+          curl -fsS -o /dev/null "$SITIO/mediapipe/hand_landmarker.task" -r 0-0
+          CSP=$(curl -fsSI "$SITIO/" | grep -i '^content-security-policy:' || true)
+          [ -n "$CSP" ] || { echo "Falta la cabecera Content-Security-Policy"; exit 1; }
+          printf '%s' "$CSP" | grep -q "$REF_PROD" || { echo "La CSP de producción no permite la base de producción"; exit 1; }
+          echo "Prueba de humo OK" >> "$GITHUB_STEP_SUMMARY"
