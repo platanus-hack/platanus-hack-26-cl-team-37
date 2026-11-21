@@ -36,8 +36,10 @@ import {
   estabilidad,
   evaluarColocacion,
   ladoUnidades,
+  MS_ANTES_SOLTAR,
   nivelTorre,
   pasoReposo,
+  posicionAntes,
   posicionesCubos,
   registroVacio,
   resumenTorre,
@@ -108,7 +110,7 @@ export const crearTorre: CrearJuego = () => {
   let silueta: THREE.Group | null = null
   let cfg: ConfigAgarre = configDesdeCalibracion(null)
   const agarre: Record<LadoMano, EstadoAgarre> = { izquierda: { agarrando: false }, derecha: { agarrando: false } }
-  const sostiene: Partial<Record<LadoMano, { cubo: Cubo; inicioT: number }>> = {}
+  const sostiene: Partial<Record<LadoMano, { cubo: Cubo; inicioT: number; rastro: MuestraMano[] }>> = {}
   const histAperturas: Record<LadoMano, MuestraApertura[]> = { izquierda: [], derecha: [] }
   const histPosicion: Record<LadoMano, MuestraMano[]> = { izquierda: [], derecha: [] }
   const registro = registroVacio()
@@ -272,7 +274,7 @@ export const crearTorre: CrearJuego = () => {
       registro.aperturas.push(ap)
       vivoApertura = ap
     }
-    sostiene[l] = { cubo: j, inicioT: t }
+    sostiene[l] = { cubo: j, inicioT: t, rastro: [] }
     c.registrar('tomar', { mano: l, objeto: j.id, datos: { aperturaCm: ap } })
     c.registrar('agarre_inicio', { mano: l, objeto: j.id, datos: { aperturaCm: ap } })
   }
@@ -284,8 +286,11 @@ export const crearTorre: CrearJuego = () => {
     if (!s) return
     const j = s.cubo
     const t = c.ahora()
-    j.desvio = desvioCm(j.sostenido)
-    j.estab = estabilidad(histPosicion[l], t)
+    // Al abrir los dedos el punto medio de la pinza se corre: el cubo se suelta donde estaba MS_ANTES_SOLTAR antes.
+    const donde = posicionAntes(s.rastro, t) ?? { x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z }
+    j.sostenido.set(donde.x, donde.y, donde.z)
+    j.desvio = desvioCm(donde)
+    j.estab = estabilidad(histPosicion[l], t - MS_ANTES_SOLTAR)
     vivoDesvio = j.desvio
     if (j.estab != null) vivoEstab = j.estab
     if (j.estab != null) registro.estabilidades.push(j.estab)
@@ -455,6 +460,8 @@ export const crearTorre: CrearJuego = () => {
         const sobreBase = Math.hypot(tmp.x - BASE.x, tmp.z - BASE.z) < BASE.radio + lado * 0.5
         tmp.y = Math.max(tmp.y, c.mesa.altura + lado / 2 + 0.02 + (sobreBase ? BASE.grosor : 0))
         j.sostenido.lerp(tmp, k)
+        s.rastro.push({ t, x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z })
+        while (s.rastro.length && s.rastro[0].t < t - 1000) s.rastro.shift()
         j.cuerpo.setNextKinematicTranslation({ x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z })
       }
       // 3) Cubos soltados: esperar a que queden quietos 1 s (o un máximo) y decidir.

@@ -149,6 +149,20 @@ export function estabilidad(muestras: MuestraMano[], ahora: number, ventanaMs = 
   return Math.round(100 * (1 - Math.min(1, std / STD_MAX_CM)))
 }
 
+/** Cuánto antes de abrir la pinza se toma la posición del cubo: al abrir los dedos el punto medio se corre (ms). */
+export const MS_ANTES_SOLTAR = 150
+
+/** Posición del último rastro con t <= ahora - msAntes (o la más antigua si no hay tan atrás); null sin rastro. */
+export function posicionAntes(rastro: MuestraMano[], ahora: number, msAntes = MS_ANTES_SOLTAR): V3 | null {
+  if (!rastro.length) return null
+  let elegida = rastro[0]
+  for (const m of rastro) {
+    if (m.t <= ahora - msAntes) elegida = m
+    else break
+  }
+  return { x: elegida.x, y: elegida.y, z: elegida.z }
+}
+
 export interface MuestraApertura {
   t: number
   cm: number

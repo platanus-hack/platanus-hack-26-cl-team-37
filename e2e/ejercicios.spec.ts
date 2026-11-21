@@ -96,7 +96,7 @@ test.describe('catálogo de ejercicios', () => {
 
   test("'Próximamente' no navega; un juego disponible lleva a /sesion/:juego/preparar", async ({ page }) => {
     await page.goto('/ejercicios')
-    const torre = tarjeta(page, 'torre-cubos')
+    const torre = tarjeta(page, TODOS.find((x) => !DISPONIBLES.includes(x))!) // el primer juego aún no disponible
     await expect(torre).toHaveAttribute('aria-disabled', 'true')
     await expect(torre.locator('a')).toHaveCount(0)
     await torre.click()
