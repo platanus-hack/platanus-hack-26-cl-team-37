@@ -261,7 +261,7 @@ export class FuenteCamara extends FuenteBase {
     return manos.map((m) => {
       let f = this.filtros.get(m.lado)
       if (!f) {
-        f = { image: new FiltroMano(1.0, 0.02), world: new FiltroMano(1.0, 0.02) }
+        f = { image: new FiltroMano(1.0, 10), world: new FiltroMano(1.0, 15) }
         this.filtros.set(m.lado, f)
       }
       return { ...m, landmarks: f.image.filtrar(m.landmarks, t), worldLandmarks: f.world.filtrar(m.worldLandmarks, t) }

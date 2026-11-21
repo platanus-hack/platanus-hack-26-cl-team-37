@@ -1,13 +1,11 @@
-// Qué módulo de juego monta /sesion/:id/jugar según `sesion.juego`. Cada juego se carga con import() (su código,
-// y Rapier si lo usa, no entran al bundle de la app). Para agregar un juego (F10, F11, F22–F27):
-//   'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja),
-// y poner `disponible: true` en src/games/registry.ts al cerrar su feature.
+// Qué módulo de juego monta /sesion/:id/jugar según `sesion.juego`. Sale del registro: cada juego declara `crear` en
+// su src/games/<juego>/juego.ts (import() de su modulo.ts, que así no entra al bundle de la app). Agregar un juego
+// no toca este archivo.
+import { JUEGOS } from '../registry'
 import type { CrearJuego } from './contrato'
 
 export const MODULOS: Record<string, () => Promise<CrearJuego>> = {
-  'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja),
-  'movilidad-guiada': () => import('../movilidad/modulo').then((m) => m.crearMovilidad),
-  'pinza-fina': () => import('../pinza/modulo').then((m) => m.crearPinza),
+  ...Object.fromEntries(JUEGOS.flatMap((j) => (j.crear ? [[j.id, j.crear] as const] : []))),
   // Juegos de prueba de la base (F09): solo se llega con una sesión creada por e2e o scripts/crear-preparada.ts.
   'prueba-shell': () => import('../prueba/modulo').then((m) => m.crearPruebaShell),
   'prueba-fisica': () => import('../prueba/modulo').then((m) => m.crearPruebaFisica),

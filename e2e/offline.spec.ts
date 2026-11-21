@@ -14,7 +14,7 @@ type Ventana = {
   caches: { keys(): Promise<string[]>; open(n: string): Promise<{ keys(): Promise<{ url: string }[]> }> }
   navigator: { serviceWorker: { ready: Promise<unknown>; controller: unknown } }
   indexedDB: { open(n: string): { result: any; onerror: () => void; onsuccess: () => void } } // eslint-disable-line @typescript-eslint/no-explicit-any
-  document: { fonts: { check(f: string): boolean } }
+  document: { fonts: { check(f: string): boolean; load(f: string): Promise<unknown> } }
 }
 
 /** Espera a que el SW esté activo y controle la página (autoUpdate: skipWaiting + clientsClaim). */
@@ -92,7 +92,12 @@ test.describe('PWA: instalable y sin conexión', () => {
 
     // Fuentes propias: ningún origen externo (ni Google Fonts) y la tipografía carga.
     expect(salientes).toEqual([])
-    expect(await page.evaluate(() => (globalThis as unknown as Ventana).document.fonts.check('700 16px Poppins'))).toBe(true)
+    // Archivo (las cifras del sistema de diseño) se sirve desde la app y carga.
+    expect(await page.evaluate(async () => {
+      const d = (globalThis as unknown as Ventana).document
+      await d.fonts.load('300 16px "Archivo Variable"')
+      return d.fonts.check('300 16px "Archivo Variable"')
+    })).toBe(true)
   })
 
   test('sin conexión el paciente completa una sesión entera y al volver la red se sincroniza y se cierra', async ({ page, context }) => {

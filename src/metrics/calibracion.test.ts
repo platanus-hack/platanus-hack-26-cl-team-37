@@ -9,6 +9,7 @@ import {
   chequeoDistancia,
   chequeoLuz,
   elegirMano,
+  estadoPinza,
   medidasMano,
   numeroPaso,
   puntosDentro,
@@ -69,6 +70,55 @@ describe('pasos de la calibración', () => {
     expect(numeroPaso(e.paso)).toBe(3)
     // Lista es final.
     expect(avanzarCalibracion(e, muestra(t + 100, { mano: false }))).toBe(e)
+  })
+
+  describe('paso 3: pinza con dedos "suficientemente cerca"', () => {
+    // Llega al paso 3 y devuelve el estado y el reloj.
+    function enPinza(): [EstadoCalibracion, number] {
+      let e = correr([muestra(0), muestra(2000)])
+      let t = 2000
+      for (let i = 0; i < 3; i++) e = correr([muestra((t += 100), { apertura: 0.1 }), muestra((t += 100), { apertura: 1 })], e)
+      expect(e.paso).toBe('pinza')
+      return [e, t]
+    }
+
+    it('acepta puntas a 2,5 cm (dedos juntos de verdad: las puntas de MediaPipe no se superponen)', () => {
+      let [e, t] = enPinza()
+      e = correr([muestra((t += 100), { pinzaCm: 2.5 }), muestra((t += 200), { pinzaCm: 2.5 }), muestra((t += 250), { pinzaCm: 2.5 })], e)
+      expect(e.paso).toBe('lista')
+    })
+
+    it('acepta por proporción de la palma aunque la escala en cm venga inflada', () => {
+      let [e, t] = enPinza()
+      e = correr([muestra((t += 100), { pinzaCm: 4.5, pinzaRel: 0.3 }), muestra((t += 450), { pinzaCm: 4.5, pinzaRel: 0.3 })], e)
+      expect(e.paso).toBe('lista')
+    })
+
+    it('no acepta dedos separados (mano relajada)', () => {
+      let [e, t] = enPinza()
+      e = correr([muestra((t += 100), { pinzaCm: 6, pinzaRel: 0.7 }), muestra((t += 1000), { pinzaCm: 6, pinzaRel: 0.7 })], e)
+      expect(e.paso).toBe('pinza')
+      expect(e.desdePinza).toBeNull()
+    })
+
+    it('un cuadro con ruido (< 250 ms) no reinicia la cuenta; una separación larga sí', () => {
+      let [e, t] = enPinza()
+      e = correr([muestra((t += 100), { pinzaCm: 2 }), muestra((t += 150), { pinzaCm: 5 })], e)
+      expect(e.desdePinza).not.toBeNull()
+      e = avanzarCalibracion(e, muestra((t += 300), { pinzaCm: 2 }))
+      expect(e.paso).toBe('lista')
+
+      ;[e, t] = enPinza()
+      e = correr([muestra((t += 100), { pinzaCm: 2 }), muestra((t += 100), { pinzaCm: 5 }), muestra((t += 300), { pinzaCm: 5 })], e)
+      expect(e.desdePinza).toBeNull()
+    })
+
+    it('estadoPinza: junta / casi / lejos', () => {
+      expect(estadoPinza({ pinzaCm: 2.9 })).toBe('junta')
+      expect(estadoPinza({ pinzaCm: 9, pinzaRel: 0.34 })).toBe('junta')
+      expect(estadoPinza({ pinzaCm: 4.5 })).toBe('casi')
+      expect(estadoPinza({ pinzaCm: 9, pinzaRel: 0.9 })).toBe('lejos')
+    })
   })
 
   it('sin mano o fuera del marco no avanza ni acumula', () => {

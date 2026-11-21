@@ -6,3 +6,5 @@ dist
 .vercel
 *.test.ts
 docs
+# Variante del wasm de MediaPipe que la app nunca pide (forVisionTasks se llama sin useModule): 15 MB menos por deploy
+public/mediapipe/wasm/vision_wasm_module_internal.*

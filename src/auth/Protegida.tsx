@@ -26,7 +26,13 @@ export function SoloPublica() {
   const { usuario, cargando } = useAuth()
   if (cargando) return <PantallaCargando />
   if (usuario) return <Navigate to={inicioDe(usuario.rol)} replace />
-  return <Outlet />
+  // Mismo contenedor que las pantallas con sesión (.app, 520 px centrados): sin él, en computador /acceso se estiraba
+  // a todo el ancho de la ventana.
+  return (
+    <div className="app">
+      <Outlet />
+    </div>
+  )
 }
 
 /** "/" y rutas desconocidas: al inicio del rol o a /acceso. */

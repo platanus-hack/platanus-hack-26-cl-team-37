@@ -26,6 +26,7 @@ const Alertas = lazy(() => import('./screens/terapeuta/Alertas'))
 const Planes = lazy(() => import('./screens/terapeuta/Planes'))
 const Informes = lazy(() => import('./screens/terapeuta/Informes'))
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
+const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
 
 export default function App() {
   return (
@@ -79,6 +80,9 @@ export default function App() {
             <Route element={<Protegida roles={['paciente', 'terapeuta']} />}>
               <Route path="/depuracion" element={<Depuracion />} />
             </Route>
+
+            {/* Vista previa pública del ambiente 3D de la oficina */}
+            <Route path="/oficina-3d" element={<VistaOficina3D />} />
 
             <Route path="*" element={<AlInicio />} />
           </Routes>
