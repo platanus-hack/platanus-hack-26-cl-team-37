@@ -93,6 +93,13 @@ export interface MetricasSesion {
   duracionS: number
   fpsMedio: number
   metaCumplida: boolean
+  /** Métricas de resumen propias del juego (ModuloJuego.metricasResumen), por id. Sesiones desde F09. */
+  juego?: Record<string, number | null>
+  /** Contador del juego contra la meta (agarres, burbujas, cierres…) y la meta. Sesiones desde F09. */
+  contador?: number
+  meta?: number
+  /** Cómo terminó: por tiempo, por meta o a pedido del paciente. Sesiones desde F09. */
+  motivoFin?: 'tiempo' | 'meta' | 'manual'
 }
 
 export interface Muestras {
@@ -100,6 +107,8 @@ export interface Muestras {
   t: number[]
   apertura: (number | null)[]
   flexIndice: (number | null)[]
+  /** Señales propias de cada juego (ModuloJuego.muestra), alineadas con `t`. */
+  canales?: Record<string, (number | null)[]>
 }
 
 export interface Dispositivo {

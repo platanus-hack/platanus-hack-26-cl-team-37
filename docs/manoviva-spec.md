@@ -67,7 +67,8 @@ Tablas: `clinicas`, `perfiles` (Usuario), `pacientes`, `planes` (versionados), `
   declare eventos propios necesita una migración que amplíe ese `check`.**
 - Planes: nunca se editan. `crear_version_plan` crea la versión N+1 y escribe auditoría antes/después.
 - RPC disponibles: `verificar_acceso`, `crear_version_plan`, `actualizar_privacidad`, `marcar_mensaje_visto`,
-  `revisar_alerta`, `eliminar_mis_datos`, `siguiente_id_sesion`, `reset_demo` (solo service_role, solo datos demo).
+  `revisar_alerta`, `eliminar_mis_datos`, `siguiente_id_sesion`, `reset_demo` (solo service_role, solo datos demo),
+  `limpiar_sesiones_prueba(p_desde, p_ids)` (solo service_role: borra sesiones demo no cerradas de pruebas, F09).
 
 ## 5. Reglas invariantes
 
@@ -114,25 +115,42 @@ WebXR depth (no disponible con cámara frontal), MediaPipe Iris (es para la cara
 
 ## 7. Contrato de juego (J0, `src/games/shell/`)
 
+Contrato final (F09) en `src/games/shell/contrato.ts`. Cada juego vive en `src/games/<juego>/modulo.ts`, exporta una
+fábrica `crear(): ModuloJuego` y se registra en `src/games/shell/modulos.ts` (import diferido). Ejemplo mínimo:
+`src/games/prueba/modulo.ts` (`prueba-shell`, y `prueba-fisica` con Rapier).
+
 ```ts
 interface ModuloJuego {
   id: string; nombre: string; gestos: Gesto[]; miniatura: string
-  niveles: Record<1|2|3|4|5, ParametrosNivel>          // qué cambia en cada nivel
-  meta: { unidad: string; desdePlan: (item: PlanItem) => number }  // "12 agarres", "20 burbujas"
-  tiposEvento: string[]                                // deben existir en el check de eventos_sesion
-  metricasVivo: DefMetrica[]                           // hasta 3, la primera con minigráfico
-  metricasResumen: DefMetrica[]                        // nombre, unidad, fórmula, mejor = 'mayor'|'menor'
-  usaFisica: boolean
-  montar(ctx: ContextoJuego): void                     // escena three.js, física, registro, calibración
-  actualizar(manos: ManoSeguida[], dt: number): void
+  niveles: Record<1|2|3|4|5, ParametrosNivel>            // { nombre, detalle, ...lo propio del juego }
+  meta: { etiqueta: string; unidad: string; desdePlan: (p: PlanItem | ParametrosSesion) => number }  // 0 = sin meta
+  tiposEvento: TipoEvento[]                              // deben existir en el check de eventos_sesion
+  metricasVivo: DefMetrica[]                             // hasta 3, la primera con minigráfico
+  metricasResumen: DefMetrica[]                          // { id, nombre, unidad, formula, decimales?, aprox?, mejor? }
+  usaFisica: boolean                                     // true → la base carga Rapier y avanza el mundo a 60 Hz
+  pista: string; textoReiniciar?: string                 // panel izquierdo
+  montar(ctx: ContextoJuego): void | Promise<void>       // una vez por instancia
+  actualizar(manos: ManoSeguida[], dt: number): void     // cada cuadro, solo jugando (no en pausa)
+  hud(): { contador; vivo: Record<id, number|null>; manos?: { izquierda?, derecha?: { texto, tono } }; pista? }
+  reiniciar?(): void                                     // botón amarillo
+  muestra?(): Record<string, number | null>              // canales propios a 10 Hz → muestras.canales
+  resumen?(base: EntradaAgregados): Record<string, number | null>   // → metricas.juego
   desmontar(): void
 }
+// ContextoJuego: escena, camara, mesa {ancho, fondo, altura, z, objeto}, manos (ManosVirtuales: punto(lado, i),
+// palma(lado), visible(lado)), fisica {RAPIER, mundo} | null, sesion, parametros, nivel, meta, calibracion, escalaCm,
+// fuente, registrar(tipo, {mano, objeto, datos}), medidas(lado) → {aperturaPinzaCm, apertura, aperturaCalibrada,
+// flexion, muneca, distanciaCm} | null, manoPrincipal(), ahora() (ms de juego activo), configurarManos(zona).
 ```
 
 - La base común (`games/shell`) pone: canvas three.js con mesa, luces, cámara y manos virtuales; HUD (panel izquierdo,
   barra superior tiempo/contador/meta, métricas en vivo abajo a la izquierda, miniatura de cámara, botón "Menú");
-  ciclo de sesión (inicio, pausa manual, pausa automática si se pierde la mano > 2 s, término por tiempo o meta);
-  registro de eventos y muestras a 10 Hz; Wake Lock; aviso "Gira tu teléfono"; pixel ratio ≤ 1,5; fps en depuración.
+  ciclo de sesión (inicio al ver la mano, pausa manual con Menú, pausa automática si se pierde la mano > 2 s que se
+  reanuda sola, término por tiempo o meta con aviso "¡Meta cumplida!"); registro de eventos (`pausa`, `reanudar`,
+  `perdida_seguimiento` + los del juego) y muestras a 10 Hz; Wake Lock; aviso "Gira tu teléfono"; pixel ratio ≤ 1,5
+  con calidad adaptativa; fps con `?depuracion=1`.
+- Al terminar guarda `metricas` (agregados base + `juego`, `contador`, `meta`, `motivoFin`), `muestras` y `fin`; la
+  Sesion sigue 'en curso' y se va a `/sesion/:id/sensacion` conservando el query. El cierre con hash es de /resumen.
 - Resumen y progreso leen `metricasResumen` del juego, no asumen las de Caja de juguetes.
 
 ## 8. Juegos

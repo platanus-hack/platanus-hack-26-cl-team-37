@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F08 calibración (pantalla) → done (sin deploy: `deploy: false`).
+- Última sesión: 2026-11-21, F09 base común de juegos (J0) → done (sin deploy: `deploy: false`).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F09 — Base común de juegos en three.js (J0)** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F10 — Caja de juguetes con métricas (Prompt 6)** sobre la base (`node scripts/siguiente-feature.mjs`).
 
 ## Archivos clave (Files)
 
@@ -49,7 +49,7 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - "Comenzar" navega a `/sesion/<S-AAAAMMDD-NN>/calibrar` **conservando `?fuente=`**. La sesión queda `estado: 'preparada'`, `parametros` = `{ mano, nivel, duracionMin, metaAgarres, metaPinzaCm, prescritoPor }` y `planVersion`; `inicio`, `calibracion`, `versionApp`, `dispositivo`, `versionModelo` = null (los llenan F08+ con `repos.sesiones.actualizar`).
 - Sin consentimiento → `/privacidad` con `state.volver` (F18 debe volver ahí tras firmar).
 - Registro: `NivelJuego.detalle` (texto por nivel); los juegos nuevos deben definirlo. `nivelDe(juegoId, n)` da tamaño/cantidad/distancia del nivel para el juego.
-- e2e que crean sesiones: limpiar con `npx tsx scripts/limpiar-preparadas.ts <ISO desde>` (borra solo `preparada` de pacientes demo creadas desde esa fecha). Ver `e2e/preparar.spec.ts` (try/finally). F08 puede crear su sesión de prueba igual y limpiarla así — ojo: una sesión que pasó a `en curso` no la borra este script (ampliarlo o re-seed).
+- e2e que crean sesiones: limpiar con `npx tsx scripts/limpiar-preparadas.ts <ISO desde> <id>` (desde F09 borra 'preparada' y 'en curso' de pacientes demo, con sus eventos, vía la RPC `limpiar_sesiones_prueba`; **pasar siempre el id**: los e2e corren en paralelo y sin id se borran todas las de prueba desde esa fecha, también las de otra prueba en curso). Ver `e2e/shell.spec.ts` (`let id = ''` antes del try, `limpiar(desde, id)` en el finally).
 - Clases CSS nuevas (sección "preparar sesión"): `.preparar`, `.preparar-tarjeta`, `.preparar-valor`, `.niveles`, `.duracion`, `.boton-paso`, `.autor`, `.consejo`.
 
 ## Seguimiento de manos (F07, hecho) — `src/tracking/`
@@ -75,6 +75,26 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - Preset sintético `calibracion` = teléfono vertical (480×640, mano centrada) y `public/grabaciones/demo.json` regenerado igual. Para juegos horizontales usar otros presets o inyectar guion con `camara: { ancho: 640, alto: 480 }`.
 - e2e `e2e/calibrar.spec.ts`: sesión falsa con `page.route('**/rest/v1/sesiones?*')` (GET → `[fila]`; maybeSingle acepta arreglo) para probar estados sin escribir en la BD; permiso denegado = `getUserMedia` rechazado con `DOMException(…, 'NotAllowedError')` en `addInitScript`. En `e2e/` no hay tipos DOM: usar `globalThis as unknown as {...}`.
 
+## Base común de juegos (F09, hecho) — `src/games/shell/` · contrato en spec §7
+
+**Cómo agregar un juego (F10 Caja, F11 Movilidad, F22–F27):**
+1. `src/games/<juego>/modulo.ts` exporta `export const crearX: CrearJuego = () => ({ ...ModuloJuego })` (estado del juego en el cierre; una instancia por montaje, `montar` se llama una sola vez por instancia).
+2. Registrar en `src/games/shell/modulos.ts`: `'caja-juguetes': () => import('../caja/modulo').then((m) => m.crearCaja)`. Sin esto, /jugar muestra "<juego> todavía no está listo" (hoy Caja y Movilidad).
+3. `disponible: true` en `src/games/registry.ts` + `DISPONIBLES` de `e2e/ejercicios.spec.ts` al cerrar el feature.
+4. Eventos propios fuera de `agarre_inicio | agarre_fin | soltar | perdida_seguimiento | pausa | reanudar` → migración NUEVA que amplíe el check de `eventos_sesion` + agregar el tipo a `TipoEvento` (`src/domain/types.ts`). Caja (F10) y Movilidad (F11) no lo necesitan.
+
+**ModuloJuego** (`contrato.ts`): `id, nombre, gestos, miniatura, niveles: Record<1..5, { nombre, detalle, ...propios }>, meta: { etiqueta ('Agarres'), unidad ('agarres'), desdePlan(p) → número (0 = sin meta) }, tiposEvento, metricasVivo (≤ 3; la 1.ª con minigráfico), metricasResumen, usaFisica, pista, textoReiniciar?` y métodos `montar(ctx)` (puede ser async), `actualizar(manos, dt)` (cada cuadro, SOLO jugando; dt en s), `hud()` → `{ contador, vivo: { [idMetrica]: número|null }, manos?: { izquierda?|derecha?: { texto: 'Agarrando', tono: 'acento'|'ok'|'neutro' } }, pista? }` (la base lo llama cada 200 ms; `contador` decide la meta), `reiniciar?()` (botón amarillo), `muestra?()` → canales 10 Hz, `resumen?(base: EntradaAgregados)` → `metricas.juego`, `desmontar()`.
+- `DefMetrica = { id, nombre, unidad: ''|'cm'|'°'|'%'|'s'|'ms', formula, decimales?, aprox?, mejor? }`. Valores en la unidad mostrada (% = 0..100). `formatoMetrica(def, v)` da "2,1 cm", "68°", "86%".
+
+**ContextoJuego** (`ctx` en montar): `escena` (THREE.Scene), `camara`, `mesa = { ancho 5,4, fondo 3,3, altura 0 (cara de arriba), z −0,25, objeto }` (unidades ≈ 10 cm), `manos` (ManosVirtuales: `punto(lado, i)` → THREE.Vector3 del landmark i en la escena, `palma(lado)`, `visible(lado)`), `fisica` (`{ RAPIER, mundo, paso, avanzar, liberar }` o null; la base ya crea el piso de la mesa y avanza el mundo ANTES de `actualizar`), `sesion`, `parametros`, `nivel` (= `niveles[parametros.nivel]`), `meta`, `calibracion`, `escalaCm`, `fuente`, `registrar(tipo, { mano, objeto, datos })`, `medidas(lado)` → `{ aperturaPinzaCm, apertura (0..~1,2), aperturaCalibrada (0..1 con rangoAbrirCerrar de la calibración, o null), flexion {pulgar..menique} (MCP+PIP, grados), muneca {x,y} (imagen cruda), distanciaCm }` o null, `manoPrincipal()` (lado de la mano de la sesión visible), `ahora()` (ms de juego activo), `configurarManos(zonaParcial)` (dónde se mueven las manos virtuales: `ZONA_BASE` en `manos3d.ts`).
+
+**Lo que hace la base (no repetir en el juego):** HUD completo (`Hud.tsx`; estado de mano por defecto Abierta/Cerrada si `hud().manos` no trae ese lado; '—' sin mano), ciclo (`ciclo.ts`: esperando → jugando ⇄ pausa → terminada; pausa manual con Menú, en vertical, en segundo plano y sin mano > 2 s, que se reanuda sola), eventos `pausa{motivo}`/`reanudar`/`perdida_seguimiento`, muestras 10 Hz (apertura de pinza cm + flexión del índice de la mano principal + canales del juego), agregados base con `AcumuladorBase` (calidad del registro, apertura y flexión máx., suavidad SPARC de la muñeca por ventanas de 3 s, fps medio) → `metricas = { ...agregarSesion(base), metaCumplida, juego, contador, meta, motivoFin }`, guardado (`repos.sesiones.actualizar` con `metricas`, `muestras`, `fin`; estado sigue 'en curso') y navegación a `/sesion/:id/sensacion?<query>`. Aviso "🎉 ¡Meta cumplida! N/N" y fin 2,5 s después. Wake Lock, "Gira tu teléfono", pixel ratio ≤ 1,5 + calidad adaptativa, `?depuracion=1` muestra fps.
+- **Para F10 (Caja):** `agregarSesion` ya cuenta agarres desde eventos `agarre_inicio` + `soltar` con `datos.enCaja` (`contarAgarres`); con eso `metricas.agarres/precision/tiempoMedioAgarreS` salen solas si Caja anota así sus eventos. Suavidad por agarre (Prompt 6): calcularla con `suavidadSesion(segmentos)` (`src/metrics/suavidad.ts`) y devolverla como `suavidad` en `resumen()`: si `resumen` trae la clave `suavidad`, reemplaza a la de la base (ventanas de 3 s) en `metricas.suavidad`. Umbrales de pinza: `ctx.medidas(lado).aperturaPinzaCm` + `src/metrics/agarre.ts` (`pasoAgarre`). Objetos con Rapier: `ctx.fisica.RAPIER.RigidBodyDesc.dynamic()`, sincronizar mallas en `actualizar` (ver `src/games/prueba/modulo.ts`). Para tomar objetos con la mano conviene un cuerpo cinemático en la punta del pulgar/índice (`ctx.manos.punto(lado, 4|8)`).
+- **Para F11 (Movilidad):** `usaFisica: false`; contar ciclos con `ctx.medidas(lado).aperturaCalibrada` con histéresis como `prueba-shell` (cierre < 0,35, apertura > 0,7). Meta = repeticiones del nivel (`desdePlan: (p) => …`).
+- **e2e de juegos:** ver `e2e/shell.spec.ts`: `crearSesion(juego, duracionMin, meta)` (sesión real con el cliente demo, sin ingreso extra) + `limpiar(desde, id)`; o `sesionFalsa(page, juego)` (rutas de PostgREST simuladas, guarda los PATCH/POST). Estado del juego en `window.__manovivaJuego` (`fase, motivo, fps, calidad, pixelRatio, jugadoMs, contador, eventos, muestras, fisica, vivo`). Manos: `window.__manoviva.fuente.cargarGuion({ manos: [{ lado, poses: [{ t, x, y, apertura, pinzaCm, distanciaCm, ... }] }] })`, `fijarPose`, `ocultar`. Viewport horizontal `page.setViewportSize({ width: 844, height: 390 })` (el config usa 390×844 → "Gira tu teléfono").
+- Captura horizontal: `ID=$(npx tsx scripts/crear-preparada.ts caja-juguetes derecha 5 12)` → `npm run captura -- "/sesion/$ID/jugar?fuente=sintetica&guion=ambas" caja --horizontal --espera 3000` → `npx tsx scripts/limpiar-preparadas.ts <ISO desde> $ID`.
+- Clases CSS en `src/index.css` (sección "juego: base común"): `.juego`, `.juego-vista`, `.juego-caja` (paneles oscuros), `.juego-panel`, `.juego-barra`, `.juego-menu`, `.juego-metricas`, `.juego-camara`, `.juego-centro`, `.juego-pildora(.exito)`, `.juego-aviso`, `.juego-capa`, `.juego-dialogo`, `.juego-girar`.
+
 ## Cuidado con
 
 - Correr `bash init.sh` antes de nada. Si `npm install` borró los binarios nativos de Windows, init.sh los repone.
@@ -92,6 +112,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F09.
-3. Marcar F09 `in-progress` y seguir CLAUDE.md. La sesión llega a /jugar 'preparada' con `calibracion` e `inicio` llenos; F09 la pasa a 'en curso'. Si sus e2e dejan sesiones 'en curso', ampliar `scripts/limpiar-preparadas.ts` (hoy borra solo 'preparada') o re-seed.
-4. Notas para F09 (juegos): la pausa automática usa `fuente.ultimaDeteccion` (ms del reloj de la fuente, mismo que `cuadro.t`); los e2e de juegos manejan las manos con `window.__manoviva.fuente.cargarGuion(...)`; para un guion propio de juego (p. ej. "tomar y dejar en la caja") agregar un preset en `GUIONES_PRESET` o inyectarlo.
+2. `node scripts/siguiente-feature.mjs` → F10 (Caja de juguetes).
+3. Marcar F10 `in-progress` y seguir CLAUDE.md. Leer la sección "Base común de juegos" de arriba y `src/games/prueba/modulo.ts` como ejemplo. Caja = `src/games/caja/modulo.ts` + entrada en `modulos.ts`; mirar 06a/06b. Guion sintético de "tomar y dejar en la caja": agregar preset en `GUIONES_PRESET` (sintetica.ts) o inyectarlo con `cargarGuion`; recordar que la x de la imagen cruda va en espejo (x pequeña = derecha de la pantalla) y la altura en la imagen = altura sobre la mesa.

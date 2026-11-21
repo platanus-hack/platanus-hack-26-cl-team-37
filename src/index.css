@@ -340,3 +340,49 @@ a.tarjeta-juego:active { background: var(--tarjeta-2); }
 .calibrar-pasos { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; color: var(--texto-2); }
 .calibrar-pasos strong { color: var(--texto); }
 .calibrar a.boton { text-decoration: none; }
+
+/* ---------------------------------------------------------- juego: base común (F09, 06a_juego_agarre.png) */
+.app:has(> .juego) { max-width: none; height: 100dvh; }
+.juego { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 0%, #3a4957 0%, rgba(58, 73, 87, 0) 60%), linear-gradient(180deg, #34424f 0%, #2a3743 55%, #222d37 100%); user-select: none; -webkit-user-select: none; touch-action: none; }
+.juego-vista { position: absolute; inset: 0; --borde-juego: calc(10px + env(safe-area-inset-left, 0px)); --borde-juego-d: calc(10px + env(safe-area-inset-right, 0px)); }
+.juego-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.juego-caja { position: absolute; z-index: 2; background: rgba(15, 20, 26, 0.9); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28); color: var(--texto); }
+.juego-panel { top: 10px; left: var(--borde-juego); width: 206px; padding: 11px 14px 12px; display: flex; flex-direction: column; gap: 5px; }
+.juego-panel h1 { font-size: 17px; line-height: 1.2; margin-bottom: 2px; }
+.juego-mano { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--texto); }
+.juego-mano strong { font-family: var(--titulos); font-weight: 700; font-size: 14px; }
+.juego-mano .ok { color: var(--exito); }
+.juego-mano .acento { color: var(--acento); }
+.juego-mano .neutro { color: var(--texto-2); }
+.juego-pista { font-size: 14px; color: var(--texto); line-height: 1.3; }
+.juego-reiniciar.boton { min-height: 40px; margin-top: 4px; font-size: 14px; border-radius: 12px; }
+.juego-barra { top: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 8px 18px 9px; min-width: 270px; }
+.juego-barra > div { display: flex; flex-direction: column; }
+.juego-rotulo { font-size: 14px; color: var(--texto-2); line-height: 1.2; white-space: nowrap; }
+.juego-grande { font-family: var(--titulos); font-weight: 700; font-size: 22px; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.juego-separador { width: 1px; align-self: stretch; background: rgba(255, 255, 255, 0.12); }
+.juego-barra .juego-avance { flex: 1; min-width: 90px; justify-content: center; }
+.juego-avance .barra-progreso { height: 8px; }
+.juego-menu { top: 10px; right: var(--borde-juego-d); min-height: var(--toque); padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; font-family: var(--titulos); font-weight: 700; font-size: 16px; }
+.juego-menu:disabled { opacity: 0.5; }
+.juego-metricas { bottom: 10px; left: var(--borde-juego); display: flex; padding: 8px 4px; max-width: calc(100% - 210px); }
+.juego-metrica { display: flex; flex-direction: column; padding: 0 14px; }
+.juego-metrica + .juego-metrica { border-left: 1px solid rgba(255, 255, 255, 0.12); }
+.juego-metrica .fila { gap: 8px; }
+.juego-camara { bottom: 10px; right: var(--borde-juego-d); width: 172px; height: 112px; margin: 0; overflow: hidden; background: radial-gradient(circle at 80% 15%, rgba(150, 160, 160, 0.4), rgba(150, 160, 160, 0) 45%), linear-gradient(180deg, #2b3942, #151e26); }
+.juego-camara canvas, .juego-camara-video { position: absolute; inset: 0; width: 100%; height: 100%; }
+.juego-camara-video video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.juego-camara figcaption { position: absolute; top: 7px; left: 7px; font-family: var(--titulos); font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 8px; background: rgba(10, 14, 18, 0.85); }
+.juego-centro { position: absolute; z-index: 3; top: 84px; left: 50%; transform: translateX(-50%); width: min(420px, max(300px, calc(100% - 460px))); display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+.juego-centro > * { pointer-events: auto; }
+.juego-pildora { font-family: var(--titulos); font-weight: 700; font-size: 16px; line-height: 1.25; padding: 11px 22px; border-radius: 999px; background: rgba(15, 20, 26, 0.88); border: 1px solid var(--borde-fuerte); text-align: center; }
+.juego-pildora.exito { background: var(--exito); color: #062417; border-color: transparent; font-size: 20px; padding: 12px 28px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
+.juego-aviso { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 16px; background: rgba(15, 20, 26, 0.92); border: 1px solid rgba(255, 138, 92, 0.45); font-size: 15px; }
+.juego-aviso strong { font-family: var(--titulos); }
+.juego-centro .juego-dialogo, .juego-capa .juego-dialogo { position: relative; width: 100%; max-width: 340px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.juego-capa { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; background: rgba(6, 10, 14, 0.55); }
+.juego-depuracion { position: absolute; z-index: 3; right: var(--borde-juego-d); top: 66px; font-size: 12px; padding: 4px 10px; border-radius: 8px; background: rgba(10, 14, 18, 0.85); color: var(--exito); }
+.juego-girar { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: var(--fondo); }
+.juego-girar h2 { font-size: 24px; }
+.juego-girar p { max-width: 300px; }
+.juego-girar-icono { width: 88px; height: 88px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--acento-tenue); color: var(--acento); }

@@ -104,6 +104,7 @@ test.describe('preparar la sesión', () => {
     const d = await bd()
     const caja = d.plan.items.find((x) => x.juego === 'caja-juguetes')!
     const desde = new Date(Date.now() - 5_000).toISOString()
+    let id = '' // limpieza solo de esta sesión (los e2e corren en paralelo)
     try {
       const v = vigilarErrores(page)
       await page.goto('/sesion/caja-juguetes/preparar?fuente=sintetica')
@@ -115,7 +116,7 @@ test.describe('preparar la sesión', () => {
       await comenzar(page).click()
 
       await expect(page).toHaveURL(/\/sesion\/S-\d{8}-\d{2,}\/calibrar\?fuente=sintetica$/)
-      const id = new URL(page.url()).pathname.split('/')[2]
+      id = new URL(page.url()).pathname.split('/')[2]
       const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }).replaceAll('-', '')
       const hoyUtc = new Date().toISOString().slice(0, 10).replaceAll('-', '')
       expect([hoy, hoyUtc]).toContain(id.slice(2, 10))
@@ -138,7 +139,7 @@ test.describe('preparar la sesión', () => {
       expect(s.hash).toBeNull()
       v.sinErrores()
     } finally {
-      execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde}`, { stdio: 'inherit' })
+      execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde} ${id}`, { stdio: 'inherit' })
     }
   })
 

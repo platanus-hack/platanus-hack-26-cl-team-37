@@ -254,7 +254,7 @@
       "dependencies": [
         "F07"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Un juego de prueba mínimo se monta, recibe manos sintéticas, registra eventos y termina",
         "Pausa automática al quitar la mano > 2 s",
@@ -265,7 +265,7 @@
         "npm run e2e -- shell"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "npm run e2e -- shell 5/5: juego de prueba (sesión real) se monta con ?fuente=sintetica, pasa a en curso, no pausa a 1,2 s sin mano y sí antes de 3,2 s (pausa-auto, tiempo congelado), se reanuda sola, cuenta 3 cierres, muestra ¡Meta cumplida! y va a /sensacion conservando el query; BD: metricas (motivoFin meta, contador, juego.cierres, calidad), muestras 10 Hz (dt ≥ 90 ms, canales alineados) y eventos seq 1..N (perdida_seguimiento, pausa{motivo:sin-mano}, reanudar, agarre_inicio/fin); Rapier NO se pide. Pausa manual por Menú congela el tiempo y fin por tiempo (6 s, eventos pausa/reanudar). En vertical (390x844) Gira tu teléfono + fase pausa/orientacion con tiempo 0; al girar se juega. Terminar sesión desde el menú guarda motivoFin manual. prueba-fisica carga Rapier y la bola cae y se reinicia. fps escena base en Chromium headless (Playwright, 844x390, pixel ratio 1,5, sombras, calidad 0): 32,2 y 33,7 fps (≥ 24); en captura 47–57 fps. npm run e2e 66/66 · vitest 106/106 (14 nuevas del shell) · bash init.sh INIT OK (BD 15/15, 19 sesiones: las de prueba se limpian con limpiar_sesiones_prueba). Capturas docs/capturas/juego-base.png, juego-esperando.png (844x390) y juego-girar.png (390x844) comparadas con 06a y 00_seis_juegos_nuevos: mismo HUD (panel, tiempo/contador con barra, Menú, 3 métricas con minigráfico, miniatura MediaPipe Hands), mesa de madera, fondo azul grisáceo, manos blancas con articulaciones amarillas y puntas azules con sombra. Diferencias aceptadas: las manos se ven con la palma hacia el paciente (mapeo en espejo pedido) y no el dorso desde arriba como en 06a; sin objetos de Caja (F10)."
     },
     {
       "id": "F10",

@@ -57,12 +57,13 @@ test.describe('calibración', () => {
     const sb = await clienteComo('paciente')
     const { data: pac } = await sb.from('pacientes').select('id, largo_mano_cm').single()
     const desde = new Date(Date.now() - 5_000).toISOString()
+    let id = '' // limpieza solo de esta sesión (los e2e corren en paralelo)
     try {
       const v = vigilarErrores(page)
       await page.goto('/sesion/caja-juguetes/preparar?fuente=sintetica')
       await page.getByRole('button', { name: 'Comenzar' }).click()
       await expect(page).toHaveURL(/\/sesion\/S-\d{8}-\d{2,}\/calibrar\?fuente=sintetica$/)
-      const id = new URL(page.url()).pathname.split('/')[2]
+      id = new URL(page.url()).pathname.split('/')[2]
 
       await expect(page.getByRole('heading', { level: 1, name: 'Calibración' })).toBeVisible()
       await expect(page.getByTestId('fuente')).toContainText(/Mano simulada · \d+ fps/)
@@ -112,7 +113,7 @@ test.describe('calibración', () => {
       await expect(page.locator('body')).not.toContainText(/fuerza|presión/i)
       v.sinErrores()
     } finally {
-      execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde}`, { stdio: 'inherit' })
+      execSync(`npx tsx scripts/limpiar-preparadas.ts ${desde} ${id}`, { stdio: 'inherit' })
     }
   })
 

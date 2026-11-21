@@ -1,13 +1,16 @@
 // Crea una Sesion "preparada" para la paciente demo (Carmen) y escribe su id. Sirve para capturas y pruebas a mano
 // de /sesion/<id>/calibrar y /sesion/<id>/jugar sin pasar por /preparar.
-// Uso: npx tsx scripts/crear-preparada.ts [juego=caja-juguetes] [mano=derecha]
-// Limpieza: npx tsx scripts/limpiar-preparadas.ts <ISO desde>  (borra solo "preparada" de pacientes demo)
+// Uso: npx tsx scripts/crear-preparada.ts [juego=caja-juguetes] [mano=derecha] [duracionMin=5] [meta=0]
+//   p. ej. el juego de prueba de la base (F09): npx tsx scripts/crear-preparada.ts prueba-shell derecha 5 12
+// Limpieza: npx tsx scripts/limpiar-preparadas.ts <ISO desde>  (borra 'preparada' y 'en curso' de pacientes demo)
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
 
 const juego = process.argv[2] ?? 'caja-juguetes'
 const mano = process.argv[3] ?? 'derecha'
+const duracionMin = Number(process.argv[4] ?? 5)
+const meta = Number(process.argv[5] ?? 0)
 
 const env = Object.fromEntries(
   readFileSync(new URL('../.env.local', import.meta.url), 'utf8')
@@ -29,7 +32,7 @@ for (let intento = 0; intento < 4; intento++) {
     paciente_id: pac.data.id,
     juego,
     estado: 'preparada',
-    parametros: { mano, nivel: 1, duracionMin: 5, metaAgarres: 0, metaPinzaCm: 0, prescritoPor: null },
+    parametros: { mano, nivel: 1, duracionMin, metaAgarres: meta, metaPinzaCm: 0, prescritoPor: null },
   })
   if (!r.error) {
     console.log(id.data)

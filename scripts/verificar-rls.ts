@@ -73,6 +73,8 @@ async function main() {
   }
   const plan = await carmen.from('planes').insert({ paciente_id: pacientes[0].id, version: 99, sesiones_por_semana: 7, umbral_dolor: 9 })
   check('paciente no puede crear planes', !!plan.error)
+  const limpiar = await carmen.rpc('limpiar_sesiones_prueba', { p_desde: '2000-01-01T00:00:00Z', p_ids: null })
+  check('paciente no puede usar la limpieza de pruebas', !!limpiar.error)
 
   const diego = await login('terapeuta.demo@example.com')
   const pts = (await diego.from('pacientes').select('id')).data ?? []
