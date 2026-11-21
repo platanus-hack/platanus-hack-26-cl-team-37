@@ -52,6 +52,9 @@ describe('curva de la banda', () => {
     expect(cargaEn(conTiras(amarilla, 2), 1).kg).toBeCloseTo(2.34)
     // El envase de la Corength mide el lazo entero: una sola tira opone la mitad.
     expect(cargaEn(conTiras(CORENGTH_5KG, 1), 1).kg).toBeCloseTo(2.5)
+    // Un lazo doblado otra vez: 4 tiras, el cuádruple que una.
+    expect(cargaEn(conTiras(amarilla, 4), 1).kg).toBeCloseTo(4.68)
+    expect(cargaEn(conTiras(CORENGTH_5KG, 4), 0.5).kg).toBeCloseTo(cargaEn(CORENGTH_5KG, 0.5).kg * 2)
     expect(conTiras(amarilla, 1)).toBe(amarilla)
     expect(conTiras(amarilla, 0)).toBe(amarilla)
   })

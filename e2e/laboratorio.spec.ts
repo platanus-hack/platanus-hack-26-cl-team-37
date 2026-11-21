@@ -52,6 +52,9 @@ test('las tiras escalan la curva y la meta se marca en las repeticiones', async 
   // El envase mide el lazo entero (2 tiras): con una sola tira la misma curva da la mitad.
   await page.getByRole('group', { name: 'Tiras entre las manos' }).getByRole('button', { name: '1 tira' }).click()
   await expect(curva).toHaveAttribute('aria-label', /hasta 4,4 kilos/)
+  // La banda doblada otra vez (4 tiras): el doble que el lazo entero.
+  await page.getByRole('group', { name: 'Tiras entre las manos' }).getByRole('button', { name: '4 tiras' }).click()
+  await expect(curva).toHaveAttribute('aria-label', /hasta 17,5 kilos/)
 
   const subir = page.getByRole('button', { name: 'Subir la meta por repetición' })
   for (let i = 0; i < 4; i++) await subir.click()

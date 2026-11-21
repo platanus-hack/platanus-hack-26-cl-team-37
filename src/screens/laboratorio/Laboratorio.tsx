@@ -553,17 +553,17 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
             {base.fuente}
           </p>
           <CurvaMini curva={curva} estiramiento={e} />
-          <div className="lab-dos">
-            <div className="campo">
-              <span className="rotulo">Tiras entre las manos</span>
-              <Segmentos opciones={TIRAS} valor={tiras} onCambio={setTiras} etiqueta="Tiras entre las manos" />
-            </div>
-            <div className="campo">
-              <span className="rotulo">Cómo la tomas</span>
-              <Segmentos opciones={AGARRES} valor={agarre} onCambio={setAgarre} etiqueta="Cómo tomas la banda" />
-            </div>
+          <div className="campo">
+            <span className="rotulo">Tiras entre las manos</span>
+            <Segmentos opciones={TIRAS} valor={tiras} onCambio={setTiras} etiqueta="Tiras entre las manos" />
+            <p className="tenue chico">
+              Cuenta cuántas veces va la banda de una mano a la otra: un lazo tomado entero son 2 y doblado otra vez son 4. Cada tira se estira lo mismo y suma su carga.
+            </p>
           </div>
-          <p className="tenue chico">Un lazo tomado entero son 2 tiras: cada una suma su carga.</p>
+          <div className="campo">
+            <span className="rotulo">Cómo la tomas</span>
+            <Segmentos opciones={AGARRES} valor={agarre} onCambio={setAgarre} etiqueta="Cómo tomas la banda" />
+          </div>
           <div className="campo">
             <span className="rotulo">Cómo se mide el largo</span>
             <Segmentos opciones={MODOS} valor={modo} onCambio={setModo} etiqueta="Cómo se mide el largo" />

@@ -19,8 +19,13 @@ export function aCalibracion(p: PesosTexto): CalibracionPesos {
   return { reposoCm: aNumero(p.reposoCm), filas: p.filas.map((f) => ({ kg: aNumero(f.kg), largoCm: aNumero(f.largoCm) })), tiras: p.tiras ?? 2 }
 }
 
-/** Opciones de tiras de banda (las tiras en paralelo suman su carga). */
+/**
+ * Opciones de tiras de banda entre las manos. Las tiras en paralelo se estiran lo mismo y suman su carga: la misma banda
+ * doblada (2 tiras) opone el doble; un lazo doblado otra vez (4 tiras), el cuádruple.
+ */
 export const TIRAS = [
   { v: 1, n: '1 tira' },
   { v: 2, n: '2 tiras' },
+  { v: 3, n: '3 tiras' },
+  { v: 4, n: '4 tiras' },
 ]
