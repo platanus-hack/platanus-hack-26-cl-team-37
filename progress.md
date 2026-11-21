@@ -5,8 +5,8 @@ Registro de sesiones (solo agregar al final). Cada entrada: fecha, feature, qué
 ## Estado actual (Current State)
 
 - Last Updated: 2026-11-21
-- Hecho: F00 base, F01 harness, F02 esqueleto (rutas, sesión, roles, barras, e2e). Pantallas provisorias con título. El deploy sigue siendo la página provisoria de F00 (F02 no despliega).
-- Siguiente (Next): F03 acceso y roles. Ver `session-handoff.md`.
+- Hecho: F00 base, F01 harness, F02 esqueleto (rutas, sesión, roles, barras, e2e), F03 acceso y roles (/acceso real con Supabase Auth). El resto de las pantallas siguen provisorias. El deploy sigue siendo la página provisoria de F00.
+- Siguiente (Next): ver `node scripts/siguiente-feature.mjs` y `session-handoff.md`.
 
 ## Decisiones
 
@@ -28,6 +28,15 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - 2026-11-21 · (F02) Pantallas con `React.lazy` (salvo /acceso) para que three.js/MediaPipe de los juegos no carguen en el inicio.
 - 2026-11-21 · (F02) Perfil provisorio con "Cerrar sesión" para poder probar el ciclo de sesión antes de F19.
 - 2026-11-21 · (F02) Playwright levanta su propio vite en :5176 (5174 = dev, 5175 = captura). La sesión e2e se inyecta en localStorage `manoviva-auth` una vez por pestaña (sessionStorage como marca) para que "cerrar sesión" se pueda probar. vitest se limita a `src/**/*.test.ts`; `e2e/` y `playwright.config.ts` se tipan con tsconfig.node.json.
+- 2026-11-21 · (F03) Sin rol preseleccionado al abrir /acceso: el prompt pide "Ingresar" deshabilitado hasta tener rol y código; la imagen muestra el estado ya llenado. `?rol=paciente|terapeuta&codigo=CRM-0000` prellena el formulario (sirve como enlace de la clínica y para la captura `acceso-lleno`).
+- 2026-11-21 · (F03) "Tu terapeuta te entrega este código" va como ayuda bajo el campo de código (en la imagen está bajo Ingresar): con correo y contraseña en medio, bajo el botón ya no se entendería a qué código se refiere. Si hay error de formato, el error reemplaza esa ayuda.
+- 2026-11-21 · (F03) Código: se normaliza al escribir (mayúsculas, sin espacios, guion automático en "CRM4821", máx. 8). Error en vivo apenas lo escrito ya no puede ser CRM-0000; si queda incompleto, al salir del campo.
+- 2026-11-21 · (F03) "Entrar con cuenta demo" llena los campos y entra en un solo toque, con el rol elegido (sin rol → paciente: Carmen). Debajo, nota "La cuenta demo entra como … con datos ficticios".
+- 2026-11-21 · (F03) Aviso de datos ficticios en /acceso = la misma franja `BannerDemo` de las pantallas con sesión (arriba, siempre visible).
+- 2026-11-21 · (F03) "Código de otra clínica" y "rol equivocado" dan el mismo tipo de error ("Esta cuenta no es de paciente o no pertenece a esa clínica."): distinguirlos exigiría exponer la lista de clínicas a usuarios anónimos.
+- 2026-11-21 · (F03) Cerrar sesión y el cierre tras verificación fallida usan `signOut({ scope: 'local' })` para no revocar la cuenta demo compartida en otros dispositivos (arregla el riesgo abierto de F02).
+- 2026-11-21 · (F03) `location.state.desde` sigue ignorado: tras ingresar se va siempre al inicio del rol (lo que pide la aceptación).
+- 2026-11-21 · (F03) Ícono nuevo `tendencia` en `src/ui/Icono.tsx` (tarjeta "Soy terapeuta"); `.rol` seleccionada usa tinte amarillo sobre el fondo (más oscuro, como en la imagen).
 
 ## Riesgos abiertos
 
@@ -35,7 +44,8 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Registro público de Supabase Auth sigue activo: un extraño puede crear cuenta, pero sin perfil no ve datos (RLS). Desactivar en el panel de Supabase (Auth > Providers > Email > "Allow new users to sign up") antes de uso real.
 - Lateralidad izquierda/derecha, instalación PWA y modo avión solo se pueden confirmar en un teléfono real.
 - Medidas en cm y grados no validadas contra regla/goniómetro hasta que un humano ejecute docs/validacion.md (F21).
-- `repos.auth.salir()` usa `supabase.auth.signOut()` con alcance global por defecto: cerrar sesión en un dispositivo (o en la prueba e2e de F02) revoca los refresh tokens de esa cuenta demo en todos lados. Las pruebas no fallan porque el access token dura 1 h. Si molesta, cambiar a `signOut({ scope: 'local' })` (F19).
+- (Resuelto en F03) `repos.auth.salir()` ahora usa `signOut({ scope: 'local' })`.
+- Las pruebas e2e de acceso hacen ingresos reales (≈7 por corrida): correr la suite muchas veces seguidas podría tocar el límite de ingresos por IP de Supabase Auth.
 
 ## Sesiones
 
@@ -60,3 +70,10 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - `playwright.config.ts` + `e2e/ayudas.ts` (entrarComo, vigilarErrores) + `e2e/smoke.spec.ts`.
 - Verificación: `npm run e2e -- smoke` 28/28 · `npm run captura -- /acceso esqueleto` OK · `bash init.sh` INIT OK.
 - Siguiente: F03.
+
+### 2026-11-21 · F03 Acceso y roles
+- `/acceso` real (`src/screens/acceso/Acceso.tsx`): logo, nombre, lema, "¿Quién eres?" con dos tarjetas radio, código de clínica CRM-0000 validado en vivo (`src/auth/codigo.ts` + `codigo.test.ts`), correo, contraseña, Ingresar (deshabilitado hasta datos válidos), "Entrar con cuenta demo", franja de datos ficticios. Estilos en `src/index.css` (sección acceso), ícono `tendencia`.
+- `supabaseRepos.auth`: `signOut({ scope: 'local' })` al salir y al rechazar rol/clínica; error de red distinto de credenciales malas.
+- `e2e/acceso.spec.ts` (7 pruebas por la UI real).
+- Verificación: `npm run e2e -- acceso` 7/7 · `npm run e2e` 35/35 · `npm run captura -- /acceso acceso` + `acceso-lleno` comparadas con 01_acceso.png · `bash init.sh` INIT OK.
+- Siguiente: el que indique `node scripts/siguiente-feature.mjs`.

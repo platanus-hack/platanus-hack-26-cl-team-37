@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F02 esqueleto de la app → done.
+- Última sesión: 2026-11-21, F03 acceso y roles → done.
 - Feature en curso: ninguno.
-- Recommended Next Step: **F03 — Acceso y roles** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F04 — Inicio del paciente (Prompt 2)** (`node scripts/siguiente-feature.mjs` para el detalle).
 
 ## Archivos clave (Files)
 
@@ -18,11 +18,18 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - `src/data/repos.ts` exporta `repos` (instancia activa). Pantallas: `import { repos } from '../../data/repos'`.
 - E2E: `playwright.config.ts` (vite propio en :5176, 390×844, es-CL, cámara falsa). `e2e/ayudas.ts`: `entrarComo(context, 'paciente'|'terapeuta')` inyecta la sesión demo, `vigilarErrores(page)` junta errores de consola. `e2e/smoke.spec.ts` es la base (28 pruebas).
 
-## Para F03 (acceso)
+## Acceso (F03, hecho)
 
-- `/acceso` provisoria en `src/screens/acceso/Acceso.tsx`. Usar `useAuth().ingresar({ email, password, rol, codigoClinica })`; tras ingresar, `SoloPublica` redirige sola al inicio del rol. `location.state.desde` trae la ruta protegida que se intentó abrir (hoy se ignora).
-- El smoke espera un `h1` "ManoViva" en /acceso: mantenerlo o ajustar `e2e/smoke.spec.ts`.
-- Perfil provisorio tiene "Cerrar sesión" (lo usa el smoke).
+- `src/screens/acceso/Acceso.tsx`: formulario real. Validación pura en `src/auth/codigo.ts` (`normalizarCodigo`, `codigoValido`, `errorCodigo`, `correoValido`). `?rol=&codigo=` prellena.
+- `e2e/acceso.spec.ts` ingresa por la UI real (7 pruebas). Las demás suites siguen usando `entrarComo()` (sesión inyectada) para no gastar ingresos de Supabase Auth.
+- Cerrar sesión usa `signOut({ scope: 'local' })`: ya no revoca la cuenta demo en otros dispositivos.
+- Captura con formulario lleno: `npm run captura -- "/acceso?rol=paciente&codigo=CRM-4821" acceso-lleno --como nadie` (sin `--como nadie` la captura inyecta sesión y redirige).
+
+## Para F04 (inicio del paciente)
+
+- `/inicio` provisoria en `src/screens/paciente/Inicio.tsx`: reemplazar el archivo, usar `className="pantalla con-barra"` y datos vía `repos`.
+- El smoke espera un `h1` con el título de cada ruta (`e2e/smoke.spec.ts`, lista `RUTAS_PACIENTE`): mantenerlo o ajustar.
+- Si /inicio se ve vacío, `npm run db:seed` (las fechas del seed son relativas al día en que se corre).
 
 ## Cuidado con
 
@@ -41,5 +48,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F03.
-3. Marcar F03 `in-progress` y seguir CLAUDE.md.
+2. `node scripts/siguiente-feature.mjs` → F04.
+3. Marcar F04 `in-progress` y seguir CLAUDE.md.

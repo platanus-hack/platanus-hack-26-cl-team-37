@@ -98,7 +98,7 @@
       "dependencies": [
         "F02"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Entro con cada rol, recargo y sigo dentro",
         "Con rol paciente no puedo abrir rutas de terapeuta (y viceversa)",
@@ -110,7 +110,7 @@
         "npm run captura -- /acceso acceso"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21: npm run e2e -- acceso → 7/7 OK (paciente entra llenando el formulario real, recarga y sigue en /inicio; terapeuta entra con \"Entrar con cuenta demo\", recarga y sigue en /terapeuta/pacientes; rol cruzado redirige al inicio propio con aviso en ambos sentidos; código mal formado → error en vivo + Ingresar deshabilitado; CRM-9999 → \"no pertenece a esa clínica\"; rol equivocado y contraseña incorrecta → error; aviso \"Datos de demostración ficticios\" visible; sin errores de consola). npm run e2e completo → 35/35 (smoke incluido, cerrar sesión ahora con signOut local). npm run captura -- /acceso acceso → docs/capturas/acceso.png; además acceso-lleno.png (/acceso?rol=paciente&codigo=CRM-4821 --como nadie) comparada con 01_acceso.png: logo, nombre, lema, tarjetas de rol (seleccionada con borde y radio amarillos), campo de código monoespaciado coinciden. Diferencias aceptadas: franja azul de datos demo arriba; campos Correo y Contraseña + botón \"Entrar con cuenta demo\" (decisión Supabase Auth); \"Tu terapeuta te entrega este código\" va bajo el campo de código en vez de bajo Ingresar; sin rol preseleccionado (Ingresar deshabilitado hasta elegir). bash init.sh → INIT OK (29 unitarias, build, verify:db 14/14)."
     },
     {
       "id": "F04",

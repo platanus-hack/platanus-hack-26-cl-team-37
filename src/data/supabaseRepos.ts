@@ -189,10 +189,10 @@ export const supabaseRepos: Repos = {
     },
     async ingresar({ email, password, rol, codigoClinica }) {
       const r = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (r.error) throw new Error('Correo o contraseña incorrectos.')
+      if (r.error) throw new Error(esErrorDeRed(r.error) ? 'Sin conexión. Revisa tu internet e intenta de nuevo.' : 'Correo o contraseña incorrectos.')
       const v = await supabase.rpc('verificar_acceso', { p_rol: rol, p_codigo: codigoClinica })
       if (v.error || !v.data) {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         throw new Error(
           rol === 'terapeuta'
             ? 'Esta cuenta no es de terapeuta o no pertenece a esa clínica.'
@@ -205,7 +205,8 @@ export const supabaseRepos: Repos = {
       return u
     },
     async salir() {
-      await supabase.auth.signOut()
+      // Alcance local: el global revocaría las sesiones de la cuenta demo compartida en todos los dispositivos.
+      await supabase.auth.signOut({ scope: 'local' })
       cacheNombres.clear()
     },
     alCambiar(cb) {
