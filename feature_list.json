@@ -684,7 +684,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Bajar dos dedos a la vez no es acierto limpio y baja la independencia de ese dedo"
       ],
@@ -693,7 +693,7 @@
         "npm test -- independencia"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "tsc -b, oxlint y vitest (256 pruebas, incl. independencia, detector con dedo que no vuelve al reposo, pausa de reposo idempotente y botón de sonido en iOS) en verde; e2e piano ejercicios smoke con --workers=1: 36 pasaron, piano repetido 3 veces en verde (un fallo aislado de contador bajo carga de la máquina); captura en docs/capturas; PR #21 aprobado, ajustes de revisión aplicados",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },

@@ -3,7 +3,7 @@
 // - Reposo: 3 s con la mano quieta fijan la flexión MCP de cada dedo (CalibradorReposo). Mientras la mano está en
 //   reposo, ese valor deriva muy despacio hacia la lectura actual (la mano se relaja o se corre un poco).
 // - Dedo abajo (DetectorMano): flexión MCP − reposo del dedo > UMBRAL_BAJA_GRADOS; vuelve a "arriba" bajo
-//   UMBRAL_SUBE_GRADOS (histéresis). Una pulsación se cierra EPISODIO_MS después de que el primer dedo baja: ahí se sabe
+//   UMBRAL_SUBE_GRADOS (histéresis) o cuando recupera RECUPERA_FRACCION del recorrido que hizo (extensión limitada). Una pulsación se cierra EPISODIO_MS después de que el primer dedo baja: ahí se sabe
 //   qué dedos bajaron "a la vez" y cuánto se movió cada uno (pico − mínimo de los HISTORIA_MS previos).
 // - Independencia de una pulsación = 1 − (movimiento medio de los otros 4 dedos / movimiento del dedo pedido), en % (0..100).
 // - Juez: reparte las notas del nivel (caen CAIDA ms y llegan a la línea en `tMs`), recibe pulsaciones y decide:
@@ -33,6 +33,11 @@ export const COLOR_DEDO: Record<Dedo, number> = { pulgar: 0xff9f5a, indice: 0xa7
 export const UMBRAL_BAJA_GRADOS = 22
 /** Y vuelve a estar arriba bajo esto (histéresis). */
 export const UMBRAL_SUBE_GRADOS = 11
+/**
+ * Un dedo que bajó se da por subido también cuando recupera esta fracción del recorrido que hizo (aunque no llegue a
+ * UMBRAL_SUBE_GRADOS): un paciente con extensión limitada puede no volver nunca a menos de 11° de su reposo.
+ */
+export const RECUPERA_FRACCION = 0.6
 /** Tiempo para decidir qué dedos bajaron "a la vez" tras el primero (ms). */
 export const EPISODIO_MS = 300
 /** Historia previa a la pulsación usada para medir cuánto se movió cada dedo (ms). */
@@ -178,6 +183,8 @@ export class DetectorMano {
   private conjunto = new Set<Dedo>()
   private base = ceros()
   private pico = ceros()
+  /** Mayor separación del reposo (grados) alcanzada por cada dedo mientras está abajo. */
+  private recorrido = ceros()
 
   fijarReposo(r: Flexiones) {
     this.reposo = copia(r)
@@ -194,7 +201,15 @@ export class DetectorMano {
     this.hist = []
     this.tAnterior = null
     this.conjunto.clear()
-    for (const d of DEDOS_PIANO) this.abajo[d] = false
+    for (const d of DEDOS_PIANO) {
+      this.abajo[d] = false
+      this.recorrido[d] = 0
+    }
+  }
+
+  /** Separación del reposo bajo la cual un dedo que bajó se da por subido (grados). Nunca llega al umbral de bajada. */
+  private limiteSube(d: Dedo): number {
+    return Math.min(UMBRAL_BAJA_GRADOS - 4, Math.max(UMBRAL_SUBE_GRADOS, this.recorrido[d] * (1 - RECUPERA_FRACCION)))
   }
 
   /** Cuánto se separa cada dedo de su reposo (grados). */
@@ -222,8 +237,12 @@ export class DetectorMano {
     for (const d of DEDOS_PIANO) {
       if (!this.abajo[d] && dl[d] > UMBRAL_BAJA_GRADOS) {
         this.abajo[d] = true
+        this.recorrido[d] = dl[d]
         nuevos.push(d)
-      } else if (this.abajo[d] && dl[d] < UMBRAL_SUBE_GRADOS) this.abajo[d] = false
+      } else if (this.abajo[d]) {
+        this.recorrido[d] = Math.max(this.recorrido[d], dl[d])
+        if (dl[d] < this.limiteSube(d)) this.abajo[d] = false
+      }
     }
 
     if (this.fase === 'reposo') {
@@ -298,6 +317,12 @@ export type EventoPiano =
   | { tipo: 'dedo_equivocado'; nota: Nota; dedo: Dedo; simultaneo: boolean; primerError: boolean }
   | { tipo: 'independencia'; dedo: Dedo; valor: number }
   | { tipo: 'nota_perdida'; nota: Nota; yaTuvoError: boolean }
+
+/**
+ * Instante en que empezó la pausa para fijar el reposo. Si ya había una en curso (se apretó "Fijar reposo" otra vez
+ * durante la calibración) se conserva la primera: el atraso de la partitura se mide desde que dejó de correr.
+ */
+export const inicioPausa = (actual: number | null, ahora: number): number => actual ?? ahora
 
 /** Cuánto más se espera tras el fin de la ventana a que se cierre una pulsación en curso (ms). */
 const GRACIA_MS = EPISODIO_MS + 100

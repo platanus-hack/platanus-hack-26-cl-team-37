@@ -6,3 +6,7 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · coordinación · Una sola base de Supabase (la de producción) para desarrollo, CI y demo; migraciones solo aditivas y numeradas por persona.
 - 2026-11-21 · coordinación · Vercel se despliega desde la CI con token (el repositorio de la organización no se puede conectar a Vercel).
 - 2026-11-21 · P2 · Convención de profundidad corregida tras prueba con cámara real: acercar la mano a la cámara la mete hacia el fondo de la mesa.
+- 2026-11-21 · P3 · Piano: en iOS el audio queda suspendido hasta un toque; el botón se ve silenciado mientras el contexto no corre y el toque lo desbloquea.
+- 2026-11-21 · P3 · Piano: el botón de sonido vive dentro de `.juego` para quedar bajo la pausa y el aviso de girar el teléfono.
+- 2026-11-21 · P3 · Piano: un dedo abajo se da por subido al recuperar el 60 % de su recorrido (tope bajo el umbral de bajada), para no perder notas si no vuelve a menos de 11° del reposo.
+- 2026-11-21 · P3 · Piano: "Fijar reposo" repetido en la calibración conserva el primer instante de pausa; "Desfase" se marca aproximado (cámara 15–30 fps más latencia).
