@@ -1,4 +1,5 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
+import { NIVELES_CARTAS } from './memoria/logica'
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
 import { NIVELES_PIANO } from './piano/logica'
 import { NIVELES_PINZA } from './pinza/logica'
@@ -91,6 +92,16 @@ const nivelesTorre: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   detalle: NIVELES_TORRE[n].detalle,
 }))
 
+// Memoria de cartas (F26): nombre, detalle y umbral de giro viven en src/games/memoria/logica.ts. La meta (pares) sale del nivel.
+const nivelesCartas: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_CARTAS[n].nombre,
+  tamano: 1,
+  cantidad: 0,
+  distanciaCaja: 0,
+  detalle: NIVELES_CARTAS[n].detalle,
+}))
+
 // Piano de dedos (F27): nombre y detalle viven en src/games/piano/logica.ts. `cantidad` no se usa: la meta de notas viene del plan (metaAgarres).
 const nivelesPiano: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   nivel: n,
@@ -181,11 +192,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Giro del antebrazo'],
     filtros: [],
     descripcionCorta: 'Giro del antebrazo',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'memoria',
-    niveles: nivelesCaja,
+    niveles: nivelesCartas,
   },
   {
     id: 'piano-dedos',

@@ -5,7 +5,7 @@ import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
 
 // Oráculo independiente del registro de la app (spec §8 + Prompt 3).
 const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos']
-const DISPONIBLES = ['caja-juguetes', 'movilidad-guiada', 'pinza-fina', 'torre-cubos', 'piano-dedos']
+const DISPONIBLES = ['caja-juguetes', 'movilidad-guiada', 'pinza-fina', 'torre-cubos', 'piano-dedos', 'memoria-cartas']
 const POR_FILTRO: Record<string, string[]> = {
   Pinza: ['caja-juguetes', 'torre-cubos', 'pinza-fina'],
   Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja'],
@@ -96,7 +96,7 @@ test.describe('catálogo de ejercicios', () => {
 
   test("'Próximamente' no navega; un juego disponible lleva a /sesion/:juego/preparar", async ({ page }) => {
     await page.goto('/ejercicios')
-    const torre = tarjeta(page, TODOS.find((x) => !DISPONIBLES.includes(x))!) // el primer juego aún no disponible
+const DISPONIBLES = []
     await expect(torre).toHaveAttribute('aria-disabled', 'true')
     await expect(torre.locator('a')).toHaveCount(0)
     await torre.click()

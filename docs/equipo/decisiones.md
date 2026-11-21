@@ -9,3 +9,6 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · P3 · Torre: el cubo sostenido no baja de la altura de la silueta sobre la base (también al soltar), así no puede empujar ni derribar la torre; `caida` solo ocurre por física al soltar · revisión PR #19.
 - 2026-11-21 · P3 · Torre: `metaAgarres` 0 = práctica libre (`desdePlan` devuelve 0, sin "Meta cumplida"); al completar la torre se rearma sola tras 1,5 s y la sesión termina solo por tiempo · revisión PR #19.
 - 2026-11-21 · P3 · Torre: el desvío y la estabilidad se miden en cm de la escena (sin convertir con la calibración) y las fórmulas lo dicen ("aprox."); nivel 4 = "Cubos medianos, más precisión" (5 cubos medianos, tolerancia ajustada) · revisión PR #19.
+- 2026-11-21 · P3 · Memoria de cartas: con `metaAgarres` 0 es práctica libre (sin meta, se arma otro tablero al completar); con meta > 0 la meta son los pares del nivel.
+- 2026-11-21 · P3 · Memoria de cartas: el giro se desenrolla (±180°) antes de filtrar y los grados se rotulan "no validado" en las métricas visibles; "supinación/pronación máxima" pasan a "giro hacia palma arriba / hacia el otro lado (desde palma abajo)".
+- 2026-11-21 · P3 · Memoria de cartas: `?sinMemoria=1` no vale con cámara real y, si se usó, el resumen guarda `sinMemoria` = 1 (sin tocar `ParametrosSesion`).
