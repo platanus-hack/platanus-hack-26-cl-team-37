@@ -62,21 +62,50 @@ export function ladoDesdeEtiqueta(etiqueta: string | undefined, invertir = false
   return derecha !== invertir ? 'derecha' : 'izquierda'
 }
 
-/** Resultado de HandLandmarker → manos (una por lado, la de mayor confianza si se repite). */
-export function manosDesdeResultado(r: HandLandmarkerResult, invertir = false): ManoSeguida[] {
-  const porLado = new Map<LadoMano, ManoSeguida>()
+const opuesto = (l: LadoMano): LadoMano => (l === 'derecha' ? 'izquierda' : 'derecha')
+
+/**
+ * Resultado de HandLandmarker → manos, una por lado (la de mayor confianza si se repite).
+ *
+ * MediaPipe a veces etiqueta las dos manos con el mismo lado (la lateralidad se decide en cada cuadro, sin seguir a la
+ * mano). Antes la segunda se descartaba, y lo que necesita las dos manos (la banda del laboratorio, el juego a dos
+ * manos) las perdía. Ahora la que sobra ocupa el lado libre, y si se conoce el cuadro anterior (`previas`) el reparto
+ * se hace por cercanía de la muñeca, para que cada lado siga siendo la misma mano y los filtros no salten de una a otra.
+ */
+export function manosDesdeResultado(r: HandLandmarkerResult, invertir = false, previas: readonly ManoSeguida[] = []): ManoSeguida[] {
   const etiquetas = r.handedness ?? r.handednesses ?? []
-  r.landmarks.forEach((lm, i) => {
+  const todas: ManoSeguida[] = r.landmarks.map((lm, i) => {
     const cat = etiquetas[i]?.[0]
-    const mano: ManoSeguida = {
+    return {
       lado: ladoDesdeEtiqueta(cat?.categoryName, invertir),
       confianza: cat?.score ?? 0,
       landmarks: lm.map(({ x, y, z }) => ({ x, y, z })),
       worldLandmarks: (r.worldLandmarks[i] ?? []).map(({ x, y, z }) => ({ x, y, z })),
     }
-    const previa = porLado.get(mano.lado)
-    if (!previa || previa.confianza < mano.confianza) porLado.set(mano.lado, mano)
   })
+  const orden = [...todas].sort((a, b) => b.confianza - a.confianza)
+  const porLado = new Map<LadoMano, ManoSeguida>()
+  for (const m of orden) if (!porLado.has(m.lado)) porLado.set(m.lado, m)
+  // Las que sobraron (misma etiqueta que otra más confiable) llenan el lado que falte.
+  let repartida = false
+  for (const m of orden) {
+    if ([...porLado.values()].includes(m)) continue
+    const libre = opuesto(m.lado)
+    if (!porLado.has(libre)) {
+      porLado.set(libre, { ...m, lado: libre })
+      repartida = true
+    }
+  }
+  const der = porLado.get('derecha')
+  const izq = porLado.get('izquierda')
+  const pDer = previas.find((m) => m.lado === 'derecha')?.landmarks[0]
+  const pIzq = previas.find((m) => m.lado === 'izquierda')?.landmarks[0]
+  if (repartida && der && izq && pDer && pIzq) {
+    const d = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+    const directo = d(der.landmarks[0], pDer) + d(izq.landmarks[0], pIzq)
+    const cruzado = d(der.landmarks[0], pIzq) + d(izq.landmarks[0], pDer)
+    if (cruzado < directo) return [{ ...izq, lado: 'derecha' }, { ...der, lado: 'izquierda' }]
+  }
   return [...porLado.values()]
 }
 
@@ -222,7 +251,7 @@ export class FuenteCamara extends FuenteBase {
       this.fijarEstado('error', (e as Error)?.message ?? String(e))
       return
     }
-    let manos = manosDesdeResultado(r, this.opciones.invertirLateralidad)
+    let manos = manosDesdeResultado(r, this.opciones.invertirLateralidad, this.ultimo?.manos)
     if (this.opciones.suavizar) manos = this.suavizar(manos, ts)
     if (ahora - this.ultimaLuz > MS_LUZ) {
       this.ultimaLuz = ahora

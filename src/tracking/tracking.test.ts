@@ -371,6 +371,29 @@ describe('cámara (lógica pura) y configuración', () => {
     expect(ladoDesdeEtiqueta('Right', true)).toBe('izquierda')
   })
 
+  it('si MediaPipe pone el mismo lado a las dos manos, no pierde ninguna', () => {
+    const cat = (categoryName: string, score: number) => [{ categoryName, score, index: 0, displayName: '' }]
+    const en = (x: number) => manoSintetica({ x }).landmarks.map((p) => ({ ...p, visibility: 0 }))
+    const wl = manoSintetica({}).worldLandmarks.map((p) => ({ ...p, visibility: 0 }))
+    const r = { landmarks: [en(0.3), en(0.7)], worldLandmarks: [wl, wl], handedness: [cat('Right', 0.8), cat('Right', 0.9)], handednesses: [] }
+    // Sin cuadro anterior: la más confiable conserva su etiqueta y la otra toma el lado libre.
+    const solas = manosDesdeResultado(r)
+    expect(solas).toHaveLength(2)
+    expect(solas.find((m) => m.lado === 'derecha')!.confianza).toBe(0.9)
+    expect(solas.find((m) => m.lado === 'izquierda')!.landmarks[0].x).toBeCloseTo(en(0.3)[0].x)
+    // Con cuadro anterior: cada lado sigue siendo la mano que estaba más cerca.
+    const previas = [
+      { lado: 'derecha' as const, confianza: 1, landmarks: en(0.31), worldLandmarks: [] },
+      { lado: 'izquierda' as const, confianza: 1, landmarks: en(0.69), worldLandmarks: [] },
+    ]
+    const seguidas = manosDesdeResultado(r, false, previas)
+    expect(seguidas.find((m) => m.lado === 'derecha')!.landmarks[0].x).toBeCloseTo(en(0.3)[0].x)
+    expect(seguidas.find((m) => m.lado === 'izquierda')!.landmarks[0].x).toBeCloseTo(en(0.7)[0].x)
+    // Con etiquetas distintas no se toca nada, aunque el cuadro anterior diga otra cosa.
+    const normales = manosDesdeResultado({ ...r, handedness: [cat('Left', 0.8), cat('Right', 0.9)] }, false, previas)
+    expect(normales.find((m) => m.lado === 'izquierda')!.landmarks[0].x).toBeCloseTo(en(0.3)[0].x)
+  })
+
   it('reconoce la telemetría de MediaPipe (se corta) sin tocar lo demás', () => {
     expect(esTelemetriaMediapipe('https://odml.pa.googleapis.com/v1/log')).toBe(true)
     expect(esTelemetriaMediapipe('/mediapipe/hand_landmarker.task')).toBe(false)
