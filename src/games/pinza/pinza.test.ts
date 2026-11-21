@@ -223,3 +223,24 @@ describe('Pinza fina: agregados', () => {
     expect(new AgregadoPinza().resumen()).toMatchObject({ toques: 0, precision: null, tiempoMedioToque: null })
   })
 })
+
+describe('Pinza fina: margen del dedo medio', () => {
+  const entre = U.toqueCm * 1.3 // fuera del umbral común, dentro del margen 1,5× del medio
+
+  it('pulgar–medio cuenta con más distancia que los otros dedos', () => {
+    const medio = correr(fijarObjetivo(estadoPinzaInicial(), 'medio', 0), [[HOLD_MS + 200, con('medio', entre)]], cfg())
+    expect(medio.eventos.map((e) => e.tipo)).toEqual(['toque'])
+    const indice = correr(fijarObjetivo(estadoPinzaInicial(), 'indice', 0), [[HOLD_MS + 200, con('indice', entre)]], cfg())
+    expect(indice.eventos).toEqual([])
+  })
+
+  it('la distancia mínima del medio se guarda en cm reales (el margen solo cambia el contacto)', () => {
+    const r = correr(fijarObjetivo(estadoPinzaInicial(), 'medio', 0), [[HOLD_MS + 200, con('medio', entre)]], cfg())
+    expect(r.eventos[0]).toMatchObject({ tipo: 'toque', dedo: 'medio', distMinCm: entre })
+  })
+
+  it('si el índice toca de verdad, el medio con margen no le quita el contacto', () => {
+    const r = correr(fijarObjetivo(estadoPinzaInicial(), 'indice', 0), [[HOLD_MS + 200, { ...lejos, indice: 0.8, medio: entre }]], cfg())
+    expect(r.eventos.map((e) => e.tipo)).toEqual(['toque'])
+  })
+})
