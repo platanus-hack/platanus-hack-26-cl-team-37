@@ -1,0 +1,26 @@
+/* F16 · Pantallas del terapeuta (pacientes, alertas, planes, informes). */
+.terapeuta .ter-avatar { width: 56px; height: 56px; font-size: 18px; }
+.ter-indicadores .tarjeta { padding: 14px 16px; }
+.ter-cifra { font-family: var(--titulos); font-weight: 700; font-size: 28px; line-height: 1.1; }
+.ter-cifra.alerta { color: var(--alerta); }
+.ter-etiqueta { color: var(--texto-2); font-size: 15px; margin-top: 4px; }
+
+.ter-buscar { position: relative; display: block; }
+.ter-buscar svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--texto-3); pointer-events: none; }
+.ter-buscar .entrada { padding-left: 44px; }
+
+.ter-paciente { display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--texto); text-decoration: none; min-height: 72px; }
+a.ter-paciente:active { background: var(--tarjeta-2); }
+.ter-paciente.con-alerta { border-color: rgba(255, 138, 92, 0.45); }
+.ter-paciente .avatar { width: 44px; height: 44px; font-size: 15px; }
+.ter-textos { display: flex; flex-direction: column; gap: 3px; }
+.ter-nombre { font-family: var(--titulos); font-size: 16px; }
+.ter-sub { color: var(--texto-2); font-size: 14px; }
+.ter-aviso { color: var(--alerta); font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.ter-lado { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.ter-adh { font-family: var(--titulos); font-size: 16px; }
+
+.ter-alerta { display: flex; align-items: center; gap: 12px; }
+.ter-enlace { color: var(--texto); text-decoration: none; }
+.ter-config .stepper { flex: none; }
+.ter-config .ter-sub { display: block; }
