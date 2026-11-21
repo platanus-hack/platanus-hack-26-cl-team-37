@@ -1,6 +1,7 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
 import { NIVELES_BURBUJAS } from './burbujas/logica'
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
+import { NIVELES_PIANO } from './piano/logica'
 import { NIVELES_PINZA } from './pinza/logica'
 
 export type Gesto =
@@ -88,6 +89,16 @@ const nivelesBurbujas: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   cantidad: 0,
   distanciaCaja: 0,
   detalle: NIVELES_BURBUJAS[n].detalle,
+}))
+
+// Piano de dedos (F27): nombre y detalle viven en src/games/piano/logica.ts. `cantidad` no se usa: la meta de notas viene del plan (metaAgarres).
+const nivelesPiano: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_PIANO[n].nombre,
+  tamano: 1,
+  cantidad: 0,
+  distanciaCaja: 0,
+  detalle: NIVELES_PIANO[n].detalle,
 }))
 
 export const JUEGOS: Juego[] = [
@@ -182,11 +193,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Independencia de dedos'],
     filtros: [],
     descripcionCorta: 'Independencia de dedos',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'piano',
-    niveles: nivelesCaja,
+    niveles: nivelesPiano,
   },
 ]
 

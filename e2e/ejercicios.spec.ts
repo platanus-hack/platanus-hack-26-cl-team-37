@@ -5,7 +5,7 @@ import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
 
 // Oráculo independiente del registro de la app (spec §8 + Prompt 3).
 const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos']
-const DISPONIBLES = ['caja-juguetes', 'movilidad-guiada', 'pinza-fina', 'atrapa-burbujas']
+const DISPONIBLES = ['caja-juguetes', 'movilidad-guiada', 'pinza-fina', 'atrapa-burbujas', 'piano-dedos']
 const POR_FILTRO: Record<string, string[]> = {
   Pinza: ['caja-juguetes', 'torre-cubos', 'pinza-fina'],
   Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja'],
