@@ -16,7 +16,7 @@ Esto puede afectar a…
 
 1 de cada 3 accidentes en el trabajo en Chile afectan a manos y dedos. ~SUSESO, ACHS, IST. Esto genera un promedio de 20 dias de trabajo perdidos por accidentes laborales, y 46 dias en promedio en trastornos musculoesqueléticos. ~SUSESO 2025
 
-En promedio, una persona que recibe terapia de mano guiada por un terapeuta con feedback en su casa puede volver al trabajo 18 dias antes en comparación a una persona que recibe ejercicios en una hoja impresa.
+En promedio, una persona que recibe terapia de mano guiada por un terapeuta con feedback en su casa puede volver al trabajo 18 dias antes en comparación a una persona que recibe ejercicios en una hoja impresa. ~Blanquero et al., Journal of Physiotherapy 2020
 
 # ¿Cómo los vamos a ayudar?
 - Con una app asequible con una barrera de entrada baja: Solo necesita un dispositivo inteligente con una camara (un celular).
