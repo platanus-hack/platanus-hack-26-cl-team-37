@@ -18,7 +18,9 @@ test.describe('pantalla de acceso', () => {
     await page.goto('/acceso')
     await expect(page.getByRole('heading', { level: 1, name: 'Kuwü' })).toBeVisible()
     await expect(page.getByText('Rehabilitación que se juega')).toBeVisible()
-    await expect(page.getByText('Datos de demostración ficticios')).toBeVisible()
+    // Aviso de datos ficticios (spec §9): una línea bajo «Entrar con cuenta demo», sin franja arriba.
+    await expect(page.getByText(/La cuenta demo entra como .* con datos ficticios\./)).toBeVisible()
+    await expect(page.getByText('Datos de demostración ficticios')).toHaveCount(0)
     await expect(page.getByText('Tu terapeuta te entrega este código')).toBeVisible()
     await expect(page.getByRole('radio')).toHaveCount(2)
     await expect(botonIngresar(page)).toBeDisabled()

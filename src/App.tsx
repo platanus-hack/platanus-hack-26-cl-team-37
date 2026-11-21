@@ -59,8 +59,8 @@ export default function App() {
               <Route path="/sesion/:id/resumen" element={<Resumen />} />
               <Route path="/privacidad" element={<Privacidad />} />
             </Route>
-            {/* Juego: pantalla completa (horizontal), sin barra ni banner */}
-            <Route element={<Protegida roles={['paciente']} banner={false} />}>
+            {/* Juego: pantalla completa (horizontal), sin barra */}
+            <Route element={<Protegida roles={['paciente']} />}>
               <Route path="/sesion/:id/jugar" element={<Jugar />} />
             </Route>
 

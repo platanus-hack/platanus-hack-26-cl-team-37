@@ -1,4 +1,4 @@
-// Humo del esqueleto (F02): todas las rutas cargan, protección por sesión y rol, barras y banner.
+// Humo del esqueleto (F02): todas las rutas cargan, protección por sesión y rol, y barras (sin franja de datos demo).
 import { expect, test } from '@playwright/test'
 import { entrarComo, vigilarErrores } from './ayudas.ts'
 
@@ -69,10 +69,8 @@ test.describe('paciente', () => {
       await expect(page.getByRole('heading', { level: 1, name: r.titulo })).toBeVisible()
       await expect(barraPaciente(page), `barra en ${r.ruta}`).toHaveCount(r.barra ? 1 : 0)
       await expect(barraTerapeuta(page)).toHaveCount(0)
-      // El banner de datos ficticios aparece en todo, salvo en el juego a pantalla completa.
-      await expect(page.getByRole('note').filter({ hasText: 'Datos de demostración ficticios' }), `banner en ${r.ruta}`).toHaveCount(
-        r.ruta.endsWith('/jugar') ? 0 : 1,
-      )
+      // Sin franja de «Datos de demostración ficticios» arriba (se quitó; el aviso queda en /acceso).
+      await expect(page.getByText('Datos de demostración ficticios'), `franja en ${r.ruta}`).toHaveCount(0)
     }
     await page.waitForLoadState('networkidle')
     v.sinErrores()

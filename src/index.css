@@ -201,7 +201,6 @@ input[type='range'].deslizador.sin-valor::-webkit-slider-thumb { opacity: 0.35; 
 /* ---------------------------------------------------------- avisos */
 .aviso { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 60; background: var(--tinta); color: var(--sobre-tinta); font-weight: 600; padding: 12px 18px; border-radius: var(--pildora); box-shadow: var(--sombra-flota); max-width: calc(100% - 32px); }
 .aviso.error { background: var(--dolor); color: var(--sobre-alerta); }
-.banner-demo { background: var(--info-tenue); color: var(--info); font-size: 14px; text-align: center; padding: 6px 12px; }
 .mensaje-terapeuta { display: flex; gap: 12px; align-items: flex-start; }
 
 /* ---------------------------------------------------------- piezas */

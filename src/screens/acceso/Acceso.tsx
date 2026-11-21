@@ -7,7 +7,6 @@ import { codigoValido, correoValido, errorCodigo, normalizarCodigo } from '../..
 import { useAuth, type DatosIngreso } from '../../auth/contexto'
 import type { Rol } from '../../domain/types'
 import { Icono, LogoMano } from '../../ui/Icono'
-import { BannerDemo } from '../../ui/piezas'
 import simboloSobreAmarillo from '../../../brandbook/logos/simbolo-sobre-amarillo.svg'
 
 /** Cuentas demo ficticias (docs/manoviva-spec.md §9). */
@@ -75,7 +74,6 @@ export default function Acceso() {
 
   return (
     <>
-      <BannerDemo />
       <main className="pantalla acceso">
         <header className="acceso-cabeza">
           <div className="logo">
