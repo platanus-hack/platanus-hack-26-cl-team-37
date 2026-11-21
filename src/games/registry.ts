@@ -1,4 +1,5 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
+import { NIVELES_BURBUJAS } from './burbujas/logica'
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
 import { NIVELES_PINZA } from './pinza/logica'
 
@@ -78,6 +79,17 @@ const nivelesPinza: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   detalle: NIVELES_PINZA[n].detalle,
 }))
 
+// Atrapa burbujas (F24): nombre, detalle, tamaño y vida de las burbujas viven en src/games/burbujas/logica.ts. `cantidad` no
+// se usa: la meta de burbujas viene del plan (metaAgarres).
+const nivelesBurbujas: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_BURBUJAS[n].nombre,
+  tamano: 1,
+  cantidad: 0,
+  distanciaCaja: 0,
+  detalle: NIVELES_BURBUJAS[n].detalle,
+}))
+
 export const JUEGOS: Juego[] = [
   {
     id: 'caja-juguetes',
@@ -134,11 +146,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Alcance', 'Extensión'],
     filtros: ['Alcance'],
     descripcionCorta: 'Alcance y extensión',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'burbujas',
-    niveles: nivelesCaja,
+    niveles: nivelesBurbujas,
   },
   {
     id: 'exprime-naranja',

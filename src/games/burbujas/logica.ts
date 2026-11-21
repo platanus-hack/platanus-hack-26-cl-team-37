@@ -33,9 +33,9 @@ export interface NivelBurbujas {
 }
 
 export const NIVELES_BURBUJAS: Record<1 | 2 | 3 | 4 | 5, NivelBurbujas> = {
-  1: { nombre: 'Burbujas grandes y quietas', detalle: 'Burbujas grandes, quietas y cerca · sin límite de tiempo', radio: 0.55, velocidad: 0, vidaMs: 0, zonaMax: 0.5 },
-  2: { nombre: 'Grandes, con tiempo', detalle: 'Burbujas grandes y quietas · 10 s de vida · zona más amplia', radio: 0.46, velocidad: 0, vidaMs: 10_000, zonaMax: 0.7 },
-  3: { nombre: 'Medianas en movimiento', detalle: 'Burbujas medianas que se mueven lento · 6 s de vida', radio: 0.38, velocidad: 0.18, vidaMs: 6000, zonaMax: 0.85 },
+  1: { nombre: 'Burbujas grandes y quietas', detalle: 'Burbujas grandes, quietas y cerca · sin límite de tiempo', radio: 0.55, velocidad: 0, vidaMs: 0, zonaMax: 0.6 },
+  2: { nombre: 'Grandes, con tiempo', detalle: 'Burbujas grandes y quietas · 10 s de vida · zona más amplia', radio: 0.46, velocidad: 0, vidaMs: 10_000, zonaMax: 0.75 },
+  3: { nombre: 'Medianas en movimiento', detalle: 'Burbujas medianas que se mueven lento · 6 s de vida', radio: 0.38, velocidad: 0.18, vidaMs: 6000, zonaMax: 0.9 },
   4: { nombre: 'Medianas, más rápidas', detalle: 'Burbujas medianas que se mueven · 4,5 s de vida · zona completa', radio: 0.32, velocidad: 0.3, vidaMs: 4500, zonaMax: 1 },
   5: { nombre: 'Chicas en movimiento', detalle: 'Burbujas chicas que se mueven · 3 s de vida · zona completa', radio: 0.27, velocidad: 0.45, vidaMs: 3000, zonaMax: 1 },
 }
@@ -144,11 +144,11 @@ export interface Caja3 {
 }
 
 /** Zona completa donde puede haber burbujas objetivo (escena). Cabe en lo que alcanza la mano virtual. */
-export const ZONA_COMPLETA: Caja3 = { x: [-1.7, 1.7], y: [0.5, 1.5], z: [-0.7, 0.7] }
+export const ZONA_COMPLETA: Caja3 = { x: [-1.7, 1.7], y: [0.5, 1.5], z: [-0.5, 0.5] }
 /** Posición de reposo por defecto (sin mano vista): centro de la zona. */
 export const REPOSO_DEFECTO: V3 = { x: 0, y: 0.95, z: 0 }
 
-export const FACTOR_INICIAL = 0.25
+export const FACTOR_INICIAL = 0.4
 export const CRECE_POR_ACIERTO = 0.08
 
 /** Fracción de la zona completa donde aparecen las burbujas tras `aciertos` reventadas. */
@@ -184,7 +184,8 @@ export function limiteDeZona(zona?: string | null, completa: Caja3 = ZONA_COMPLE
   }
 }
 
-function eje(c: number, mitad: number, completo: [number, number], limite?: [number, number]): [number, number] {
+function eje(centro: number, mitad: number, completo: [number, number], limite?: [number, number]): [number, number] {
+  const c = recorte(centro, completo[0], completo[1])
   let a = Math.max(completo[0], c - mitad)
   let b = Math.min(completo[1], c + mitad)
   if (b < a) [a, b] = completo
@@ -316,6 +317,73 @@ export function alcanceCm(reposo: MunecaImagen, actual: MunecaImagen, aspecto = 
   const dy = (actual.y - reposo.y) * anchoCm * aspecto
   const dz = d1 - d0
   return Math.hypot(dx, dy, dz)
+}
+
+/** Mediana de una ventana (suaviza el desplazamiento: una estimación de distancia ruidosa no dispara el alcance máximo). */
+export function mediana(v: number[]): number {
+  if (!v.length) return 0
+  const o = [...v].sort((a, b) => a - b)
+  const m = o.length >> 1
+  return o.length % 2 ? o[m] : (o[m - 1] + o[m]) / 2
+}
+
+/** Ventana deslizante de `n` valores con su mediana. */
+export class VentanaMediana {
+  private v: number[] = []
+  private readonly n: number
+  constructor(n = 5) {
+    this.n = n
+  }
+  agregar(x: number): number {
+    this.v.push(x)
+    if (this.v.length > this.n) this.v.shift()
+    return mediana(this.v)
+  }
+  reiniciar() {
+    this.v = []
+  }
+}
+
+/** Posición de reposo de una mano: promedio de lo que se ve durante los primeros `ms` ms con la mano a la vista. */
+export class Reposo {
+  private t = 0
+  private n = 0
+  private sx = 0
+  private sy = 0
+  private sz = 0
+  private mx = 0
+  private my = 0
+  private sd = 0
+  private nd = 0
+  readonly ms: number
+  constructor(ms = 1000) {
+    this.ms = ms
+  }
+  get listo() {
+    return this.t >= this.ms
+  }
+  /** Un cuadro con la mano a la vista (`dtMs` ms): palma en la escena y muñeca en la imagen. */
+  agregar(dtMs: number, palma: V3, muneca: MunecaImagen) {
+    if (this.listo) return
+    this.t += dtMs
+    this.n++
+    this.sx += palma.x
+    this.sy += palma.y
+    this.sz += palma.z
+    this.mx += muneca.x
+    this.my += muneca.y
+    if (muneca.distanciaCm != null) {
+      this.sd += muneca.distanciaCm
+      this.nd++
+    }
+  }
+  /** Palma en la escena (null hasta que esté listo). */
+  get palma(): V3 | null {
+    return this.listo && this.n ? { x: this.sx / this.n, y: this.sy / this.n, z: this.sz / this.n } : null
+  }
+  get muneca(): MunecaImagen | null {
+    return this.listo && this.n ? { x: this.mx / this.n, y: this.my / this.n, distanciaCm: this.nd ? this.sd / this.nd : null } : null
+  }
 }
 
 // ── Agregados ─────────────────────────────────────────────────────────────────────────────────────
