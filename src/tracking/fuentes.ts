@@ -19,6 +19,8 @@ export interface ConfigFuente {
   grabacion: string
   invertirLateralidad: boolean
   delegado: 'GPU' | 'CPU' | null
+  /** Cámara: cuántas manos entregar, las más cercanas (2 en juegos por defecto; 1 en la calibración). */
+  maxManos?: number
 }
 
 /** Lee la configuración de la fuente desde el query string. Pura. */
@@ -59,7 +61,7 @@ export async function crearFuente(config: Partial<ConfigFuente> = {}): Promise<F
     fuente = new FuenteGrabacion(leerGrabacion(await r.text()))
   } else {
     const { FuenteCamara } = await import('./camara')
-    fuente = new FuenteCamara({ invertirLateralidad: c.invertirLateralidad, delegado: c.delegado })
+    fuente = new FuenteCamara({ invertirLateralidad: c.invertirLateralidad, delegado: c.delegado, maxManos: c.maxManos ?? 2 })
   }
   if (typeof window !== 'undefined' && c.tipo !== 'camara') {
     window.__manoviva = { ...window.__manoviva, fuente }

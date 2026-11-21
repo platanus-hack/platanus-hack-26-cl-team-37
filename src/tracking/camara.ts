@@ -8,6 +8,7 @@
 
 import type { HandLandmarker, HandLandmarkerResult } from '@mediapipe/tasks-vision'
 import { luminanciaMedia } from '../metrics/geometria'
+import { masCercanas } from './cercanas'
 import { FuenteBase } from './fuenteBase'
 import { FiltroMano } from './oneEuro'
 import type { CuadroManos, LadoMano, ManoSeguida, TipoFuente } from './tipos'
@@ -54,7 +55,15 @@ export interface OpcionesCamara {
   invertirLateralidad?: boolean
   /** Suavizado One Euro de los puntos (por defecto sí). */
   suavizar?: boolean
+  /**
+   * Cuántas manos entregar: las más cercanas (más grandes en la imagen). 2 en los juegos (por defecto), 1 en la
+   * calibración. MediaPipe detecta hasta MANOS_DETECTADAS para no perder la propia por una mano del fondo.
+   */
+  maxManos?: number
 }
+
+/** Manos que busca MediaPipe en cada cuadro antes de elegir las más cercanas. */
+export const MANOS_DETECTADAS = 4
 
 /** Etiqueta de MediaPipe ('Left'/'Right', mano del sujeto) → lado. */
 export function ladoDesdeEtiqueta(etiqueta: string | undefined, invertir = false): LadoMano {
@@ -63,20 +72,27 @@ export function ladoDesdeEtiqueta(etiqueta: string | undefined, invertir = false
 }
 
 /** Resultado de HandLandmarker → manos (una por lado, la de mayor confianza si se repite). */
-export function manosDesdeResultado(r: HandLandmarkerResult, invertir = false): ManoSeguida[] {
-  const porLado = new Map<LadoMano, ManoSeguida>()
+/** Todas las manos del resultado de MediaPipe, sin elegir (pueden venir dos del mismo lado). */
+export function todasDesdeResultado(r: HandLandmarkerResult, invertir = false): ManoSeguida[] {
   const etiquetas = r.handedness ?? r.handednesses ?? []
-  r.landmarks.forEach((lm, i) => {
+  return r.landmarks.map((lm, i) => {
     const cat = etiquetas[i]?.[0]
-    const mano: ManoSeguida = {
+    return {
       lado: ladoDesdeEtiqueta(cat?.categoryName, invertir),
       confianza: cat?.score ?? 0,
       landmarks: lm.map(({ x, y, z }) => ({ x, y, z })),
       worldLandmarks: (r.worldLandmarks[i] ?? []).map(({ x, y, z }) => ({ x, y, z })),
     }
+  })
+}
+
+/** Una mano por lado, la de mayor confianza (sin mirar la cercanía; la cámara usa masCercanas). */
+export function manosDesdeResultado(r: HandLandmarkerResult, invertir = false): ManoSeguida[] {
+  const porLado = new Map<LadoMano, ManoSeguida>()
+  for (const mano of todasDesdeResultado(r, invertir)) {
     const previa = porLado.get(mano.lado)
     if (!previa || previa.confianza < mano.confianza) porLado.set(mano.lado, mano)
-  })
+  }
   return [...porLado.values()]
 }
 
@@ -107,7 +123,7 @@ export class FuenteCamara extends FuenteBase {
 
   constructor(opciones: OpcionesCamara = {}) {
     super()
-    this.opciones = { invertirLateralidad: false, suavizar: true, delegado: null, ...opciones }
+    this.opciones = { invertirLateralidad: false, suavizar: true, delegado: null, maxManos: 2, ...opciones }
   }
 
   async iniciar() {
@@ -174,7 +190,7 @@ export class FuenteCamara extends FuenteBase {
       HandLandmarker.createFromOptions(archivos, {
         baseOptions: { modelAssetPath: RUTA_MODELO, delegate },
         runningMode: 'VIDEO',
-        numHands: 2,
+        numHands: MANOS_DETECTADAS,
       })
     if (forzar === 'CPU') {
       this.delegado = 'CPU'
@@ -222,7 +238,8 @@ export class FuenteCamara extends FuenteBase {
       this.fijarEstado('error', (e as Error)?.message ?? String(e))
       return
     }
-    let manos = manosDesdeResultado(r, this.opciones.invertirLateralidad)
+    // las más cercanas (más grandes en la imagen): una mano del fondo no le quita el lugar a la propia
+    let manos = masCercanas(todasDesdeResultado(r, this.opciones.invertirLateralidad), this.opciones.maxManos, video.videoWidth, video.videoHeight)
     if (this.opciones.suavizar) manos = this.suavizar(manos, ts)
     if (ahora - this.ultimaLuz > MS_LUZ) {
       this.ultimaLuz = ahora

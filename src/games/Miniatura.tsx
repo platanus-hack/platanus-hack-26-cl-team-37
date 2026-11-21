@@ -67,6 +67,14 @@ const DIBUJOS: Record<string, ReactNode> = {
       <path d="M65.5 62h17l-1.8 20H67.3z" fill={C.amarillo} />
     </>
   ),
+  banda: (
+    <>
+      <path d="M30 40H70M30 60H70" stroke={C.amarillo} strokeWidth="5" strokeLinecap="round" />
+      <rect x="10" y="30" width="24" height="40" rx="10" fill={C.azul} />
+      <rect x="66" y="30" width="24" height="40" rx="10" fill={C.azul} />
+      <path d="M38 82q12 7 24 0" fill="none" stroke="#9fb0bf" strokeWidth="2.5" strokeDasharray="4 4" strokeLinecap="round" />
+    </>
+  ),
   memoria: (
     <>
       <rect x="18" y="18" width="28" height="30" rx="4" fill={C.blanco} />
@@ -75,6 +83,15 @@ const DIBUJOS: Record<string, ReactNode> = {
       <rect x="18" y="54" width="28" height="30" rx="4" fill={C.marino} />
       <rect x="54" y="54" width="28" height="30" rx="4" fill={C.blanco} />
       <path d="M68 62l7 13H61z" fill={C.rojo} />
+    </>
+  ),
+  muneca: (
+    <>
+      <rect x="10" y="56" width="40" height="22" rx="11" fill={C.azul} />
+      <rect x="46" y="56" width="42" height="22" rx="11" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeDasharray="4 4" transform="translate(2 0)" />
+      <rect x="46" y="56" width="42" height="22" rx="11" fill={C.menta} transform="rotate(-30 52 67)" />
+      <path d="M92 67a42 42 0 0 0-5-21" fill="none" stroke={C.amarillo} strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M80 47l7-3 2 8" fill="none" stroke={C.amarillo} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   piano: (

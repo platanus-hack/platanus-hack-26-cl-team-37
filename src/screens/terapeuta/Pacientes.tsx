@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/contexto'
+import { useCerrarSesion } from '../../auth/useCerrarSesion'
 import { iniciales, pctCorto } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
 import { Icono } from '../../ui/Icono'
@@ -16,6 +17,7 @@ export default function Pacientes() {
   const r = useCarga(cargarPanel, [])
   const [hoy] = useState(() => new Date())
   const nombre = usuario?.nombre ?? ''
+  const cerrar = useCerrarSesion()
   return (
     <main className="pantalla con-barra terapeuta">
       <header className="fila entre">
@@ -23,6 +25,10 @@ export default function Pacientes() {
           <p className="sobretitulo">{[usuario?.titulo, nombre].filter(Boolean).join(' ')}</p>
           <h1>Mis pacientes</h1>
         </div>
+        <button type="button" className="boton secundario ter-salir" onClick={cerrar} aria-label="Cerrar sesión">
+          <Icono nombre="salir" />
+          Salir
+        </button>
         <div className="avatar acento ter-avatar" aria-hidden="true">
           {iniciales(nombre)}
         </div>
@@ -83,6 +89,10 @@ function Contenido({ d, hoy }: { d: DatosPanel; hoy: Date }) {
           {visibles.map((f) => (
             <li key={f.paciente.id}>
               <FilaPacienteVista f={f} />
+              <Link className="ter-comparar" to={`/terapeuta/pacientes/${f.paciente.id}/comparar`} aria-label={`Comparar sesiones de ${f.paciente.nombre}`} data-testid="comparar-paciente">
+                <Icono nombre="tendencia" tam={18} />
+                Comparar sesiones
+              </Link>
             </li>
           ))}
         </ul>

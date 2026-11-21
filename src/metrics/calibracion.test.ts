@@ -39,17 +39,26 @@ function correr(muestras: MuestraCalibracion[], e: EstadoCalibracion = calibraci
 }
 
 describe('pasos de la calibración', () => {
-  it('paso 1: mano abierta 2 s seguidos (se reinicia si se cierra o sale del marco)', () => {
-    let e = correr([muestra(0), muestra(1500)])
+  it('paso 1: mano abierta 1,5 s seguidos (se reinicia si se cierra o sale del marco más de 0,3 s)', () => {
+    let e = correr([muestra(0), muestra(1200)])
     expect(e.paso).toBe('abierta')
-    expect(e.progreso).toBeCloseTo(0.75 / 3)
-    e = avanzarCalibracion(e, muestra(1600, { apertura: 0.5 }))
+    expect(e.progreso).toBeCloseTo(0.8 / 3)
+    // un cuadro suelto con ruido no reinicia la cuenta
+    e = avanzarCalibracion(e, muestra(1300, { apertura: 0.5 }))
+    expect(e.desdeAbierta).toBe(0)
+    // cerrada (o fuera del marco) más de 0,3 s sí la reinicia
+    e = correr([muestra(1400, { apertura: 0.5 }), muestra(1600, { dentro: false })], e)
     expect(e.desdeAbierta).toBeNull()
-    e = correr([muestra(1700, { dentro: false }), muestra(1800), muestra(3700)], e)
+    e = correr([muestra(1700), muestra(3100)], e)
     expect(e.paso).toBe('abierta')
-    e = avanzarCalibracion(e, muestra(3800))
+    e = avanzarCalibracion(e, muestra(3200))
     expect(e.paso).toBe('abrir-cerrar')
     expect(e.progreso).toBeCloseTo(1 / 3)
+  })
+
+  it('paso 1 con margen: 0,7 de apertura ya cuenta como mano abierta', () => {
+    const e = correr([muestra(0, { apertura: 0.72 }), muestra(1500, { apertura: 0.72 })])
+    expect(e.paso).toBe('abrir-cerrar')
   })
 
   it('paso 2: 3 ciclos cerrar→abrir; paso 3: pinza 0,4 s → lista', () => {
@@ -212,10 +221,10 @@ describe('mano elegida, checklist y vista', () => {
   })
 
   it('esperaCalibracion (modo debug): dice qué condición falta en cada paso', () => {
-    expect(esperaCalibracion({ paso: 'abierta', cerrada: false })).toBe('apertura ≥ 0,80 por 2 s')
-    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: false })).toBe('cerrar: apertura ≤ 0,30')
-    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: true })).toBe('abrir: apertura ≥ 0,80')
-    expect(esperaCalibracion({ paso: 'pinza', cerrada: false })).toBe('pinza ≤ 3 cm o ≤ 0,35 palma por 0,4 s')
+    expect(esperaCalibracion({ paso: 'abierta', cerrada: false })).toBe('apertura ≥ 0,70 por 1,5 s')
+    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: false })).toBe('cerrar: apertura ≤ 0,40')
+    expect(esperaCalibracion({ paso: 'abrir-cerrar', cerrada: true })).toBe('abrir: apertura ≥ 0,70')
+    expect(esperaCalibracion({ paso: 'pinza', cerrada: false })).toBe('pinza ≤ 3,5 cm o ≤ 0,40 palma por 0,4 s')
   })
 
   it('pinza de frente: si MediaPipe separa las puntas en profundidad, la distancia en la imagen igual la reconoce', () => {
