@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F05 catálogo de ejercicios → done.
+- Última sesión: 2026-11-21, F06 preparar la sesión → done (deploy prod hecho, 200).
 - Feature en curso: ninguno.
-- Recommended Next Step: **F06 — Preparar la sesión (Prompt 4)** (`node scripts/siguiente-feature.mjs` para el detalle). Tiene `deploy: true`.
+- Recommended Next Step: **F07 — Módulo de seguimiento de manos + distancia + fuentes simuladas** (`node scripts/siguiente-feature.mjs` para el detalle).
 
 ## Archivos clave (Files)
 
@@ -43,10 +43,14 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - Registro (`src/games/registry.ts`): ahora 8 juegos; `FILTROS`/`FiltroGesto`. Disponibles: `caja-juguetes` y `movilidad-guiada`. **Cada feature de juego (J1–J6) debe poner `disponible: true`** y el e2e `e2e/ejercicios.spec.ts` (constante `DISPONIBLES`) se actualiza a la par.
 - Tarjeta disponible = `Link` a `/sesion/<id>/preparar`; Próximamente = `div aria-disabled`.
 
-## Para F06 (preparar la sesión)
+## Preparar la sesión (F06, hecho)
 
-- `/sesion/:juego/preparar` llega desde /inicio ("Siguiente") y desde /ejercicios con el id del registro (`caja-juguetes`, `movilidad-guiada`). Valores por defecto: ítem del plan vigente con ese `juego` (`juegoPorId`, `nivelDe` en el registro).
-- F06 tiene `"deploy": true`: al cerrar, `vercel deploy --prod --yes` y confirmar 200 en https://manoviva-sigma.vercel.app.
+- `src/screens/sesion/Preparar.tsx`: `useCarga` (paciente → consentimiento, plan vigente, sesiones) + `<Estados>`. Lógica pura en `src/games/preparar.ts`: `valoresPorDefecto(juegoId, plan, manoAfectada, sesiones)` y `sesionPreparada(pacienteId, juegoId, prep)` → `repos.sesiones.crear(...)`.
+- "Comenzar" navega a `/sesion/<S-AAAAMMDD-NN>/calibrar` **conservando `?fuente=`**. La sesión queda `estado: 'preparada'`, `parametros` = `{ mano, nivel, duracionMin, metaAgarres, metaPinzaCm, prescritoPor }` y `planVersion`; `inicio`, `calibracion`, `versionApp`, `dispositivo`, `versionModelo` = null (los llenan F08+ con `repos.sesiones.actualizar`).
+- Sin consentimiento → `/privacidad` con `state.volver` (F18 debe volver ahí tras firmar).
+- Registro: `NivelJuego.detalle` (texto por nivel); los juegos nuevos deben definirlo. `nivelDe(juegoId, n)` da tamaño/cantidad/distancia del nivel para el juego.
+- e2e que crean sesiones: limpiar con `npx tsx scripts/limpiar-preparadas.ts <ISO desde>` (borra solo `preparada` de pacientes demo creadas desde esa fecha). Ver `e2e/preparar.spec.ts` (try/finally). F08 puede crear su sesión de prueba igual y limpiarla así — ojo: una sesión que pasó a `en curso` no la borra este script (ampliarlo o re-seed).
+- Clases CSS nuevas (sección "preparar sesión"): `.preparar`, `.preparar-tarjeta`, `.preparar-valor`, `.niveles`, `.duracion`, `.boton-paso`, `.autor`, `.consejo`.
 
 ## Cuidado con
 
@@ -65,5 +69,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F06.
-3. Marcar F06 `in-progress` y seguir CLAUDE.md.
+2. `node scripts/siguiente-feature.mjs` → F07.
+3. Marcar F07 `in-progress` y seguir CLAUDE.md.

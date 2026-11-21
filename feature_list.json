@@ -176,7 +176,7 @@
       "dependencies": [
         "F05"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Valores por defecto vienen del plan",
         "Comenzar crea fila en sesiones con estado preparada e id S-AAAAMMDD-NN",
@@ -187,7 +187,7 @@
         "npm run captura -- /sesion/caja-juguetes/preparar preparar"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "npm run e2e -- preparar 5/5 (defectos del plan vs BD para Caja y Movilidad; controles mano/nivel/duración +/− y deslizador con límites 2–10; Comenzar crea S-20261121-NN estado preparada con parámetros congelados, plan_version y prescritoPor leídos de la BD, navega a /sesion/:id/calibrar?fuente=sintetica y se borra con scripts/limpiar-preparadas.ts; sin consentimiento (consentimientos=[] interceptado) → /privacidad sin POST a sesiones; error de carga + Reintentar; juego inexistente/Próximamente sin Comenzar). npm run e2e -- smoke inicio ejercicios 39/39. vitest 41/41 (preparar.test.ts 6). bash init.sh INIT OK. Captura docs/capturas/preparar.png comparada con 04_preparar_sesion.png: igual estructura y textos; diferencias aceptadas: botones −/+ junto al deslizador (lo pide el prompt), línea de detalle del nivel bajo la barra (registro), meta muestra Pinza ≥ 7 cm y nivel 2 según plan demo, banner demo arriba, consejo en 2 líneas. Deploy: vercel deploy --prod OK, https://manoviva-sigma.vercel.app 200, /acceso 200, bundle Preparar-*.js publicado."
     },
     {
       "id": "F07",

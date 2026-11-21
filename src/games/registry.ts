@@ -25,6 +25,8 @@ export interface NivelJuego {
   cantidad: number
   /** Distancia de la zona de juego a la caja, en unidades de escena. */
   distanciaCaja: number
+  /** Qué significa el nivel para el paciente (se muestra en /sesion/:juego/preparar). */
+  detalle: string
 }
 
 export interface Juego {
@@ -44,11 +46,11 @@ export interface Juego {
 }
 
 const nivelesCaja: NivelJuego[] = [
-  { nivel: 1, nombre: 'Objetos grandes', tamano: 1.35, cantidad: 4, distanciaCaja: 0.9 },
-  { nivel: 2, nombre: 'Objetos medianos', tamano: 1.15, cantidad: 6, distanciaCaja: 1.1 },
-  { nivel: 3, nombre: 'Objetos medianos, más lejos', tamano: 1.0, cantidad: 7, distanciaCaja: 1.35 },
-  { nivel: 4, nombre: 'Objetos pequeños', tamano: 0.85, cantidad: 8, distanciaCaja: 1.55 },
-  { nivel: 5, nombre: 'Objetos pequeños, lejos', tamano: 0.72, cantidad: 10, distanciaCaja: 1.75 },
+  { nivel: 1, nombre: 'Objetos grandes', tamano: 1.35, cantidad: 4, distanciaCaja: 0.9, detalle: '4 objetos grandes, caja cerca' },
+  { nivel: 2, nombre: 'Objetos medianos', tamano: 1.15, cantidad: 6, distanciaCaja: 1.1, detalle: '6 objetos medianos, caja a media distancia' },
+  { nivel: 3, nombre: 'Objetos medianos, más lejos', tamano: 1.0, cantidad: 7, distanciaCaja: 1.35, detalle: '7 objetos medianos, caja más lejos' },
+  { nivel: 4, nombre: 'Objetos pequeños', tamano: 0.85, cantidad: 8, distanciaCaja: 1.55, detalle: '8 objetos pequeños, caja lejos' },
+  { nivel: 5, nombre: 'Objetos pequeños, lejos', tamano: 0.72, cantidad: 10, distanciaCaja: 1.75, detalle: '10 objetos pequeños, caja al fondo' },
 ]
 
 const nivelesMovilidad: NivelJuego[] = [1, 2, 3, 4, 5].map((n) => ({
@@ -57,6 +59,7 @@ const nivelesMovilidad: NivelJuego[] = [1, 2, 3, 4, 5].map((n) => ({
   tamano: 1,
   cantidad: 6 + n * 2,
   distanciaCaja: 0,
+  detalle: `${6 + n * 2} repeticiones de abrir y cerrar`,
 }))
 
 export const JUEGOS: Juego[] = [

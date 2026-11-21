@@ -5,7 +5,7 @@ Registro de sesiones (solo agregar al final). Cada entrada: fecha, feature, qué
 ## Estado actual (Current State)
 
 - Last Updated: 2026-11-21
-- Hecho: F00 base, F01 harness, F02 esqueleto (rutas, sesión, roles, barras, e2e), F03 acceso y roles (/acceso real con Supabase Auth). El resto de las pantallas siguen provisorias. El deploy sigue siendo la página provisoria de F00.
+- Hecho: F00 base, F01 harness, F02 esqueleto, F03 acceso, F04 inicio del paciente, F05 catálogo de ejercicios, F06 preparar la sesión. El resto de las pantallas siguen provisorias. Deploy de producción al día con F06.
 - Siguiente (Next): ver `node scripts/siguiente-feature.mjs` y `session-handoff.md`.
 
 ## Decisiones
@@ -49,6 +49,14 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - 2026-11-21 · (F05) Nivel actual = nivel del ítem del plan vigente (si se repite, el mayor); si no está en el plan, el de la última sesión cerrada de ese juego; si nunca lo jugó, 1. Función pura `nivelActual`/`catalogo` en `src/games/catalogo.ts` con pruebas.
 - 2026-11-21 · (F05) "Próximamente" = insignia gris + miniatura atenuada; la tarjeta es un `div` con `aria-disabled` (sin enlace ni aviso al tocar). Si un juego está asignado y además es Próximamente se ven ambas insignias.
 - 2026-11-21 · (F05) Miniaturas SVG propias en `src/games/Miniatura.tsx` (clave = `Juego.miniatura`): caja, movilidad, torre, pinza, burbujas, naranja, memoria, piano.
+- 2026-11-21 · (F06) Valores por defecto = primer ítem del plan vigente con ese juego (mano, nivel, duración, metas, autor = `creadoPorNombre`). Juego fuera del plan: mano afectada del paciente, nivel de la última sesión cerrada (o 1), 5 min y "Práctica libre" sin meta (se guarda metaAgarres/metaPinzaCm 0 y prescritoPor null). `planVersion` = versión del plan vigente (null si no hay plan). Función pura `valoresPorDefecto`/`sesionPreparada` en `src/games/preparar.ts` con pruebas.
+- 2026-11-21 · (F06) `parametros.prescritoPor` guarda el nombre visible del autor ("Klgo. Diego M."), igual que el seed, no el uuid.
+- 2026-11-21 · (F06) Dificultad: las 5 barras de la imagen son botones (zona táctil 48 px) para elegir nivel; bajo la barra se muestra `NivelJuego.detalle` (campo nuevo del registro: qué cambia en cantidad, tamaño y distancia a la caja). El paciente puede cambiar nivel/duración/mano; la meta queda bloqueada.
+- 2026-11-21 · (F06) Duración: botones −/+ a los lados del deslizador (el prompt los pide; la imagen solo muestra el deslizador). Paso 1 min, límites 2–10.
+- 2026-11-21 · (F06) Consentimiento: se revisa al cargar la pantalla (no al tocar Comenzar). Sin consentimiento → aviso + `navigate('/privacidad', { replace, state: { volver: '/sesion/<juego>/preparar?…' } })`. F18 (privacidad) debe usar `state.volver` para regresar tras firmar.
+- 2026-11-21 · (F06) Juego inexistente o "Próximamente" en /sesion/:juego/preparar → mensaje "Este ejercicio no está disponible" con enlace a /ejercicios (no se crea sesión). `?fuente=` se conserva al ir a /calibrar. Cada "Comenzar" crea una sesión preparada nueva (no se reutilizan).
+- 2026-11-21 · (F06) `versionApp`, `dispositivo` y `versionModelo` quedan null en la sesión preparada: los llena la calibración/juego/cierre.
+- 2026-11-21 · (F06) Limpieza de e2e: `scripts/limpiar-preparadas.ts <ISO desde>` (service_role, como manda CLAUDE.md: solo scripts/) borra sesiones `preparada` de pacientes demo creadas desde esa fecha; `e2e/preparar.spec.ts` lo llama en un `finally` de la única prueba que crea sesión. Smoke usa ahora `/sesion/caja-juguetes/preparar` (título "Caja de juguetes").
 
 ## Riesgos abiertos
 
@@ -102,3 +110,9 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Registro: +3 juegos (exprime-naranja, memoria-cartas, piano-dedos) como no disponibles, `FiltroGesto` y `FILTROS`. Nuevo `src/games/catalogo.ts` (+ pruebas) y `src/games/Miniatura.tsx`. Estilos en `src/index.css` (sección catálogo).
 - Verificación: `npm run e2e -- ejercicios` 5/5 · `npm run e2e -- smoke inicio` 34/34 · vitest 35/35 · `bash init.sh` INIT OK · captura `docs/capturas/ejercicios.png`.
 - Siguiente: F06 (preparar sesión).
+
+### 2026-11-21 · F06 Preparar la sesión
+- `/sesion/:juego/preparar` real (`src/screens/sesion/Preparar.tsx`): Mano a trabajar (Izquierda/Derecha/Ambas), Dificultad con 5 barras tocables + nombre y detalle del nivel desde el registro, Duración 2–10 con deslizador y −/+, Meta del plan bloqueada con candado y autor, consejo de posición, Comenzar fijo abajo. Sin consentimiento → /privacidad.
+- Nuevo: `src/games/preparar.ts` (+ pruebas), `NivelJuego.detalle` en el registro, `scripts/limpiar-preparadas.ts`, estilos sección "preparar sesión" en `src/index.css`.
+- Verificación: `npm run e2e -- preparar` 5/5 · `npm run e2e -- smoke inicio ejercicios` 39/39 · vitest 41/41 · `bash init.sh` INIT OK · captura `docs/capturas/preparar.png` · deploy prod 200 (/ y /acceso).
+- Siguiente: F07 (módulo de seguimiento de manos).

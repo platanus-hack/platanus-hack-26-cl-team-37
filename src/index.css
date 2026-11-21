@@ -279,3 +279,22 @@ a.tarjeta-juego:active { background: var(--tarjeta-2); }
 .juego-insignias .insignia { padding: 3px 10px; }
 .tarjeta-juego:has(.juego-insignias .insignia) .juego-textos { padding-top: 26px; }
 .no-disponible .juego-nombre { color: var(--texto-2); }
+
+/* ---------------------------------------------------------- preparar sesión (F06) */
+.preparar { gap: 8px; }
+.preparar .encabezado h1 { font-size: 24px !important; }
+.preparar .seccion { margin-top: 4px; }
+.preparar .segmentos { padding: 6px; border-radius: var(--radio); }
+.preparar .segmentos button { min-height: 52px; font-size: 17px; }
+.preparar-tarjeta { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: var(--radio-l); }
+.preparar-valor { font-family: var(--cuerpo); font-weight: 700; font-size: 17px; }
+.niveles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.niveles button { min-height: var(--toque); border: 0; background: transparent; padding: 0; display: flex; align-items: center; }
+.niveles button span { display: block; width: 100%; height: 8px; border-radius: 99px; background: #2c3c4b; }
+.niveles button.lleno span { background: var(--acento); }
+.duracion { gap: 10px; }
+.boton-paso { width: var(--toque); height: var(--toque); border-radius: 12px; border: 1px solid var(--borde-fuerte); background: var(--fondo-2); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.boton-paso:disabled { opacity: 0.35; cursor: default; }
+.autor { gap: 8px; font-size: 14px; }
+.consejo { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-top: 4px; border-radius: var(--radio-l); background: #172a3e; color: var(--info); }
+.consejo p { color: var(--texto); font-size: 15px; }

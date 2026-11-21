@@ -7,7 +7,7 @@ const S = 'S-20261121-01'
 const RUTAS_PACIENTE: { ruta: string; titulo: string | RegExp; barra: boolean }[] = [
   { ruta: '/inicio', titulo: /^Hola/, barra: true },
   { ruta: '/ejercicios', titulo: 'Ejercicios', barra: true },
-  { ruta: '/sesion/caja/preparar', titulo: 'Preparar sesión', barra: false },
+  { ruta: '/sesion/caja-juguetes/preparar', titulo: 'Caja de juguetes', barra: false },
   { ruta: `/sesion/${S}/calibrar`, titulo: 'Calibración', barra: false },
   { ruta: `/sesion/${S}/jugar`, titulo: 'Juego', barra: false },
   { ruta: `/sesion/${S}/sensacion`, titulo: '¿Cómo te sentiste?', barra: false },
