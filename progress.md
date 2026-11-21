@@ -242,3 +242,7 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Decisión del coordinador: migración 20261121400001 define de una vez los tipos de evento de J1–J6 (y TipoEvento en types.ts), para que los juegos no vuelvan a tocar esa regla.
 - Decisión: init.sh corre npm install en cada línea, así que las líneas tienen node_modules propio (copiado con robocopy; un enlace no sirvió). e2e puede fallar por carga con varias líneas activas; pasa solo.
 - El usuario pidió sumar un juego en paralelo antes del cierre de la app: F23 (Pinza fina) pasa a depender solo de F10.
+
+### 2026-11-21 · F20 PWA instalable y sin conexión (línea C, Sonnet 5.5)
+- vite-plugin-pwa (SW solo en build/preview), manifest e íconos PNG, fuentes Poppins/DM Sans autoalojadas (index.html ya no usa Google Fonts → la CSP de F18 puede quitar esos orígenes), caché de modelo/wasm/Rapier, Supabase siempre por red.  envuelto por conRespaldoLocal (src/data/sinConexion.ts): cache de lecturas, ID provisional S-AAAAMMDD-Lxxxxx para sesiones creadas sin red con alias al sincronizar; cerrar con hash exige red y cola vacía; aviso de estado de red. docs/telefono.md con pasos para el teléfono y nota de Capacitor.
+- Cuidado: no tocar colaLocal.ts ni supabaseRepos.ts sin coordinar. Flaky conocido: e2e inicio "estado de error con reintento" falla a veces con varias líneas activas.

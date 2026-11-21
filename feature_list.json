@@ -510,7 +510,7 @@
       "dependencies": [
         "F13"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Lighthouse/Chromium: manifest válido y SW registrado",
         "e2e: con red cortada (context.setOffline) se completa una sesión y al volver la red se sincroniza",
@@ -521,7 +521,8 @@
         "npm run build && revisar dist/sw.js"
       ],
       "deploy": true,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea C, Sonnet 5.5): e2e:offline 2/2 (manifest ManoViva/#0f1720/standalone/íconos 192-512-maskable, SW controla la página, caché con app+modelo+wasm+Rapier+fuentes y sin Supabase; sesión completa sin red que sincroniza al volver y cierra con hash); vitest 173; init.sh completo INIT OK tras unir; fuentes autoalojadas. Pendiente de humano: instalación en teléfono y modo avión (docs/telefono.md).",
+      "pendiente_humano": "Instalar en un teléfono real y probar modo avión (pasos en docs/telefono.md)"
     },
     {
       "id": "F21",
