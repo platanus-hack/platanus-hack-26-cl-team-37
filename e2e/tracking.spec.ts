@@ -62,12 +62,9 @@ test.describe('fuentes de manos (F07)', () => {
   for (const delegado of ['auto', 'cpu']) test(`camara (${delegado}): con la cámara falsa carga MediaPipe local y queda buscando la mano, sin enviar nada`, async ({ page }) => {
     test.setTimeout(60_000)
     const salientes: string[] = []
-    // Las fuentes de Google (index.html) son archivos estáticos que se piden con GET y no llevan datos de la cámara:
-    // se permiten solo esos dos orígenes y solo con GET. Cualquier otra salida (p. ej. odml.pa.googleapis.com) falla.
-    const FUENTES_WEB = new Set(['fonts.googleapis.com', 'fonts.gstatic.com'])
+    // Las fuentes están autoalojadas (public/fuentes, F20): no se permite ningún origen externo.
     page.on('request', (req) => {
       const u = new URL(req.url())
-      if (req.method() === 'GET' && FUENTES_WEB.has(u.host)) return
       if (req.method() !== 'GET' || u.host !== new URL(page.url()).host) salientes.push(`${req.method()} ${req.url()}`)
     })
     const r = await probarFuente(page, `?fuente=camara&delegado=${delegado}`, ['buscando', 'detectada', 'error', 'sin camara', 'sin permiso'], 40_000, delegado === 'auto' ? 12000 : 3000)

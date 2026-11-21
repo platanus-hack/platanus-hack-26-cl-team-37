@@ -6,6 +6,7 @@ const PUERTO = Number(process.env.E2E_PUERTO ?? 5176)
 
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: /offline\.spec\.ts/, // corre con el build: npm run e2e:offline
   timeout: 30_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,

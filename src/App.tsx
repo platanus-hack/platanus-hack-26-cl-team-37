@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AlInicio, Protegida, SoloPublica } from './auth/Protegida'
 import Acceso from './screens/acceso/Acceso'
+import { EstadoRed } from './ui/EstadoRed'
 import { PantallaCargando } from './ui/Marco'
 import { Avisos } from './ui/piezas'
 
@@ -83,6 +84,7 @@ export default function App() {
           </Routes>
         </Suspense>
         <Avisos />
+        <EstadoRed />
       </AuthProvider>
     </BrowserRouter>
   )
