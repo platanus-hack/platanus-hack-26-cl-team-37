@@ -14,6 +14,7 @@ git -C "$RAIZ" branch -D "$RAMA" >/dev/null 2>&1 || true
 git -C "$RAIZ" worktree add -b "$RAMA" "$DEST" master >/dev/null
 cp "$RAIZ/.env.local" "$RAIZ/.env.secrets" "$DEST/"
 mkdir -p "$DEST/.vercel" && cp "$RAIZ/.vercel/project.json" "$DEST/.vercel/"
+[ -d "$RAIZ/supabase/.temp" ] && mkdir -p "$DEST/supabase" && cp -r "$RAIZ/supabase/.temp" "$DEST/supabase/.temp"
 # enlace de directorio (junction) a node_modules del repo principal
-cmd //c mklink /J "$(cygpath -w "$DEST/node_modules")" "$(cygpath -w "$RAIZ/node_modules")" >/dev/null
+powershell -NoProfile -Command "New-Item -ItemType Junction -Path '$(cygpath -w "$DEST/node_modules")' -Target '$(cygpath -w "$RAIZ/node_modules")' | Out-Null"
 echo "línea $N lista en $DEST (rama $RAMA, desde master $(git -C "$RAIZ" rev-parse --short master))"

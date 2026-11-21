@@ -420,7 +420,7 @@
       "dependencies": [
         "F03"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Luis aparece primero con 'Dolor 6/10'",
         "Jorge con 'Sin sesiones hace 4 días'",
@@ -431,7 +431,7 @@
         "npm run captura -- /terapeuta/pacientes terapeuta"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21 (línea B, Sonnet 5.5): tsc y oxlint limpios; vitest 152 OK (panel.test.ts); e2e terapeuta+smoke 32 OK; Luis primero con Dolor 6/10, Jorge sin sesiones hace 4 días; marcar revisada escribe auditoría (probado con alerta propia, limpiada con migración 200001); captura terapeuta.png comparada con imagen 11 (diferencia: buscador y 4 pacientes, no 12)."
     },
     {
       "id": "F17",

@@ -231,3 +231,8 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - `<Estados>` muestra estado vacío con `null` (prop `vacio`); Preparar lo usa. `e2e/sensacion.spec.ts` (sesión real) y `e2e/calibrar.spec.ts` (sale de /jugar antes de limpiar) ajustados.
 - Verificación: `npm run e2e -- flujo-paciente` 2/2 · `npm run e2e` 76/76 · vitest 141/141 · `npm run verify:db` Todo OK · `bash init.sh` INIT OK · captura `docs/capturas/resumen.png` (como 08) · deploy prod.
 - Siguiente: el que diga `node scripts/siguiente-feature.mjs` (F14 Progreso esperado).
+
+### 2026-11-21 · F16 Pacientes del terapeuta y alertas (línea B, Sonnet 5.5)
+- Pantallas Pacientes, Alertas (dolor + inactividad calculada, umbral de días en localStorage, 3 por defecto), Planes e Informes simples. CSS propio en src/screens/terapeuta/terapeuta.css. Migración 20261121200001 (limpiar alerta de prueba, solo service_role).
+- Decisiones: alertas abiertas = dolor abiertas + pacientes con inactividad (la inactividad no tiene fila en BD, sin botón revisar); orden dolor > sin sesiones > resto; sin sesiones cuenta desde fechaInicio; minigráfico = apertura máxima de las últimas 12 sesiones cerradas.
+- Trabajo en paralelo: líneas A/B/C en ../lineas/ (scripts/crear-linea.sh), puertos e2e 5181/5183/5185. Cada agente commitea solo código; el coordinador actualiza feature_list/progress/handoff al unir.
