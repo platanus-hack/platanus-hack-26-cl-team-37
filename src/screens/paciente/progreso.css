@@ -1,0 +1,29 @@
+/* F14 · Progreso */
+.progreso { gap: 12px; }
+.progreso .filtros { margin-bottom: 2px; }
+.progreso-etiqueta { font-family: var(--cuerpo); font-weight: 400; font-size: 15px; color: var(--texto-2); letter-spacing: 0; }
+.progreso-titulo { font-size: 15px; }
+.progreso-valor { font-family: var(--titulos); font-weight: 700; font-size: 24px; line-height: 1.2; margin: 6px 0 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.progreso-var { font-family: var(--cuerpo); font-size: 15px; font-weight: 700; }
+.progreso-var.sube { color: var(--exito); }
+.progreso-var.baja { color: var(--texto-2); }
+.progreso-meta { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 14px; color: var(--exito); white-space: nowrap; }
+.progreso-cabeza { align-items: flex-start; }
+.progreso-grafico { margin: 6px -4px 0; }
+.progreso-grafico .recharts-wrapper:focus, .progreso-grafico svg:focus { outline: none; }
+.progreso-dedos .fila { align-items: baseline; }
+.progreso-unidad { font-size: 14px; color: var(--texto-2); white-space: nowrap; }
+.progreso-titulo { min-width: 0; }
+.progreso-barras { display: flex; flex-direction: column; gap: 12px; margin: 12px 0 0; padding: 0; }
+.progreso-barra { display: grid; grid-template-columns: 62px 1fr 38px; align-items: center; gap: 12px; }
+.progreso-dedo { font-size: 15px; color: var(--texto-2); }
+.progreso-pista { display: block; height: 10px; border-radius: 999px; background: var(--tarjeta-2); overflow: hidden; }
+.progreso-relleno { display: block; height: 100%; border-radius: 999px; background: var(--acento); }
+.progreso-relleno.bajo { background: var(--alerta); }
+.progreso-numero { text-align: right; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.progreso-nota { margin: 12px 0 0; font-size: 13px; color: var(--texto-3); }
+.progreso-par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.progreso-par .tarjeta { padding: 14px; }
+.progreso-par .progreso-valor { font-size: 22px; }
+.progreso-par .progreso-nota { margin-top: 6px; }
+.progreso-baja-tiempo { color: var(--exito); }
