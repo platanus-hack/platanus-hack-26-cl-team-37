@@ -33,3 +33,11 @@ Qué hiciste, qué probaste y qué quedó pendiente. Agrega al final; un bloque 
 - Piezas nuevas en `src/ui/salud.tsx` y `src/ui/salud.css`; escenas del artefacto en `src/ui/escenas/` (caja, pinza, movilidad).
 - Pruebas: `npm run verify` (284 unitarias); e2e `inicio` y `smoke` 34/34 contra la base de desarrollo (inicio.spec ajustado: arco en vez de racha y adherencia, tarjeta Ahora en vez de "Siguiente").
 - Pendiente: Ejercicios, Progreso, Historial, Privacidad, Acceso y Perfil (P1); Sensación con la escala de dolor, Resumen, terapeuta y la capa del juego (P2/P3).
+
+## 2026-11-21 · Sistema de diseño en las demás pantallas de P1 (PR #27)
+- **Ejercicios:** una tarjeta blanca con una fila por juego (no grilla de tarjetas iguales), la escena real como miniatura cuando el juego la tiene, "Asignado" y "Próximamente" escritos sin insignias de color.
+- **Historial:** los registros pasan a filas dentro de una sola tarjeta; meta cumplida en relleno amarillo y meta no alcanzada neutra (el rojo queda solo para dolor); fecha en cifras, sin tipografía monoespaciada.
+- **Privacidad:** ajustes dentro de una tarjeta, consentimiento como tarjeta plana con su estado escrito, escudo en tinta; el botón de peligro pasa a secundario (`src/ui/salud.css`).
+- **Progreso:** cifras en Archivo fino, sin pesos 700.
+- **Común:** encabezado de pantallas internas con volver arriba y título de 30 px debajo (`Encabezado`, `src/ui/piezas.tsx`); título de pantalla de una línea en 30 px.
+- Pendiente: Perfil (sigue "En construcción", es F19 de P2) y las pantallas de P2/P3 (sensación con escala de dolor, resumen, terapeuta, capa del juego). Escenas para los juegos nuevos.

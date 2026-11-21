@@ -61,3 +61,36 @@
 
 /* ——— Un enlace con forma de botón no se subraya ——— */
 a.boton { text-decoration: none; }
+
+/* ——— Catálogo de ejercicios: una tarjeta, una fila por juego ——— */
+.catalogo { padding: 4px 20px; }
+.catalogo ul { margin: 0; padding: 0; list-style: none; }
+.catalogo li + li .catalogo-fila { border-top: 1px solid var(--linea); }
+.catalogo-fila { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 12px 0; color: var(--tinta); text-decoration: none; }
+.catalogo-fila > svg { flex: none; color: var(--control); }
+.catalogo-miniatura { width: 64px; height: 48px; flex: none; border-radius: 12px; object-fit: cover; background: var(--pista); overflow: hidden; }
+.catalogo-miniatura.dibujo { display: grid; place-items: center; }
+.catalogo-miniatura.dibujo svg { width: 40px; height: 40px; }
+.catalogo-textos { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.catalogo-textos b { font-weight: 600; font-size: 17px; }
+.catalogo-textos > span { color: var(--suave); font-size: 15px; }
+.catalogo-nivel { display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; font-size: 14px; white-space: nowrap; }
+.catalogo-nivel .catalogo-asignado, .catalogo-nivel .catalogo-pronto { flex-basis: 100%; font-size: 15px; }
+.catalogo-asignado { color: var(--tinta); font-weight: 600; }
+.catalogo-pronto { color: var(--suave); }
+.catalogo-fila.no-disponible .catalogo-textos b { color: var(--suave); }
+.catalogo-fila.no-disponible .catalogo-miniatura { opacity: 0.55; }
+
+/* ——— Encabezado de pantallas internas: volver arriba, el título de una línea debajo ——— */
+.encabezado.con-atras { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'atras derecha' 'textos textos'; gap: 12px 8px; align-items: center; }
+.encabezado.con-atras > .boton-icono { grid-area: atras; justify-self: start; }
+.encabezado.con-atras > .textos { grid-area: textos; }
+.encabezado.con-atras > :not(.boton-icono):not(.textos) { grid-area: derecha; }
+.encabezado .textos h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }
+.encabezado .subtitulo { color: var(--suave); font-size: 15px; margin-top: 4px; }
+
+/* ——— Botón de peligro: pasa a secundario; el texto dice qué se borra (Del repo actual) ——— */
+.boton.peligro { background: var(--tarjeta); color: var(--tinta); border: 1.5px solid var(--control); }
+
+/* ——— Título de pantalla: una línea, 30 px, 600 ——— */
+.pantalla > h1, .pantalla > header > h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }

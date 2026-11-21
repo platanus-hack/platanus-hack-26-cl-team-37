@@ -27,3 +27,17 @@
 .historial-mono { font-size: 15px; }
 .historial-acciones { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; margin-top: 4px; }
 .historial-cambios { gap: 6px; margin: 0; }
+
+/* Sistema «Salud»: los registros van como filas dentro de una sola tarjeta blanca (no una tarjeta por registro).
+   Meta cumplida: relleno amarillo (lo que avanza). Meta no alcanzada: neutra (el rojo es solo dolor o revisar). */
+.historial-lista { gap: 0; padding: 4px 16px; border-radius: 24px; background: var(--tarjeta); }
+.historial-lista > li + li .historial-fila { border-top: 1px solid var(--linea); }
+.historial-fila { background: none; border: 0; border-radius: 0; min-height: 80px; padding: 12px 0; }
+.historial-fila.seleccionada { background: var(--fondo); border-radius: 14px; }
+.historial-fecha { background: var(--fondo); }
+.historial-fecha strong { font-family: var(--cifras); font-weight: 400; font-variant-numeric: tabular-nums; }
+.historial-titulo { font-weight: 600; font-size: 17px; }
+.historial-sub.mono { font-family: var(--letra); font-variant-numeric: tabular-nums; }
+.historial-tag { font-size: 14px; padding: 2px 10px; }
+.historial-tag.malo { background: var(--pista); color: var(--suave); }
+.historial-flecha { color: var(--control); }

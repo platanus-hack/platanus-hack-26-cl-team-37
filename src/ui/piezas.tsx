@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Icono } from './Icono'
+import './salud.css'
 
 // ---------------------------------------------------------- estados de pantalla
 export function Cargando({ texto = 'Cargando…' }: { texto?: string }) {
@@ -58,14 +59,14 @@ export function Estados<T>({ r, children, cargando, vacio }: { r: { estado: stri
 export function Encabezado({ titulo, subtitulo, atras, derecha }: { titulo: ReactNode; subtitulo?: ReactNode; atras?: string | true; derecha?: ReactNode }) {
   const nav = useNavigate()
   return (
-    <header className="encabezado">
+    <header className={atras ? 'encabezado con-atras' : 'encabezado'}>
       {atras && (
         <button className="boton-icono" aria-label="Volver" onClick={() => (atras === true ? nav(-1) : nav(atras))}>
           <Icono nombre="atras" />
         </button>
       )}
       <div className="textos">
-        <h1 style={{ fontSize: atras ? 20 : 26 }}>{titulo}</h1>
+        <h1>{titulo}</h1>
         {subtitulo && <p className="subtitulo">{subtitulo}</p>}
       </div>
       {derecha}

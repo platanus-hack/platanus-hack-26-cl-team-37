@@ -27,3 +27,9 @@
 .progreso-par .progreso-valor { font-size: 22px; }
 .progreso-par .progreso-nota { margin-top: 6px; }
 .progreso-baja-tiempo { color: var(--tinta); font-weight: 600; }
+
+/* Sistema «Salud»: cifras en Archivo fino (la cifra es el dato), sin pesos 700; rótulos en suave. */
+.progreso-valor { font-family: var(--cifras); font-weight: 300; font-size: 38px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 8px; }
+.progreso-var { font-family: var(--letra); font-weight: 600; font-size: 15px; letter-spacing: 0; }
+.progreso-numero { font-family: var(--cifras); font-weight: 500; font-size: 16px; }
+.progreso-titulo { font-weight: 600; }
