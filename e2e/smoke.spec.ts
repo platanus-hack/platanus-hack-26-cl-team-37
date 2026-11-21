@@ -14,7 +14,7 @@ const RUTAS_PACIENTE: { ruta: string; titulo: string | RegExp; barra: boolean }[
   { ruta: `/sesion/${S}/resumen`, titulo: 'Resumen', barra: false },
   { ruta: '/progreso', titulo: 'Progreso', barra: true },
   { ruta: '/historial', titulo: 'Historial', barra: true },
-  { ruta: `/historial/${S}`, titulo: 'Registro de sesión', barra: true },
+  { ruta: `/historial/${S}`, titulo: 'Historial', barra: true },
   { ruta: '/perfil', titulo: 'Perfil', barra: true },
   { ruta: '/privacidad', titulo: 'Privacidad y datos', barra: false },
   { ruta: '/depuracion', titulo: 'Depuración', barra: false },
@@ -26,7 +26,7 @@ const RUTAS_TERAPEUTA: { ruta: string; titulo: string; barra: boolean }[] = [
   { ruta: '/terapeuta/alertas', titulo: 'Alertas', barra: true },
   { ruta: '/terapeuta/planes', titulo: 'Planes', barra: true },
   { ruta: '/terapeuta/informes', titulo: 'Informes', barra: true },
-  { ruta: `/historial/${S}`, titulo: 'Registro de sesión', barra: true },
+  { ruta: `/historial/${S}`, titulo: 'Historial', barra: true },
   { ruta: '/depuracion', titulo: 'Depuración', barra: false },
 ]
 
