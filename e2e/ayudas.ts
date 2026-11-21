@@ -1,5 +1,5 @@
 // Utilidades compartidas de las pruebas e2e.
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { expect, type BrowserContext, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
@@ -80,4 +80,15 @@ export async function clienteComo(como: Como) {
     global: { headers: { Authorization: `Bearer ${s.access_token}` } },
     realtime: { transport: WebSocket as never },
   })
+}
+
+/** Ids de los juegos con `disponible: true` en su src/games/<juego>/juego.ts (lee los archivos: las pruebas no importan
+ *  el código de la app). Evita una lista en las pruebas que cada juego nuevo tendría que editar. */
+export function disponiblesDelRegistro(): string[] {
+  const dir = new URL('../src/games/', import.meta.url)
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && existsSync(new URL(`${d.name}/juego.ts`, dir)))
+    .map((d) => readFileSync(new URL(`${d.name}/juego.ts`, dir), 'utf8'))
+    .filter((t) => /^\s*disponible: true,/m.test(t))
+    .map((t) => /^\s*id: '([^']+)'/m.exec(t)![1])
 }
