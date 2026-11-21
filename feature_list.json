@@ -834,7 +834,8 @@
         "Recargar (botón, tecla R o auto) refleja cambios de feature_list.json sin reiniciar el servidor; un JSON a medio editar muestra error y no rompe la página",
         "Filtros por estado, dueño y texto, con opción de mostrar las dependencias de lo filtrado y atajo \"En desarrollo\"",
         "Grafo de nodos con capas por dependencia; flechas punteadas para dependencias no terminadas; \"lista para empezar\" destacada",
-        "Clic en un nodo o fila resalta ancestros y descendientes y muestra aceptación, verificación y evidencia"
+        "Clic en un nodo o fila resalta ancestros y descendientes y muestra aceptación, verificación y evidencia",
+        "Vista \"carriles por rol\" (tecla C): una franja por P1, P2, P3, coordinación y base, con avance terminados/total; clic en una franja filtra por ese rol; la base terminada se oculta por defecto para que cada rol empiece a la izquierda"
       ],
       "verify": [
         "node scripts/tablero-features.mjs + captura con Playwright",

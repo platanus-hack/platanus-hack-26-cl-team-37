@@ -12,6 +12,7 @@
     --P1: #7a5af8; --P2: #ee46bc; --P3: #15b79e; --coordinación: #475467; --sin: #b0b7c3;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
   header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
   header h1 { font-size: 16px; margin: 0 12px 0 0; }
@@ -36,6 +37,7 @@
   .nodo.sel rect.cuerpo { stroke: #000; stroke-width: 3; }
   .nodo.cambio rect.cuerpo { animation: destello 1.2s ease-in-out 3; }
   @keyframes destello { 50% { stroke: var(--lista); stroke-width: 5; } }
+  .carril { cursor: pointer; transition: opacity .15s; } .carril:hover > rect:first-child { fill-opacity: .13; }
   .arista { fill: none; stroke: #a6b0bf; stroke-width: 1.4; transition: opacity .15s; }
   .arista.pendiente { stroke: var(--lista); stroke-dasharray: 4 3; }
   .arista.resaltada { stroke: #000; stroke-width: 2.2; }
@@ -66,6 +68,11 @@
     <label class="chip"><input type="checkbox" id="auto" /> auto cada 5 s</label>
     <button id="abrir" hidden title="Elegir feature_list.json del disco (para abrir este .html sin servidor)">📂 Abrir JSON…</button>
     <span id="estado-carga">—</span>
+  </div>
+  <div class="grupo">
+    <b>Vista</b>
+    <label class="chip" title="Una franja por rol (P1, P2, P3, coordinación, base) con su avance. Tecla C"><input type="checkbox" id="carriles" /> carriles por rol</label>
+    <label class="chip" id="chip-base" title="En carriles: mostrar también los features base ya terminados (sin dueño)"><input type="checkbox" id="ver-base" /> con base terminada</label>
   </div>
   <div class="grupo" id="filtro-estado"><b>Estado</b></div>
   <div class="grupo">
@@ -114,7 +121,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 const GUARDADO = 'tablero-features-v1'
 const ui = Object.assign(
-  { estados: ESTADOS.slice(), owner: '', texto: '', conDeps: true, auto: false, sel: null, orden: 'id', asc: true },
+  { estados: ESTADOS.slice(), owner: '', texto: '', conDeps: true, auto: false, sel: null, orden: 'id', asc: true, carriles: false, verBase: false },
   JSON.parse(localStorage.getItem(GUARDADO) || '{}'),
 )
 const guardar = () => localStorage.setItem(GUARDADO, JSON.stringify(ui))
@@ -223,20 +230,27 @@ const estadoVisible = (f) => (f.status === 'not-started' && depsListas(f) ? 'lis
 
 // ---------- Grafo: capas por camino más largo + orden por baricentro ----------
 const AN = 150, AL = 46, SEP_X = 70, SEP_Y = 18
+const CAB_CARRIL = 14, SEP_CARRIL = 14, ETQ_CARRIL = 190 // ancho de la etiqueta del carril, a la izquierda
+const ORDEN_CARRILES = ['P1', 'P2', 'P3', 'coordinación', '(sin dueño)']
+const NOMBRE_ROL = { P1: 'P1 · plataforma y calidad', P2: 'P2 · juegos y funciones', P3: 'P3 · juegos nuevos', coordinación: 'Coordinación', '(sin dueño)': 'Base (sin dueño)' }
+let carriles = []
+// En carriles, la base sin dueño ya terminada se oculta (salvo "con base terminada") para que cada rol empiece a la izquierda.
+const enGrafo = (f) => !(ui.carriles && !ui.verBase && !f.owner && f.status === 'done')
 function diagramar() {
+  const dibujados = new Set(features.filter(enGrafo).map((f) => f.id))
   const capa = new Map()
   const capaDe = (id, pila = new Set()) => {
     if (capa.has(id)) return capa.get(id)
     if (pila.has(id)) return 0 // ciclo: no debería ocurrir
     pila.add(id)
     const f = porId.get(id)
-    const c = f ? Math.max(-1, ...(f.dependencies || []).filter((d) => porId.has(d)).map((d) => capaDe(d, pila))) + 1 : 0
+    const c = f ? Math.max(-1, ...(f.dependencies || []).filter((d) => dibujados.has(d)).map((d) => capaDe(d, pila))) + 1 : 0
     capa.set(id, c)
     return c
   }
-  features.forEach((f) => capaDe(f.id))
+  dibujados.forEach((id) => capaDe(id))
   const capas = []
-  for (const f of features) (capas[capa.get(f.id)] ||= []).push(f.id)
+  for (const id of dibujados) (capas[capa.get(id)] ||= []).push(id)
   const fila = new Map()
   capas.forEach((ids) => ids.forEach((id, i) => fila.set(id, i)))
   for (let vuelta = 0; vuelta < 4; vuelta++) {
@@ -249,17 +263,52 @@ function diagramar() {
       ids.forEach((id, i) => fila.set(id, i))
     }
   }
-  const alto = Math.max(...capas.map((c) => c.length))
   posiciones = new Map()
-  capas.forEach((ids, c) => {
-    const desplaz = ((alto - ids.length) * (AL + SEP_Y)) / 2
-    ids.forEach((id, i) => posiciones.set(id, { x: c * (AN + SEP_X), y: desplaz + i * (AL + SEP_Y) }))
-  })
+  carriles = []
+  if (!ui.carriles) {
+    const alto = Math.max(...capas.map((c) => c.length))
+    capas.forEach((ids, c) => {
+      const desplaz = ((alto - ids.length) * (AL + SEP_Y)) / 2
+      ids.forEach((id, i) => posiciones.set(id, { x: c * (AN + SEP_X), y: desplaz + i * (AL + SEP_Y) }))
+    })
+    return
+  }
+  // Carriles por rol: misma columna (capa de dependencia) para todos, una franja horizontal por dueño.
+  let y = 0
+  for (const rol of ORDEN_CARRILES) {
+    const porCapa = capas.map((ids) => (ids || []).filter((id) => ownerDe(porId.get(id)) === rol))
+    const filas = Math.max(0, ...porCapa.map((c) => c.length))
+    if (!filas) continue
+    const alto = CAB_CARRIL + filas * (AL + SEP_Y) + SEP_Y
+    porCapa.forEach((ids, c) => {
+      const desplaz = ((filas - ids.length) * (AL + SEP_Y)) / 2
+      ids.forEach((id, i) => posiciones.set(id, { x: c * (AN + SEP_X), y: y + CAB_CARRIL + desplaz + i * (AL + SEP_Y) }))
+    })
+    const delRol = features.filter((f) => ownerDe(f) === rol)
+    const cuenta = (e) => delRol.filter((f) => f.estado === e).length
+    carriles.push({ rol, y, alto, total: delRol.length, done: cuenta('done'), enCurso: cuenta('in-progress'), listas: cuenta('lista'), bloq: cuenta('blocked') })
+    y += alto + SEP_CARRIL
+  }
 }
 
 function dibujarGrafo(cambiados) {
   const g = $('#vista')
   let s = ''
+  const finX = Math.max(0, ...[...posiciones.values()].map((p) => p.x)) + AN + 20
+  for (const c of carriles) {
+    const col = colorOwner(c.rol === '(sin dueño)' ? null : c.rol)
+    const pct = c.total ? c.done / c.total : 0, barra = ETQ_CARRIL - 40
+    const extra = [c.enCurso && `${c.enCurso} en desarrollo`, c.listas && `${c.listas} listas`, c.bloq && `${c.bloq} bloq.`].filter(Boolean).join(' · ')
+    s += `<g class="carril" data-rol="${esc(c.rol)}">
+      <rect x="${-ETQ_CARRIL}" y="${c.y}" width="${finX + ETQ_CARRIL}" height="${c.alto}" rx="10" fill="${col}" fill-opacity=".07" stroke="${col}" stroke-opacity=".35"/>
+      <rect x="${-ETQ_CARRIL}" y="${c.y}" width="6" height="${c.alto}" rx="3" fill="${col}"/>
+      <text x="${-ETQ_CARRIL + 16}" y="${c.y + 24}" style="font-size:12px;font-weight:700" fill="${col}">${esc(NOMBRE_ROL[c.rol] || c.rol)}</text>
+      <text x="${-ETQ_CARRIL + 16}" y="${c.y + 42}" style="font-size:11px" fill="#475467">${c.done}/${c.total} terminados (${Math.round(pct * 100)} %)</text>
+      <rect x="${-ETQ_CARRIL + 16}" y="${c.y + 50}" width="${barra}" height="6" rx="3" fill="#e4e7ec"/>
+      <rect x="${-ETQ_CARRIL + 16}" y="${c.y + 50}" width="${barra * pct}" height="6" rx="3" fill="${color('done')}"/>
+      ${extra ? `<text x="${-ETQ_CARRIL + 16}" y="${c.y + 72}" style="font-size:10.5px" fill="#475467">${extra}</text>` : ''}
+    </g>`
+  }
   for (const f of features) {
     for (const d of f.dependencies || []) {
       const a = posiciones.get(d), b = posiciones.get(f.id)
@@ -271,6 +320,7 @@ function dibujarGrafo(cambiados) {
   }
   for (const f of features) {
     const p = posiciones.get(f.id)
+    if (!p) continue
     const nombre = f.name.length > 24 ? f.name.slice(0, 23) + '…' : f.name
     s += `<g class="nodo${cambiados.has(f.id) ? ' cambio' : ''}" data-id="${f.id}" transform="translate(${p.x},${p.y})">
       <title>${esc(f.id + ' — ' + f.name + ' [' + NOMBRE_ESTADO[f.estado] + ']')}</title>
@@ -284,6 +334,13 @@ function dibujarGrafo(cambiados) {
   }
   g.innerHTML = s
   g.querySelectorAll('.nodo').forEach((n) => n.addEventListener('click', (e) => { e.stopPropagation(); seleccionar(n.dataset.id) }))
+  g.querySelectorAll('.carril').forEach((c) => c.addEventListener('click', (e) => {
+    if (arrastre?.movio) return
+    e.stopPropagation()
+    ui.owner = ui.owner === c.dataset.rol ? '' : c.dataset.rol // clic en un carril = filtrar por ese rol (otra vez = quitar)
+    $('#filtro-owner').value = ui.owner
+    guardar(); aplicarFiltros()
+  }))
   if (primeraVez) { encuadrar(); primeraVez = false }
 }
 
@@ -295,8 +352,11 @@ const ponerVB = () => svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.
 function encuadrar(todo) {
   const xs = [...posiciones.values()]
   if (!xs.length) return
-  const minX = Math.min(...xs.map((p) => p.x)) - 20, minY = Math.min(...xs.map((p) => p.y)) - 20
-  const maxX = Math.max(...xs.map((p) => p.x)) + AN + 20, maxY = Math.max(...xs.map((p) => p.y)) + AL + 20
+  const conCarriles = carriles.length > 0
+  const minX = Math.min(...xs.map((p) => p.x)) - (conCarriles ? ETQ_CARRIL + 10 : 20)
+  const minY = conCarriles ? carriles[0].y - 10 : Math.min(...xs.map((p) => p.y)) - 20
+  const maxX = Math.max(...xs.map((p) => p.x)) + AN + 20
+  const maxY = conCarriles ? carriles.at(-1).y + carriles.at(-1).alto + 10 : Math.max(...xs.map((p) => p.y)) + AL + 20
   const r = svg.getBoundingClientRect()
   const kTodo = Math.max((maxX - minX) / r.width, (maxY - minY) / r.height)
   const k = todo === true ? kTodo : Math.min(kTodo, Math.max(1.6, (maxY - minY) / r.height))
@@ -383,6 +443,7 @@ function aplicarFiltros() {
     const ok = cadena ? res : (visibles.has(para) || contexto.has(para)) && (visibles.has(de) || contexto.has(de))
     a.classList.toggle('tenue', !ok)
   })
+  document.querySelectorAll('.carril').forEach((c) => c.classList.toggle('tenue', !!ui.owner && ui.owner !== c.dataset.rol))
   document.querySelectorAll('tr.fila').forEach((tr) => {
     tr.classList.toggle('oculta', !visibles.has(tr.dataset.id) && !contexto.has(tr.dataset.id))
     tr.style.opacity = contexto.has(tr.dataset.id) ? 0.55 : 1
@@ -398,6 +459,13 @@ function aplicarFiltros() {
 
 $('#filtro-owner').addEventListener('change', (e) => { ui.owner = e.target.value; guardar(); aplicarFiltros() })
 $('#buscar').addEventListener('input', (e) => { ui.texto = e.target.value.trim(); guardar(); aplicarFiltros() })
+function cambiarCarriles(v) {
+  ui.carriles = v; $('#carriles').checked = v; $('#chip-base').hidden = !v
+  guardar(); diagramar(); dibujarGrafo(new Set()); aplicarFiltros(); encuadrar()
+}
+$('#carriles').addEventListener('change', (e) => cambiarCarriles(e.target.checked))
+$('#ver-base').addEventListener('change', (e) => { ui.verBase = e.target.checked; cambiarCarriles(ui.carriles) })
+document.addEventListener('keydown', (e) => { if (e.key === 'c' && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey) cambiarCarriles(!ui.carriles) })
 $('#con-deps').addEventListener('change', (e) => { ui.conDeps = e.target.checked; guardar(); aplicarFiltros() })
 $('#en-desarrollo').addEventListener('click', () => {
   ui.estados = ['in-progress', 'not-started', 'blocked']; ui.conDeps = true; ui.texto = ''
@@ -410,7 +478,8 @@ $('#limpiar').addEventListener('click', () => {
 function sincronizarControles() {
   document.querySelectorAll('#filtro-estado input').forEach((c) => (c.checked = ui.estados.includes(c.value)))
   $('#filtro-owner').value = ui.owner; $('#buscar').value = ui.texto
-  $('#con-deps').checked = ui.conDeps; $('#auto').checked = ui.auto
+  $('#con-deps').checked = ui.conDeps; $('#auto').checked = ui.auto; $('#carriles').checked = ui.carriles
+  $('#ver-base').checked = ui.verBase; $('#chip-base').hidden = !ui.carriles
 }
 
 // ---------- Selección y detalle ----------
