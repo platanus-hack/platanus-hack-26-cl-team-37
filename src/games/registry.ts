@@ -1,5 +1,6 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
+import { NIVELES_PINZA } from './pinza/logica'
 
 export type Gesto =
   | 'Pinza'
@@ -66,6 +67,17 @@ const nivelesMovilidad: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   detalle: NIVELES_MOVILIDAD[n].detalle,
 }))
 
+// Pinza fina (F23): nombre, detalle y tiempo por toque viven en src/games/pinza/logica.ts. `cantidad` no se usa:
+// la meta de toques viene del plan (metaAgarres).
+const nivelesPinza: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_PINZA[n].nombre,
+  tamano: 1,
+  cantidad: 0,
+  distanciaCaja: 0,
+  detalle: NIVELES_PINZA[n].detalle,
+}))
+
 export const JUEGOS: Juego[] = [
   {
     id: 'caja-juguetes',
@@ -110,11 +122,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Oposición del pulgar'],
     filtros: ['Pinza'],
     descripcionCorta: 'Oposición del pulgar',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'pinza',
-    niveles: nivelesCaja,
+    niveles: nivelesPinza,
   },
   {
     id: 'atrapa-burbujas',
