@@ -52,6 +52,8 @@ export interface MedidaBanda {
   alBorde: boolean
   /** Largo de la palma (muñeca → nudillo del medio) de la mano más chica, como fracción del lado corto de la imagen. */
   palma: number
+  /** Escala media de las dos manos, px de la imagen por metro: sirve para pasar a cm otras distancias del mismo plano. */
+  escalaPxPorM: number
 }
 
 /**
@@ -94,6 +96,7 @@ export function medirBanda(cuadro: CuadroManos, agarre: Agarre): MedidaBanda | n
     desnivel: Math.abs(sa - sb) / escala,
     alBorde: manosAlBorde([a, b]),
     palma: Math.min(tamanoPalma(a, cuadro.ancho, cuadro.alto), tamanoPalma(b, cuadro.ancho, cuadro.alto)),
+    escalaPxPorM: escala,
   }
 }
 

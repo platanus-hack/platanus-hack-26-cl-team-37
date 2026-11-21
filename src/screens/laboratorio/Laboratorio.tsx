@@ -6,6 +6,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara'
+import { LectorMarcas } from '../../banda/lectorMarcas'
+import { MODOS, colorUtil, type Hsv, type ModoMedida } from '../../banda/marcas'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
 import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, MS_SOSPECHA_REPOSO, PALMA_MIN, REPOSO_CORTO_CM, ToleranciaPerdida, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
 import { num } from '../../lib/formato'
@@ -39,8 +41,10 @@ interface Vista {
   sinManos: boolean
   /** La banda lleva rato «estirada» y quieta: quizá está en reposo y el cero quedó mal. */
   sospechaReposo: boolean
+  /** Estado de las marcas pintadas (solo en ese modo). */
+  marcas: 'sin-camara' | 'sin-color' | 'no-vistas' | 'sin-escala' | 'ok' | null
 }
-const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false, sospechaReposo: false }
+const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false, sospechaReposo: false, marcas: null }
 /**
  * Se dice qué revisar tras este tiempo sin ver las dos manos y con al menos estos cuadros procesados. Se piden los dos:
  * al iniciar, MediaPipe puede congelar la página varios segundos (Chromium sin GPU: unos 5 s) y ese tiempo no cuenta.
@@ -60,8 +64,12 @@ function indicacion(estado: EstadoSeguimiento, error: string | null, v: Vista, r
   // MediaPipe deja de detectar manos con poca luz o mucho ruido de imagen (probado con video: con ruido fuerte no ve
   // ninguna mano aunque se vean claras a simple vista), así que la luz es lo primero que hay que revisar.
   if (v.manos < 2 && luz != null && clasificarLuz(luz) === 'poca') return 'Hay poca luz: enciende una luz frente a ti o acércate a una ventana.'
+  if (v.marcas === 'sin-camara') return 'Las marcas en la banda necesitan la cámara.'
+  if (v.marcas === 'sin-color') return 'Toca una de las marcas en el video para que aprenda su color.'
+  if (v.marcas === 'sin-escala') return 'Muestra también las dos manos un momento: con ellas se pasa a centímetros.'
+  if (v.marcas === 'no-vistas') return 'No vemos las dos marcas: deja la banda de frente a la cámara, sin taparlas.'
   if (v.manos < 2 && v.sinManos) return 'No vemos las dos manos: que se vean enteras en el cuadro y con buena luz de frente.'
-  if (v.manos < 2) return 'Muestra las dos manos sosteniendo la banda.'
+  if (v.manos < 2 && v.marcas !== 'ok') return 'Muestra las dos manos sosteniendo la banda.'
   if (v.medida?.alBorde) return 'Una mano se sale del cuadro: aléjate un poco o toma la banda más corta.'
   if (v.medida && v.medida.palma < PALMA_MIN) return 'Acércate al teléfono: las manos se ven pequeñas y se miden peor.'
   if (v.medida && v.medida.desnivel > DESNIVEL_MAX) return 'Pon las dos manos a la misma distancia del teléfono.'
@@ -104,6 +112,8 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const archivo = useRef<HTMLInputElement>(null)
 
   const [agarre, setAgarre] = useGuardado<Agarre>('agarre', AGARRE_POR_DEFECTO)
+  const [modo, setModo] = useGuardado<ModoMedida>('modo', 'manos')
+  const [colorMarca, setColorMarca] = useGuardado<Hsv | null>('colorMarca', null)
   const [curvaId, setCurvaId] = useGuardado('curva', CORENGTH_5KG.id)
   const [tiras, setTiras] = useGuardado('tiras', 2)
   const [meta, setMeta] = useGuardado('meta', 0)
@@ -122,10 +132,11 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const metaKg = meta > 0 ? meta : null
 
   // Lo que el bucle de cuadros necesita leer sin volver a suscribirse.
-  const config = useRef({ agarre, curva, reposoCm, capturando })
+  const config = useRef({ agarre, curva, reposoCm, capturando, modo, colorMarca })
   useEffect(() => {
-    config.current = { agarre, curva, reposoCm, capturando }
-  }, [agarre, curva, reposoCm, capturando])
+    config.current = { agarre, curva, reposoCm, capturando, modo, colorMarca }
+  }, [agarre, curva, reposoCm, capturando, modo, colorMarca])
+  const lector = useRef<LectorMarcas | null>(null)
   const contador = useRef(new ContadorReps())
   const grabador = useRef<GrabadorLandmarks | null>(null)
 
@@ -149,6 +160,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     const filtro = new FiltroOneEuro(1.2, 0.05)
     const perdida = new ToleranciaPerdida()
     let ultimaMedida: MedidaBanda | null = null
+    let escalaUltima: number | null = null
     let trazo: PuntoTrazo[] = []
     let ultimo = -Infinity
     let t0Grabacion: number | null = null
@@ -186,7 +198,34 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
       // Cada pedido con el botón parte con la ventana vacía (si se canceló antes, no quedan muestras viejas).
       if (cfg.capturando && !estabaCapturando) capturaPedida.cortar()
       estabaCapturando = cfg.capturando
-      const cruda = medirBanda(c, cfg.agarre)
+      const deManos = medirBanda(c, cfg.agarre)
+      if (deManos) escalaUltima = deManos.escalaPxPorM
+      let cruda: MedidaBanda | null = deManos
+      let marcas: Vista['marcas'] = null
+      if (cfg.modo === 'marcas') {
+        // El largo sale de las dos marcas pintadas; las manos solo dan la escala para pasar a centímetros.
+        const video = fuente.video
+        if (!video) marcas = 'sin-camara'
+        else if (!cfg.colorMarca) marcas = 'sin-color'
+        else {
+          lector.current ??= new LectorMarcas()
+          const l = lector.current.leer(video, cfg.colorMarca)
+          if (!l) marcas = 'no-vistas'
+          else if (escalaUltima == null) marcas = 'sin-escala'
+          else {
+            marcas = 'ok'
+            cruda = {
+              largoCm: (l.distanciaPx / escalaUltima) * 100,
+              extremos: [l.a, l.b],
+              desnivel: deManos?.desnivel ?? 0,
+              alBorde: deManos?.alBorde ?? false,
+              palma: deManos?.palma ?? 1,
+              escalaPxPorM: escalaUltima,
+            }
+          }
+        }
+        if (marcas !== 'ok') cruda = null
+      }
       const estado = perdida.cuadro(c.t, cruda != null)
       // Un hueco breve (una mano no detectada unos cuadros) no corta nada: se sigue con la última medida en pantalla.
       if (estado === 'hueco') {
@@ -241,6 +280,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         trazo: [...trazo],
         grabandoMs: g && t0Grabacion != null ? c.t - t0Grabacion : null,
         sospechaReposo: sospecha,
+        marcas,
         sinManos: sinManosDesde != null && c.t - sinManosDesde > MS_AYUDA_SIN_MANOS && cuadrosSinManos >= CUADROS_AYUDA_SIN_MANOS,
       })
     })
@@ -309,6 +349,28 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     const json = g.json()
     onGrabacion({ url: URL.createObjectURL(new Blob([json], { type: 'application/json' })), segundos: (datos.cuadros.at(-1)?.t ?? 0) / 1000, json })
   }
+  // En el modo marcas, tocar el video elige el color de las marcas (se pasa del punto en pantalla, en espejo y
+  // recortado como object-fit: cover, al punto en la imagen cruda).
+  const tocarVideo = (ev: React.MouseEvent<HTMLDivElement>) => {
+    const video = fuente?.video
+    if (modo !== 'marcas' || !video?.videoWidth) return
+    const caja = ev.currentTarget.getBoundingClientRect()
+    const s = Math.max(caja.width / video.videoWidth, caja.height / video.videoHeight)
+    const ox = (caja.width - video.videoWidth * s) / 2
+    const oy = (caja.height - video.videoHeight * s) / 2
+    const x = 1 - (ev.clientX - caja.left - ox) / (video.videoWidth * s)
+    const y = (ev.clientY - caja.top - oy) / (video.videoHeight * s)
+    if (x < 0 || x > 1 || y < 0 || y > 1) return
+    lector.current ??= new LectorMarcas()
+    const c = lector.current.colorEn(video, x, y)
+    if (!c || !colorUtil(c)) {
+      avisar('Ese color no se distingue del fondo: toca justo encima de una marca.', true)
+      return
+    }
+    lector.current.reiniciar()
+    setColorMarca(c)
+    avisar('Color de las marcas guardado')
+  }
   const reproducir = (url: string) => navegar(`/laboratorio?fuente=grabacion&grabacion=${encodeURIComponent(url)}`)
 
   return (
@@ -325,7 +387,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
 
       <div className="lab-grilla">
         <section className="lab-escena" aria-label="Cámara">
-          <div className={`lab-camara${vertical ? ' vertical' : ''}`} style={proporcion ? { aspectRatio: proporcion } : undefined}>
+          <div className={`lab-camara${vertical ? ' vertical' : ''}${modo === 'marcas' ? ' eligiendo' : ''}`} style={proporcion ? { aspectRatio: proporcion } : undefined} onClick={tocarVideo}>
             <div className="lab-fondo" ref={fondo} />
             <canvas ref={lienzo} className="lab-lienzo" />
             <div className="lab-chips">
@@ -418,7 +480,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
             </div>
           </dl>
           {carga?.fueraDeRango && <p className="lab-aviso">Pasaste el último punto de la curva: el valor es una prolongación.</p>}
-          {reposoCm != null && reposoCm < REPOSO_CORTO_CM && <p className="lab-aviso">Reposo corto: con las manos más separadas el estiramiento se mide mejor.</p>}
+          {reposoCm != null && reposoCm < (modo === 'marcas' ? REPOSO_CORTO_CM / 2 : REPOSO_CORTO_CM) && <p className="lab-aviso">{modo === 'marcas' ? 'Marcas muy juntas: sepáralas unos 15 cm para medir mejor.' : 'Reposo corto: con las manos más separadas el estiramiento se mide mejor.'}</p>}
           {reposoCm != null && <Trazo puntos={vista.trazo} ventanaMs={MS_TRAZO} tope={tope} meta={metaKg} />}
           {capturando ? (
             <button type="button" className="boton secundario" onClick={() => setCapturando(false)}>
@@ -502,6 +564,26 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
             </div>
           </div>
           <p className="tenue chico">Un lazo tomado entero son 2 tiras: cada una suma su carga.</p>
+          <div className="campo">
+            <span className="rotulo">Cómo se mide el largo</span>
+            <Segmentos opciones={MODOS} valor={modo} onCambio={setModo} etiqueta="Cómo se mide el largo" />
+          </div>
+          {modo === 'marcas' && (
+            <div className="lab-marcas">
+              <p className="tenue chico">Pinta dos puntos verdes o rosados a unos 15 cm, en el tramo de banda entre las manos, y toca uno en el video.</p>
+              <div className="fila entre">
+                <span className="lab-color">
+                  <span className="lab-muestra" style={colorMarca ? { background: `hsl(${Math.round(colorMarca.h)} ${Math.round(Math.min(1, colorMarca.s + 0.2) * 100)}% 50%)` } : undefined} aria-hidden="true" />
+                  {colorMarca ? 'Color guardado' : 'Sin color todavía'}
+                </span>
+                {colorMarca && (
+                  <button type="button" className="lab-enlace" onClick={() => setColorMarca(null)}>
+                    Elegir otro
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <details className="lab-detalle">
             <summary>Calibrar mi banda con pesos</summary>
             <EditorPesos valor={pesos} onCambio={setPesos} />
@@ -544,10 +626,10 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
           <h2>Cómo se calcula</h2>
           <ol className="lab-formula">
             <li>
-              <b>Largo.</b> La distancia entre los dos puntos de agarre se pasa a centímetros con el tamaño de cada mano, que está en el mismo plano que la banda. Así no depende del lente ni de la distancia al teléfono.
+              <b>Largo.</b> La distancia entre los dos puntos de agarre (o entre dos marcas pintadas en la banda) se pasa a centímetros con el tamaño de cada mano, que está en el mismo plano que la banda. Así no depende del lente ni de la distancia al teléfono. Con marcas se mide la banda misma, como un extensómetro de video, y no influye cómo la tomas.
             </li>
             <li>
-              <b>Estiramiento.</b> Largo ÷ largo en reposo − 1. Es una razón: el tamaño real de tu mano se cancela. El reposo se marca solo cuando la banda queda quieta 1,5 s, y se corrige si se marcó estirada.
+              <b>Estiramiento.</b> Largo ÷ largo en reposo − 1. Es una razón: el tamaño real de tu mano se cancela. El reposo se marca solo cuando la banda queda quieta 2,5 s (o al tocar «Poner en cero»), y se corrige si se marcó estirada.
             </li>
             <li>
               <b>Carga.</b> Se lee en la curva de la banda, que no es una recta: el primer cuarto de estiramiento ya da cerca del 40 % de la carga al doble de largo. Las tiras en paralelo suman.
