@@ -16,7 +16,7 @@ test.describe('pantalla de acceso', () => {
   test('muestra logo, lema, roles, aviso demo e Ingresar deshabilitado hasta tener datos válidos', async ({ page }) => {
     const v = vigilarErrores(page)
     await page.goto('/acceso')
-    await expect(page.getByRole('heading', { level: 1, name: 'ManoViva' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Kuwü' })).toBeVisible()
     await expect(page.getByText('Rehabilitación que se juega')).toBeVisible()
     await expect(page.getByText('Datos de demostración ficticios')).toBeVisible()
     await expect(page.getByText('Tu terapeuta te entrega este código')).toBeVisible()

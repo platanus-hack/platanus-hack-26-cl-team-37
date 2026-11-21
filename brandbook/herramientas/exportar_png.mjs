@@ -11,6 +11,8 @@ const SALIDAS = [
   ['icono-app.svg', 'icono-192.png', 192],
   ['icono-app.svg', 'apple-touch-icon-180.png', 180],
   ['favicon.svg', 'favicon-32.png', 32],
+  // Logo de la ficha del proyecto (README y entrega del hackathon), en la raíz del repo.
+  ['icono-app.svg', '../../project-logo.png', 1000],
 ]
 
 const navegador = await chromium.launch()

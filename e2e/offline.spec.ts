@@ -67,7 +67,7 @@ test.describe('PWA: instalable y sin conexión', () => {
     const href = await page.locator('link[rel="manifest"]').getAttribute('href')
     expect(href).toBe('/manifest.webmanifest')
     const m = await (await page.request.get(href!)).json()
-    expect(m).toMatchObject({ name: 'ManoViva', short_name: 'ManoViva', display: 'standalone', theme_color: '#fff9f0', background_color: '#fff9f0', start_url: '/' })
+    expect(m).toMatchObject({ name: 'Kuwü', short_name: 'Kuwü', display: 'standalone', theme_color: '#fff9f0', background_color: '#fff9f0', start_url: '/' })
     const icono = (tam: string, proposito: string) => m.icons.find((i: { sizes: string; purpose: string }) => i.sizes === tam && i.purpose === proposito)
     for (const i of [icono('192x192', 'any'), icono('512x512', 'any'), icono('512x512', 'maskable')]) {
       expect(i, 'ícono del manifest').toBeTruthy()

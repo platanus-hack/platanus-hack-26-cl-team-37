@@ -1,4 +1,4 @@
-/* ManoViva — estilos de la app sobre el brandbook (brandbook/README.md, brandbook/paleta.css). Todo color sale de las
+/* Kuwü — estilos de la app sobre el brandbook (brandbook/README.md, brandbook/paleta.css). Todo color sale de las
    variables --kuwu-* y toda letra es Nunito. Los tokens de abajo son los nombres que usan las pantallas (heredados del
    sistema «Salud»): cada uno apunta a un color del brandbook. No escribir colores sueltos; si falta uno, se agrega al
    brandbook (herramientas/generar_brandbook.py) y después aquí. Transparencias: color-mix sobre un color de la paleta. */

@@ -125,7 +125,7 @@ test('acceso + ingreso del paciente de prueba + inicio: sin violaciones', async 
   test.setTimeout(60_000)
   const problemas = vigilarCsp(page)
   await page.goto(`${BASE}/acceso`)
-  await expect(page.getByRole('heading', { level: 1, name: 'ManoViva' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Kuwü' })).toBeVisible()
   await page.getByRole('radio', { name: /Soy paciente/ }).click()
   await page.getByLabel('Código de la clínica').fill('CRM-4821')
   await page.getByLabel('Correo').fill(CUENTAS.prueba)

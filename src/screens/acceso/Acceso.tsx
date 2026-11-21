@@ -82,7 +82,7 @@ export default function Acceso() {
             {/* Símbolo del brandbook en su variante sobre amarillo (los nodos amarillos pasan a blanco). */}
             <img src={simboloSobreAmarillo} alt="" width={52} height={52} />
           </div>
-          <h1>ManoViva</h1>
+          <h1>Kuwü</h1>
           <p className="tenue">Rehabilitación que se juega</p>
         </header>
 

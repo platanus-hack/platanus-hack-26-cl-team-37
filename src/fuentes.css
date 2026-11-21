@@ -2,7 +2,7 @@
    Nunito es la única fuente de la interfaz (brandbook/README.md §5): textos, títulos y cifras. Sus diez dígitos tienen el
    mismo ancho en todos los pesos, así que los números en vivo no "bailan". Subconjunto latino de brandbook/tipografia/Nunito[wght].ttf. */
 @font-face { font-family: 'Nunito'; font-style: normal; font-weight: 200 1000; font-display: swap; src: url('./ui/fuentes/nunito-latin.woff2') format('woff2-variations'); }
-/* Poppins y DM Sans solo dibujan los letreros de la oficina 3D (marca del evento dentro de la escena, no interfaz de ManoViva). */
+/* Poppins y DM Sans solo dibujan los letreros de la oficina 3D (marca del evento dentro de la escena, no interfaz de Kuwü). */
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fuentes/poppins-600-latin.woff2') format('woff2'); }
 @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fuentes/poppins-700-latin.woff2') format('woff2'); }
 @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fuentes/dm-sans-latin.woff2') format('woff2'); }

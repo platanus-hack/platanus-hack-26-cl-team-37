@@ -1,4 +1,4 @@
-# CLAUDE.md — ManoViva
+# CLAUDE.md — Kuwü
 
 App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D en three.js y seguimiento de manos con MediaPipe.
 **Desde 2026-11-21 trabajan 3 personas en paralelo** (ver `docs/equipo/`: plan, contratos y flujo de Git). Lee `docs/equipo/README.md` antes de tocar código. Las reglas de abajo siguen valiendo, con estas diferencias para el equipo:
@@ -46,6 +46,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 ## Estilos
 
 El [brandbook](brandbook/README.md) es obligatorio para toda UI y front end:
+- **Nombre:** la app se llama **Kuwü**; donde no hay UTF-8 (archivos, ids, URLs) se escribe `kuwu`. Los identificadores internos `manoviva` (sesión, IndexedDB, Vercel, Supabase) no se renombran: ver `docs/equipo/decisiones.md`.
 - **Colores:** solo los de `brandbook/paleta.css` (base y derivados). En CSS se usan los tokens de `src/index.css` (`--fondo`, `--tinta`, `--alerta`…), que apuntan a `--kuwu-*`; en lienzos y three.js, `src/ui/paleta.ts` (`KUWU`, `kuwuAlfa`, `kuwuNum`). Nada de hex sueltos; transparencias con `color-mix()` sobre un color de la paleta. Si falta un color, se agrega en `brandbook/herramientas/generar_brandbook.py`, se regenera y recién ahí se usa.
 - **Controles:** botones, pestañas, chips, campos e interruptores salen de `brandbook/primitivas.css` (README §7): se usan sus clases y variantes, sin cambiarles colores, letra, alto ni radio desde las pantallas. Si falta una variante, se agrega ahí. Para revisarlos, la ruta oculta `/primitivas`. Las zonas oscuras (cámara, juego) llevan la clase `kuwu-noche`.
 - **Tipografía:** Nunito (`--letra`; en lienzos `fuenteKuwu()`), también para cifras.

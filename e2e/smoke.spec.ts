@@ -37,7 +37,7 @@ test.describe('sin sesión', () => {
   test('/acceso carga sin errores de consola', async ({ page }) => {
     const v = vigilarErrores(page)
     await page.goto('/acceso')
-    await expect(page.getByRole('heading', { name: 'ManoViva', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Kuwü', level: 1 })).toBeVisible()
     await page.waitForLoadState('networkidle')
     v.sinErrores()
   })
@@ -52,7 +52,7 @@ test.describe('sin sesión', () => {
       const v = vigilarErrores(page)
       await page.goto(ruta)
       await expect(page).toHaveURL(/\/acceso$/)
-      await expect(page.getByRole('heading', { name: 'ManoViva' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Kuwü' })).toBeVisible()
       v.sinErrores()
     })
   }

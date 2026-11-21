@@ -3,15 +3,14 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { escenaDe } from './escenas'
-import simbolo from '../../brandbook/logos/simbolo.svg'
+import logoHorizontal from '../../brandbook/logos/kuwu-horizontal.svg'
 import './salud.css'
 
-/** El símbolo del brandbook (brandbook/logos/simbolo.svg, sin recolorear) junto al nombre de la app. */
+/** El logo horizontal del brandbook (brandbook/logos/kuwu-horizontal.svg, sin recolorear): símbolo y nombre. */
 export function Marca() {
   return (
     <span className="marca">
-      <img className="marca-simbolo" src={simbolo} alt="" width={28} height={28} />
-      ManoViva
+      <img className="marca-logo" src={logoHorizontal} alt="Kuwü" width={100} height={28} />
     </span>
   )
 }

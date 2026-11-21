@@ -17,8 +17,8 @@ export default defineConfig({
       injectRegister: 'script', // <script src="/registerSW.js"> solo en el build
       includeAssets: ['favicon.svg', 'iconos/apple-touch-icon.png'],
       manifest: {
-        name: 'ManoViva',
-        short_name: 'ManoViva',
+        name: 'Kuwü',
+        short_name: 'Kuwü',
         description: 'Rehabilitación de manos que se juega.',
         lang: 'es-CL',
         start_url: '/',
