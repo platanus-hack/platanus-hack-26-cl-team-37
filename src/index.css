@@ -256,3 +256,26 @@ input[type='range'].deslizador.sin-valor::-webkit-slider-thumb { opacity: 0.35; 
 .punto-dia.futuro { border: 1.5px dashed var(--texto-3); }
 .mensaje-nuevo { border-color: rgba(90, 176, 255, 0.4); align-items: center; }
 .mensaje-texto { font-size: 16px; margin-top: 2px; }
+
+/* ---------------------------------------------------------- catálogo de ejercicios (F05) */
+.ejercicios { gap: 14px; }
+.ejercicios h1 { font-size: 30px; margin-top: 6px; }
+.filtros { gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
+.filtros .chip { flex: none; background: var(--tarjeta); border-color: transparent; color: var(--texto-2); font-size: 15px; padding: 0 16px; }
+.filtros .chip[aria-pressed='true'] { background: var(--acento); color: #1b1300; }
+.tarjeta-juego { display: flex; align-items: center; gap: 12px; padding: 9px; border-radius: var(--radio-l); color: var(--texto); text-decoration: none; position: relative; min-height: 96px; }
+a.tarjeta-juego:active { background: var(--tarjeta-2); }
+.miniatura-caja { width: 78px; height: 78px; flex: none; border-radius: 14px; background: var(--tarjeta-2); overflow: hidden; display: flex; }
+.miniatura-caja .miniatura { width: 100%; height: 100%; }
+.miniatura-caja.apagada { opacity: 0.55; }
+.juego-textos { display: flex; flex-direction: column; gap: 3px; padding-right: 4px; }
+.juego-nombre { font-family: var(--titulos); font-weight: 700; font-size: 17px; line-height: 1.2; }
+.juego-gestos { color: var(--texto-2); font-size: 15px; }
+.juego-nivel { display: flex; align-items: center; gap: 10px; color: var(--texto-2); font-size: 14px; margin-top: 2px; }
+.segmentos-nivel { display: flex; gap: 4px; }
+.segmentos-nivel span { width: 13px; height: 5px; border-radius: 99px; background: var(--tarjeta-2); }
+.segmentos-nivel span.lleno { background: var(--acento); }
+.juego-insignias { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.juego-insignias .insignia { padding: 3px 10px; }
+.tarjeta-juego:has(.juego-insignias .insignia) .juego-textos { padding-top: 26px; }
+.no-disponible .juego-nombre { color: var(--texto-2); }

@@ -5,9 +5,9 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Dónde quedó (Current Objective)
 
 - Last Updated: 2026-11-21
-- Última sesión: 2026-11-21, F04 inicio del paciente → done.
+- Última sesión: 2026-11-21, F05 catálogo de ejercicios → done.
 - Feature en curso: ninguno.
-- Recommended Next Step: **F05 — Catálogo de ejercicios (Prompt 3)** (`node scripts/siguiente-feature.mjs` para el detalle).
+- Recommended Next Step: **F06 — Preparar la sesión (Prompt 4)** (`node scripts/siguiente-feature.mjs` para el detalle). Tiene `deploy: true`.
 
 ## Archivos clave (Files)
 
@@ -35,10 +35,18 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 - e2e: `clienteComo('paciente')` en `e2e/ayudas.ts` da un cliente Supabase con la sesión demo (sin ingreso extra) para comparar contra la BD. Interceptar `**/rest/v1/<tabla>?*` con `page.route` sirve para probar vacío/error/carga.
 - Clases nuevas en `src/index.css` (sección inicio): `.sin-vinetas`, `.icono-caja.apagado/.info`, `.ejercicio`, `.ejercicio-nombre/-detalle`, `.tira-semana`, `.punto-dia.cumplido/.pendiente/.futuro`.
 
-## Para F05 (catálogo de ejercicios)
+## Catálogo de ejercicios (F05, hecho)
 
-- `/ejercicios` provisoria en `src/screens/paciente/Ejercicios.tsx`: reemplazar el archivo, `className="pantalla con-barra"`, datos vía `repos` (plan vigente para "Asignado" y nivel actual) y `JUEGOS` del registro.
-- El smoke espera un h1 "Ejercicios".
+- `src/screens/paciente/Ejercicios.tsx`: `useCarga` (paciente → plan vigente + sesiones) + `<Estados>`; filtros en la URL `?gesto=Pinza|Agarre|Alcance`.
+- `src/games/catalogo.ts`: `catalogo(juegos, items, sesiones, filtro)` y `nivelActual(juegoId, items, sesiones)` (plan > última sesión cerrada > 1), con pruebas en `catalogo.test.ts`.
+- `src/games/Miniatura.tsx`: `<Miniatura clave={juego.miniatura} />` (SVG propio por juego). Reusarla en preparar/resumen si hace falta.
+- Registro (`src/games/registry.ts`): ahora 8 juegos; `FILTROS`/`FiltroGesto`. Disponibles: `caja-juguetes` y `movilidad-guiada`. **Cada feature de juego (J1–J6) debe poner `disponible: true`** y el e2e `e2e/ejercicios.spec.ts` (constante `DISPONIBLES`) se actualiza a la par.
+- Tarjeta disponible = `Link` a `/sesion/<id>/preparar`; Próximamente = `div aria-disabled`.
+
+## Para F06 (preparar la sesión)
+
+- `/sesion/:juego/preparar` llega desde /inicio ("Siguiente") y desde /ejercicios con el id del registro (`caja-juguetes`, `movilidad-guiada`). Valores por defecto: ítem del plan vigente con ese `juego` (`juegoPorId`, `nivelDe` en el registro).
+- F06 tiene `"deploy": true`: al cerrar, `vercel deploy --prod --yes` y confirmar 200 en https://manoviva-sigma.vercel.app.
 
 ## Cuidado con
 
@@ -57,5 +65,5 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 ## Próxima sesión (Next Session)
 
 1. `bash init.sh` → INIT OK.
-2. `node scripts/siguiente-feature.mjs` → F05.
-3. Marcar F05 `in-progress` y seguir CLAUDE.md.
+2. `node scripts/siguiente-feature.mjs` → F06.
+3. Marcar F06 `in-progress` y seguir CLAUDE.md.

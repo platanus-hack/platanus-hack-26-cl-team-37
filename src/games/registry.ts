@@ -1,5 +1,21 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
-export type Gesto = 'Pinza' | 'Agarre' | 'Alcance' | 'Traslado' | 'Precisión' | 'Control' | 'Extensión' | 'Oposición del pulgar' | 'Apertura'
+export type Gesto =
+  | 'Pinza'
+  | 'Agarre'
+  | 'Alcance'
+  | 'Traslado'
+  | 'Precisión'
+  | 'Control'
+  | 'Extensión'
+  | 'Oposición del pulgar'
+  | 'Apertura'
+  | 'Cierre de puño'
+  | 'Giro del antebrazo'
+  | 'Independencia de dedos'
+
+/** Filtros del catálogo /ejercicios (Prompt 3). */
+export type FiltroGesto = 'Pinza' | 'Agarre' | 'Alcance'
+export const FILTROS: FiltroGesto[] = ['Pinza', 'Agarre', 'Alcance']
 
 export interface NivelJuego {
   nivel: number
@@ -15,8 +31,10 @@ export interface Juego {
   id: string
   nombre: string
   gestos: Gesto[]
-  filtros: ('Pinza' | 'Agarre' | 'Alcance')[]
+  /** En qué filtros del catálogo aparece (además de "Todos"). */
+  filtros: FiltroGesto[]
   descripcionCorta: string
+  /** false = "Próximamente" en /ejercicios (no se puede abrir). Pasa a true cuando su feature esté done. */
   disponible: boolean
   usaCamara: boolean
   ruta: string | null
@@ -71,7 +89,7 @@ export const JUEGOS: Juego[] = [
     id: 'torre-cubos',
     nombre: 'Torre de cubos',
     gestos: ['Precisión', 'Control'],
-    filtros: ['Agarre'],
+    filtros: ['Pinza', 'Agarre'],
     descripcionCorta: 'Precisión y control',
     disponible: false,
     usaCamara: true,
@@ -101,6 +119,42 @@ export const JUEGOS: Juego[] = [
     usaCamara: true,
     ruta: null,
     miniatura: 'burbujas',
+    niveles: nivelesCaja,
+  },
+  {
+    id: 'exprime-naranja',
+    nombre: 'Exprime la naranja',
+    gestos: ['Cierre de puño'],
+    filtros: ['Agarre'],
+    descripcionCorta: 'Cierre de puño',
+    disponible: false,
+    usaCamara: true,
+    ruta: null,
+    miniatura: 'naranja',
+    niveles: nivelesCaja,
+  },
+  {
+    id: 'memoria-cartas',
+    nombre: 'Memoria de cartas',
+    gestos: ['Giro del antebrazo'],
+    filtros: [],
+    descripcionCorta: 'Giro del antebrazo',
+    disponible: false,
+    usaCamara: true,
+    ruta: null,
+    miniatura: 'memoria',
+    niveles: nivelesCaja,
+  },
+  {
+    id: 'piano-dedos',
+    nombre: 'Piano de dedos',
+    gestos: ['Independencia de dedos'],
+    filtros: [],
+    descripcionCorta: 'Independencia de dedos',
+    disponible: false,
+    usaCamara: true,
+    ruta: null,
+    miniatura: 'piano',
     niveles: nivelesCaja,
   },
 ]

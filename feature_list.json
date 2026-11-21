@@ -152,7 +152,7 @@
       "dependencies": [
         "F04"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Filtros funcionan",
         "Asignado según plan vigente",
@@ -163,7 +163,7 @@
         "npm run captura -- /ejercicios ejercicios"
       ],
       "deploy": false,
-      "evidence": ""
+      "evidence": "2026-11-21: npm run e2e -- ejercicios → 5/5 (Todos = registro completo; Asignado y nivel = plan vigente de la BD; filtros Pinza/Agarre/Alcance con oráculo propio y ?gesto= en la URL; Asignado con plan simulado (route) → solo pinza-fina Nivel 3; Próximamente es div aria-disabled y no navega, Caja lleva a /sesion/caja-juguetes/preparar; error → Reintentar). npm run e2e -- smoke inicio → 34/34. Vitest src/games/catalogo.test.ts 4/4 (total 35/35). bash init.sh → INIT OK. Captura docs/capturas/ejercicios.png (390x844) comparada con 03_ejercicios.png: misma estructura (título, chips, tarjetas con miniatura, gestos, 5 segmentos de nivel, Asignado arriba a la derecha). Diferencias aceptadas: banner demo arriba; aparece Movilidad guiada (asignada en el plan demo) y los 3 juegos nuevos (Exprime la naranja, Memoria de cartas, Piano de dedos); los no disponibles llevan insignia gris Próximamente y miniatura atenuada (la imagen no la muestra; la pide el prompt); Pinza fina no está asignada en el plan demo (sí en la imagen); chips de 48 px de alto (más altos que la imagen, regla de accesibilidad)."
     },
     {
       "id": "F06",

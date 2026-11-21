@@ -44,6 +44,11 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - 2026-11-21 · (F04) Estados: sin ficha de paciente o sin plan (o plan sin ítems) → vacío con "Ver ejercicios" (y la cita si hay); error → `ErrorEstado` con Reintentar; el saludo se ve siempre. Nuevo hook `src/lib/useCarga.ts` (estado/datos/error/recargar) para usar con `<Estados>`.
 - 2026-11-21 · (F04) h1 de /inicio = "Hola, <primer nombre> 👋" (sin título "Inicio"); `e2e/smoke.spec.ts` espera /^Hola/. Avatar con iniciales no navega. "Indicado por" usa `creadoPorNombre` (título + nombre) o "tu terapeuta". `formato.ts` suma `diaSemana()` para la cita ("Jueves 26 nov · 11:00 · presencial").
 - 2026-11-21 · (F04) `e2e/ayudas.ts` suma `clienteComo(como)`: cliente Supabase con la sesión demo ya obtenida (sin ingreso extra) para que los e2e comparen la pantalla con la BD.
+- 2026-11-21 · (F05) El catálogo muestra los 8 juegos del registro (spec §8) en su orden: Caja, Movilidad guiada, Torre, Pinza fina, Atrapa burbujas, Exprime la naranja, Memoria de cartas, Piano de dedos. Disponibles = `disponible: true` del registro (Caja y Movilidad, porque el plan demo y /inicio ya enlazan Movilidad a preparar); el resto "Próximamente". Cada feature de juego debe poner `disponible: true` al cerrarse.
+- 2026-11-21 · (F05) Filtros: Torre = Pinza + Agarre (la imagen de juegos dice "pinza y precisión"); Exprime la naranja = Agarre; Memoria de cartas y Piano de dedos no calzan con Pinza/Agarre/Alcance y solo aparecen en "Todos" (el prompt fija esos 4 filtros). El filtro elegido va en la URL (`?gesto=Pinza`) para recordarlo al volver.
+- 2026-11-21 · (F05) Nivel actual = nivel del ítem del plan vigente (si se repite, el mayor); si no está en el plan, el de la última sesión cerrada de ese juego; si nunca lo jugó, 1. Función pura `nivelActual`/`catalogo` en `src/games/catalogo.ts` con pruebas.
+- 2026-11-21 · (F05) "Próximamente" = insignia gris + miniatura atenuada; la tarjeta es un `div` con `aria-disabled` (sin enlace ni aviso al tocar). Si un juego está asignado y además es Próximamente se ven ambas insignias.
+- 2026-11-21 · (F05) Miniaturas SVG propias en `src/games/Miniatura.tsx` (clave = `Juego.miniatura`): caja, movilidad, torre, pinza, burbujas, naranja, memoria, piano.
 
 ## Riesgos abiertos
 
@@ -91,3 +96,9 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - `e2e/inicio.spec.ts` (6 pruebas: coherencia con BD, Siguiente, mensaje una vez, carga, vacío, error).
 - Verificación: `npm run e2e -- inicio smoke` 34/34 · `npm run captura -- /inicio inicio` comparada con 02_inicio_paciente.png (+ inicio-mensaje.png) · `bash init.sh` INIT OK (31 unitarias).
 - Siguiente: el que indique `node scripts/siguiente-feature.mjs`.
+
+### 2026-11-21 · F05 Catálogo de ejercicios
+- `/ejercicios` (`src/screens/paciente/Ejercicios.tsx`): filtros Todos/Pinza/Agarre/Alcance (`?gesto=`), tarjetas con miniatura SVG, gestos, 5 segmentos de nivel, "Asignado" según plan vigente y "Próximamente" sin navegar. Estados de carga/error con `useCarga` + `<Estados>`.
+- Registro: +3 juegos (exprime-naranja, memoria-cartas, piano-dedos) como no disponibles, `FiltroGesto` y `FILTROS`. Nuevo `src/games/catalogo.ts` (+ pruebas) y `src/games/Miniatura.tsx`. Estilos en `src/index.css` (sección catálogo).
+- Verificación: `npm run e2e -- ejercicios` 5/5 · `npm run e2e -- smoke inicio` 34/34 · vitest 35/35 · `bash init.sh` INIT OK · captura `docs/capturas/ejercicios.png`.
+- Siguiente: F06 (preparar sesión).
