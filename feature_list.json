@@ -736,7 +736,7 @@
       "dependencies": [
         "F13"
       ],
-      "status": "not-started",
+      "status": "in-progress",
       "acceptance": [
         "Un PR muestra los checks verificar y e2e",
         "main exige que pasen",
@@ -749,7 +749,7 @@
         "curl del sitio tras el merge"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "CI/CD en .github/workflows/ci.yml: verificar (npm ci, tipos, lint, unitarias, build; verde en Actions en 29 s) y, activados por secretos, e2e serializado, vista previa por PR y deploy a producción con prueba de humo. Pendiente: cargar secretos de Supabase y Vercel, primera corrida real de e2e y deploy, y protección de main (necesita administrador).",
       "owner": "P1"
     },
     {
