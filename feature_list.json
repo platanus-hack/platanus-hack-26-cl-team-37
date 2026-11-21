@@ -749,7 +749,7 @@
         "curl del sitio tras el merge"
       ],
       "deploy": false,
-      "evidence": "CI mínima (job verificar): .github/workflows/ci.yml corre npm ci, tipos, lint, unitarias y build en cada PR y push a main, más chequeo de dueños informativo. Lock regenerado para que npm ci funcione. Probado local desde cero (Node 26): todo verde. Pendiente: e2e y desplegar (necesitan secretos del administrador) y protección de main.",
+      "evidence": "CI/CD en .github/workflows/ci.yml: verificar (npm ci, tipos, lint, unitarias, build; verde en Actions en 29 s) y, activados por secretos, e2e serializado, vista previa por PR y deploy a producción con prueba de humo. Pendiente: cargar secretos de Supabase y Vercel, primera corrida real de e2e y deploy, y protección de main (necesita administrador).",
       "owner": "P1"
     },
     {
