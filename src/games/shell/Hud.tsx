@@ -31,7 +31,7 @@ export function PanelJuego({ titulo, manos, pista, textoReiniciar, onReiniciar }
         {pista}
       </p>
       {onReiniciar && textoReiniciar && (
-        <button type="button" className="boton primario bloque juego-reiniciar" onClick={onReiniciar}>
+        <button type="button" className="boton primario chico bloque juego-reiniciar" onClick={onReiniciar}>
           {textoReiniciar}
         </button>
       )}

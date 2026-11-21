@@ -1,0 +1,10 @@
+/* Vista oculta /primitivas: solo distribución. Los controles se ven como los define brandbook/primitivas.css. */
+.primitivas { gap: 16px; max-width: 1100px; }
+.prim-temas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; align-items: start; }
+.prim-tema { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 22px; border-radius: var(--radio); background: var(--kuwu-crema); border: 1.5px solid var(--kuwu-linea); }
+.prim-tema.kuwu-noche { background: var(--kuwu-noche); border-color: var(--kuwu-noche-borde); color: var(--kuwu-crema); }
+.prim-tema h2 { font-size: 18px; font-weight: 800; }
+.prim-tema h3 { margin-top: 10px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--kw-suave); }
+.prim-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.prim-tarjeta { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--radio-s); background: var(--kw-superficie); }
+.prim-interruptor { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--kw-toque); }

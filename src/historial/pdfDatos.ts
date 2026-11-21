@@ -113,7 +113,7 @@ export function datosPdf(e: EntradaPdf): DatosPdf {
   }
 }
 
-/** Nombre de archivo sin caracteres raros: "manoviva-S-20261121-02.pdf". */
+/** Nombre de archivo sin caracteres raros: "kuwu-S-20261121-02.pdf". */
 export function nombreArchivo(base: string, ext: string): string {
-  return `manoviva-${base.replace(/[^A-Za-z0-9_-]+/g, '-')}.${ext}`
+  return `kuwu-${base.replace(/[^A-Za-z0-9_-]+/g, '-')}.${ext}`
 }

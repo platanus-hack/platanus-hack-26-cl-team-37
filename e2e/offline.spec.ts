@@ -67,7 +67,7 @@ test.describe('PWA: instalable y sin conexión', () => {
     const href = await page.locator('link[rel="manifest"]').getAttribute('href')
     expect(href).toBe('/manifest.webmanifest')
     const m = await (await page.request.get(href!)).json()
-    expect(m).toMatchObject({ name: 'ManoViva', short_name: 'ManoViva', display: 'standalone', theme_color: '#0f1720', background_color: '#0f1720', start_url: '/' })
+    expect(m).toMatchObject({ name: 'Kuwü', short_name: 'Kuwü', display: 'standalone', theme_color: '#fff9f0', background_color: '#fff9f0', start_url: '/' })
     const icono = (tam: string, proposito: string) => m.icons.find((i: { sizes: string; purpose: string }) => i.sizes === tam && i.purpose === proposito)
     for (const i of [icono('192x192', 'any'), icono('512x512', 'any'), icono('512x512', 'maskable')]) {
       expect(i, 'ícono del manifest').toBeTruthy()
@@ -75,7 +75,7 @@ test.describe('PWA: instalable y sin conexión', () => {
       expect(r.status()).toBe(200)
       expect(r.headers()['content-type']).toContain('image/png')
     }
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0f1720')
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fff9f0')
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/iconos/apple-touch-icon.png')
 
     // Caché del SW: lo que hace falta para jugar sin red tras la primera visita.
@@ -92,11 +92,11 @@ test.describe('PWA: instalable y sin conexión', () => {
 
     // Fuentes propias: ningún origen externo (ni Google Fonts) y la tipografía carga.
     expect(salientes).toEqual([])
-    // Archivo (las cifras del sistema de diseño) se sirve desde la app y carga.
+    // Nunito (la fuente del brandbook, textos y cifras) se sirve desde la app y carga.
     expect(await page.evaluate(async () => {
       const d = (globalThis as unknown as Ventana).document
-      await d.fonts.load('300 16px "Archivo Variable"')
-      return d.fonts.check('300 16px "Archivo Variable"')
+      await d.fonts.load('800 16px "Nunito"')
+      return d.fonts.check('800 16px "Nunito"')
     })).toBe(true)
   })
 

@@ -33,15 +33,16 @@ import {
   type FaseGuia,
   type NivelMovilidad,
 } from './logica'
+import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['izquierda', 'derecha']
 
 /** Diferencia de apertura (0..1) con la guía para considerar que el paciente la sigue. */
 export const TOLERANCIA_GUIA = 0.22
 
-const COLOR_GUIA = 0x4fd1a1
-const COLOR_ACENTO = 0xffc83d
-const COLOR_PENDIENTE = 0x34485a
+const COLOR_GUIA = kuwuNum('menta')
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_PENDIENTE = kuwuNum('noche-borde')
 /** Cuentas del arco del fondo (una por ciclo de la meta; con más ciclos, cada cuenta vale varios). */
 const MAX_CUENTAS = 12
 
@@ -84,24 +85,24 @@ function texturaRotulo(texto: string, punto: string): { textura: THREE.Texture; 
   const c = document.createElement('canvas')
   const alto = 64
   const g = c.getContext('2d')!
-  const fuente = '700 30px Poppins, "DM Sans", system-ui, sans-serif'
+  const fuente = fuenteKuwu(800, 30)
   g.font = fuente
   const ancho = Math.ceil(g.measureText(texto).width) + 30 + 44
   c.width = ancho
   c.height = alto
   g.font = fuente
-  g.fillStyle = 'rgba(15,20,26,0.88)'
+  g.fillStyle = kuwuAlfa('noche', 0.88)
   g.beginPath()
   g.roundRect(1, 1, ancho - 2, alto - 2, alto / 2)
   g.fill()
-  g.strokeStyle = 'rgba(255,255,255,0.16)'
+  g.strokeStyle = kuwuAlfa('crema', 0.16)
   g.lineWidth = 2
   g.stroke()
   g.fillStyle = punto
   g.beginPath()
   g.arc(30, alto / 2, 8, 0, Math.PI * 2)
   g.fill()
-  g.fillStyle = '#eef3f7'
+  g.fillStyle = KUWU.crema
   g.textBaseline = 'middle'
   g.fillText(texto, 48, alto / 2 + 1)
   const t = new THREE.CanvasTexture(c)
@@ -488,7 +489,7 @@ export const crearMovilidad: CrearJuego = () => {
       anilloGuia.position.set(disp.guia.x, yMesa + 0.015, disp.guia.z)
       discoGuia = disco(tHalo, COLOR_GUIA, 0.3)
       discoGuia.position.set(disp.guia.x, yMesa + 0.01, disp.guia.z)
-      const rotuloGuia = rotulo('Guía', '#4fd1a1')
+      const rotuloGuia = rotulo('Guía', KUWU.menta)
       rotuloGuia.position.set(disp.guia.x, yMesa + 0.05, disp.guia.z + radioDe(1) + 0.1)
       grupo.add(anilloGuia, discoGuia, rotuloGuia)
 
@@ -500,7 +501,7 @@ export const crearMovilidad: CrearJuego = () => {
           disco: disco(tHalo, COLOR_ACENTO, 0.28),
           onda: anillo(0.93, COLOR_ACENTO, 0.8),
           ondaT: -1,
-          rotulo: lados.length === 1 ? rotulo('Tu mano', '#ffc83d') : null,
+          rotulo: lados.length === 1 ? rotulo('Tu mano', KUWU.amarillo) : null,
           centro: new THREE.Vector3(),
           listo: false,
           color: new THREE.Color(COLOR_ACENTO),

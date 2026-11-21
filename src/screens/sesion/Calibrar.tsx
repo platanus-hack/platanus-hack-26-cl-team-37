@@ -51,13 +51,13 @@ export default function Calibrar() {
   const s = r.datos?.sesion
   if (r.estado === 'listo' && s && s.estado !== 'cerrada') {
     return (
-      <main className="calibrar">
+      <main className="calibrar kuwu-noche">
         <Calibracion sesion={s} largoReglaCm={r.datos?.largoReglaCm ?? null} />
       </main>
     )
   }
   return (
-    <main className="calibrar">
+    <main className="calibrar kuwu-noche">
       <div className="pantalla">
         <Encabezado titulo="Calibración" />
         <Estados r={r}>

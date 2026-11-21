@@ -79,7 +79,7 @@ function Contenido({ d, hoy }: { d: DatosPanel; hoy: Date }) {
       {visibles.length === 0 ? (
         <Vacio titulo="Sin resultados" texto={`Ningún paciente coincide con «${texto.trim()}».`} icono="buscar" />
       ) : (
-        <ul className="col sin-vinetas" aria-label="Pacientes">
+        <ul className="col sin-vinetas ter-lista" aria-label="Pacientes">
           {visibles.map((f) => (
             <li key={f.paciente.id}>
               <FilaPacienteVista f={f} />

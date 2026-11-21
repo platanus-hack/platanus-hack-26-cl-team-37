@@ -39,6 +39,7 @@ import {
   type NivelPinza,
   type Umbrales,
 } from './logica'
+import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 
 const LADOS: LadoMano[] = ['derecha', 'izquierda']
 
@@ -48,9 +49,9 @@ export const DEMO_PASO_MS = 1100
 /** Pausa entre secuencias, con todas las luces a la vista (ms). */
 export const ENTRE_MS = 900
 
-const COLOR_ACENTO = 0xffc83d
-const COLOR_OK = 0x4fd1a1
-const COLOR_AVISO = 0xffa24d
+const COLOR_ACENTO = kuwuNum('amarillo')
+const COLOR_OK = kuwuNum('menta')
+const COLOR_AVISO = kuwuNum('rojo')
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_PINZA[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
@@ -109,7 +110,7 @@ function texturaHalo(): THREE.Texture {
   return t
 }
 
-const COLORES_LUZ: Record<string, string> = { hecho: '#4fd1a1', actual: '#ffc83d', perdido: '#9fb2c4', pendiente: '#34485a' }
+const COLORES_LUZ: Record<string, string> = { hecho: KUWU.menta, actual: KUWU.amarillo, perdido: KUWU['noche-texto-2'], pendiente: KUWU['noche-borde'] }
 
 export const crearPinza: CrearJuego = () => {
   let ctx: ContextoJuego | null = null
@@ -247,7 +248,7 @@ export const crearPinza: CrearJuego = () => {
     const paso = 52
     const ancho = n * paso + 30
     const x0 = (W - ancho) / 2
-    g.fillStyle = 'rgba(15,20,26,0.9)'
+    g.fillStyle = kuwuAlfa('noche', 0.9)
     g.beginPath()
     g.roundRect(x0, 4, ancho, H - 8, (H - 8) / 2)
     g.fill()
@@ -259,7 +260,7 @@ export const crearPinza: CrearJuego = () => {
       g.arc(cx, cy, 17, 0, Math.PI * 2)
       g.fill()
       if (l === 'actual') {
-        g.strokeStyle = 'rgba(255,200,61,0.45)'
+        g.strokeStyle = kuwuAlfa('amarillo', 0.45)
         g.lineWidth = 5
         g.beginPath()
         g.arc(cx, cy, 22, 0, Math.PI * 2)

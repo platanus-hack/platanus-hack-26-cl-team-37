@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ffc83d"/><g fill="none" stroke="#0f1720" stroke-width="4.5" stroke-linecap="round"><path d="M32 46V18M23 44l-4-20M41 44l4-20M18 47l-7-12M46 47l7-12"/></g><path d="M20 46c3 8 21 8 24 0" fill="none" stroke="#0f1720" stroke-width="4.5" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.23 87.23" width="87" height="87" role="img" aria-label="Kuwü">
+  <title>Kuwü</title>
+  <line x1="43.98" y1="46.45" x2="43.98" y2="14.45" stroke="#24283b" stroke-width="6.00" stroke-linecap="round"/>
+  <line x1="43.98" y1="46.45" x2="74.41" y2="36.56" stroke="#24283b" stroke-width="6.00" stroke-linecap="round"/>
+  <line x1="43.98" y1="46.45" x2="62.79" y2="72.34" stroke="#24283b" stroke-width="6.00" stroke-linecap="round"/>
+  <line x1="43.98" y1="46.45" x2="25.17" y2="72.34" stroke="#24283b" stroke-width="6.00" stroke-linecap="round"/>
+  <line x1="43.98" y1="46.45" x2="13.55" y2="36.56" stroke="#24283b" stroke-width="6.00" stroke-linecap="round"/>
+  <circle cx="62.79" cy="72.34" r="10.67" fill="#8ec5ff" stroke="#24283b" stroke-width="3.80"/>
+  <circle cx="43.98" cy="14.45" r="10.23" fill="#ff9b93" stroke="#24283b" stroke-width="3.80"/>
+  <circle cx="13.55" cy="36.56" r="9.65" fill="#ffd66b" stroke="#24283b" stroke-width="3.80"/>
+  <circle cx="74.41" cy="36.56" r="8.91" fill="#ffd66b" stroke="#24283b" stroke-width="3.80"/>
+  <circle cx="25.17" cy="72.34" r="8.48" fill="#ff9b93" stroke="#24283b" stroke-width="3.80"/>
+  <circle cx="43.98" cy="46.45" r="8.50" fill="#24283b"/>
+</svg>

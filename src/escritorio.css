@@ -1,0 +1,65 @@
+/* Escritorio: desde 1024 px de ancho (misma consulta que CONSULTA_ESCRITORIO en src/ui/vista.ts; si cambias el corte,
+   cámbialo en los dos). Bajo ese ancho la app es la de móvil, sin cambios. Se importa al final de main.tsx para ganarle
+   a index.css y pwa.css. Aquí va solo el marco (barra lateral, ancho, barra de acción, hojas); lo propio de cada
+   pantalla va en su CSS, dentro del mismo @media. */
+:root { --ancho-lateral: 248px; }
+
+@media (min-width: 1024px) {
+  /* ——— Ancho: pantallas con navegación usan el espacio; formularios y flujos (acceso, preparar…) una columna. */
+  .app { max-width: 640px; }
+  /* Un flujo que aprovecha el ancho (p. ej. preparar: ficha del ejercicio + configuración) lleva .pantalla.ancha. */
+  .app:has(> .pantalla.ancha) { max-width: 1120px; }
+  .app.con-nav { max-width: none; padding-left: var(--ancho-lateral); }
+  .app.con-nav .pantalla { max-width: 1040px; margin: 0 auto; }
+  .pantalla { padding: 40px 40px 48px; gap: 18px; }
+  .pantalla.con-barra,
+  .pantalla.con-boton,
+  .pantalla.con-barra.con-boton { padding-bottom: 48px; }
+  h1 { font-size: 36px; }
+
+  /* ——— Navegación: la barra inferior pasa a barra lateral fija, con el logo arriba. */
+  .barra-inferior {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    width: var(--ancho-lateral);
+    padding: 28px 16px;
+    border-top: 0;
+    border-right: 1px solid var(--linea);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+  }
+  .barra-logo { padding: 0 12px; }
+  .barra-logo img { display: block; height: 32px; width: auto; }
+  .barra-inferior nav { max-width: none; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .barra-inferior a { min-height: var(--toque); flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 14px; border-radius: var(--radio-s); font-size: 16px; }
+  .barra-inferior a svg { padding: 0; border-radius: 0; background: none; }
+  .barra-inferior a.active { background: var(--amarillo-suave); }
+  .barra-inferior a.active svg { background: none; }
+  .barra-inferior a .punto { position: static; margin-left: auto; box-shadow: none; }
+
+  /* ——— Barra de acción: deja de flotar sobre la barra inferior; queda pegada al final del contenido. */
+  .barra-accion,
+  .con-barra .barra-accion {
+    position: sticky;
+    bottom: 0;
+    left: auto;
+    right: auto;
+    margin-top: auto;
+    padding: 20px 0 24px;
+    background: linear-gradient(to bottom, transparent, var(--fondo) 20px);
+  }
+  .barra-accion > .interior { max-width: 400px; margin: 0; }
+
+  /* ——— Hojas inferiores: en escritorio son un cuadro centrado. */
+  .velo { align-items: center; }
+  .hoja { max-width: 560px; max-height: 80dvh; border-radius: var(--radio); padding: 24px; }
+  .hoja .asa { display: none; }
+}
+
+/* Con puntero (mouse o trackpad): la barra lateral marca dónde está el cursor. */
+@media (min-width: 1024px) and (hover: hover) {
+  .barra-inferior a:hover:not(.active) { background: var(--pista); color: var(--tinta); }
+}

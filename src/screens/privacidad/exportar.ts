@@ -15,7 +15,7 @@ export interface PaqueteDatos {
 }
 
 export const AVISO_DESCARGA =
-  'Copia de tus datos en ManoViva. No incluye video: la cámara nunca se guarda. Las medidas en cm y grados son estimaciones.'
+  'Copia de tus datos en Kuwü. No incluye video: la cámara nunca se guarda. Las medidas en cm y grados son estimaciones.'
 
 export function aJson(p: PaqueteDatos): string {
   return JSON.stringify(p, null, 2)
@@ -52,7 +52,7 @@ export function aCsv(p: PaqueteDatos): string {
 
 export function nombreArchivo(formato: 'json' | 'csv', d = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0')
-  return `manoviva-mis-datos-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.${formato}`
+  return `kuwu-mis-datos-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.${formato}`
 }
 
 /** Dispara la descarga en el navegador (Blob local: nada sale del teléfono). */
