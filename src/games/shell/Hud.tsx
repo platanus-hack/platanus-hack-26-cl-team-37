@@ -9,6 +9,7 @@ import { Icono } from '../../ui/Icono'
 import { BarraProgreso, Sparkline } from '../../ui/piezas'
 import type { MotivoPausa } from './ciclo'
 import { formatoMetrica, type DefMetrica, type EstadoManoHud } from './contrato'
+import './girar.css'
 
 export function PanelJuego({ titulo, manos, pista, textoReiniciar, onReiniciar }: {
   titulo: string
@@ -137,18 +138,38 @@ export function AvisoCentral({ children, tono = 'neutro', testid }: { children: 
   )
 }
 
-/** "Gira tu teléfono": tapa todo en vertical. Ofrece pantalla completa + bloqueo horizontal donde se pueda. */
+/**
+ * "Gira tu teléfono": tapa todo en vertical. Animación de un teléfono que gira a horizontal (prueba en teléfono
+ * 2026-11-21: el aviso solo con texto e ícono no se entendía). Ofrece pantalla completa + bloqueo horizontal donde se pueda.
+ */
 export function GiraTelefono({ onPantallaCompleta }: { onPantallaCompleta: () => void }) {
   return (
-    <div className="juego-girar" role="alertdialog" aria-labelledby="titulo-girar" data-testid="gira-telefono">
-      <span className="juego-girar-icono" aria-hidden="true">
-        <Icono nombre="rotar" tam={44} />
-      </span>
+    <div className="juego-girar" role="alertdialog" aria-labelledby="titulo-girar" aria-describedby="texto-girar" data-testid="gira-telefono">
+      <TelefonoGirando />
       <h2 id="titulo-girar">Gira tu teléfono</h2>
-      <p className="tenue">El ejercicio se hace con el teléfono en horizontal, apoyado frente a ti. El tiempo está detenido.</p>
-      <button type="button" className="boton secundario" onClick={onPantallaCompleta}>
-        Pantalla completa
+      <p id="texto-girar" className="juego-girar-texto">
+        Ponlo <strong>de lado, en horizontal</strong>, y apóyalo frente a ti con la cámara mirándote. El juego empieza solo al girarlo; mientras tanto el tiempo está detenido.
+      </p>
+      <button type="button" className="boton primario" onClick={onPantallaCompleta}>
+        <Icono nombre="rotar" />
+        Pantalla completa y girar
       </button>
+      <p className="muy-tenue chico juego-girar-ayuda">¿No gira? Revisa que el bloqueo de rotación del teléfono esté desactivado.</p>
     </div>
+  )
+}
+
+/** Teléfono que pasa de vertical a horizontal en bucle, con flecha curva (sin animación si se pide movimiento reducido). */
+function TelefonoGirando() {
+  return (
+    <svg className="girar-anim" viewBox="0 0 120 120" width="128" height="128" aria-hidden="true">
+      <path className="girar-flecha" d="M 26 34 A 42 42 0 0 1 86 26" fill="none" strokeWidth="4" strokeLinecap="round" />
+      <path className="girar-flecha" d="M 78 18 L 88 26 L 76 32" fill="none" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <g className="girar-telefono">
+        <rect x="42" y="30" width="36" height="64" rx="7" className="girar-cuerpo" strokeWidth="3.5" />
+        <rect x="47" y="38" width="26" height="46" rx="2.5" className="girar-pantalla" />
+        <circle cx="60" cy="34.2" r="1.6" className="girar-camara" />
+      </g>
+    </svg>
   )
 }
