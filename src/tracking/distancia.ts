@@ -133,7 +133,7 @@ export class EstimadorDistancia {
     if (!e) return null
     let f = this.filtros.get(mano.lado)
     if (!f) {
-      f = new FiltroOneEuro(0.8, 0.01)
+      f = new FiltroOneEuro(0.8, 0.2)
       this.filtros.set(mano.lado, f)
     }
     return { ...e, cm: f.filtrar(e.cm, tMs) }
