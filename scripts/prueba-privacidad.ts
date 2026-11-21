@@ -50,6 +50,8 @@ export async function restaurarPrueba() {
   const p = await paciente()
   // Sesiones, alertas y auditoría del paciente de prueba (RPC de F13; solo ese paciente).
   ok(await db.rpc('limpiar_paciente_prueba', { p_ids: null }), 'limpiar')
+  // Versiones > 1 del plan que dejó un e2e de prescripción (F17); el plan versión 1 se conserva.
+  ok(await db.rpc('limpiar_planes_prueba'), 'limpiar planes')
   ok(await db.from('consentimientos').delete().eq('paciente_id', p.id), 'borrar consentimientos')
   ok(
     await db.from('consentimientos').insert({ paciente_id: p.id, version: VERSION, opciones: { analisisEnDispositivo: true, compartirMetricas: false } }),

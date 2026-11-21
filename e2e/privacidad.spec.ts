@@ -6,11 +6,23 @@ import { readFileSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
 import { crearSesion, limpiarPrueba } from './juegos.ts'
+import { tomarBloqueo, soltarBloqueo } from '../scripts/bloqueo-prueba.ts'
 import { restaurarPrueba, sinConsentimiento } from '../scripts/prueba-privacidad.ts'
 
 test.describe.configure({ mode: 'serial' })
-test.beforeAll(async () => restaurarPrueba())
-test.afterAll(async () => restaurarPrueba())
+// Candado: prescripcion.spec.ts (F17) también cambia al paciente de prueba; los archivos corren en paralelo.
+test.beforeAll(async () => {
+  test.setTimeout(300_000)
+  await tomarBloqueo()
+  await restaurarPrueba()
+})
+test.afterAll(async () => {
+  try {
+    await restaurarPrueba()
+  } finally {
+    soltarBloqueo()
+  }
+})
 test.beforeEach(async ({ context }) => entrarComo(context, 'prueba'))
 
 const interruptor = (p: Page, nombre: string) => p.getByRole('switch', { name: nombre })

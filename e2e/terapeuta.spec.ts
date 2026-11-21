@@ -6,8 +6,15 @@
 import { execSync } from 'node:child_process'
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
+import { soltarBloqueo, tomarBloqueo } from '../scripts/bloqueo-prueba.ts'
 
 test.describe.configure({ mode: 'serial' })
+// Candado: prescripcion.spec.ts (F17) hace visible un momento al paciente de prueba, y aquí se cuentan 4 pacientes.
+test.beforeAll(async () => {
+  test.setTimeout(300_000)
+  await tomarBloqueo()
+})
+test.afterAll(() => soltarBloqueo())
 
 const fila = (page: Page, nombre: string) => page.getByTestId('fila-paciente').filter({ hasText: nombre })
 const diaSantiago = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' })

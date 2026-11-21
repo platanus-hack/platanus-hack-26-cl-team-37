@@ -1,7 +1,7 @@
 // F15 · Historial: lógica pura (mezcla de sesiones y cambios de plan, etiquetas, parámetros). Solo describe datos.
 import type { Auditoria, Mano, Sesion } from '../domain/types'
 import { nombreJuego } from '../games/registry'
-import { nombreMano } from '../lib/formato'
+import { nombreMano, num } from '../lib/formato'
 
 /** Fecha con la que se ordena y muestra una sesión. */
 export function fechaSesion(s: Sesion): Date {
@@ -46,7 +46,7 @@ const CAMPOS_ITEM: { clave: string; campo: string; formato: (v: unknown) => stri
   { clave: 'duracionMin', campo: 'Duración', formato: (v) => (v == null ? null : `${v} min`) },
   { clave: 'mano', campo: 'Mano', formato: (v) => (v == null ? null : nombreMano(String(v) as Mano).toLowerCase()) },
   { clave: 'metaAgarres', campo: 'Meta', formato: texto },
-  { clave: 'metaPinzaCm', campo: 'Meta de pinza', formato: (v) => (v == null ? null : `${v} cm`) },
+  { clave: 'metaPinzaCm', campo: 'Meta de pinza', formato: (v) => (v == null ? null : `${num(Number(v), Number.isInteger(Number(v)) ? 0 : 1)} cm`) },
 ]
 
 /** Qué cambió entre dos versiones del plan (formato de la auditoría: sesionesPorSemana, umbralDolor, items). */

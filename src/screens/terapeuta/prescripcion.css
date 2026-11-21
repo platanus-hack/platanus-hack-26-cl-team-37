@@ -1,0 +1,37 @@
+/* F17 · Prescripción del plan (imagen 12). Pantalla sin barra inferior: la acción fija va abajo. */
+.prescripcion { padding-bottom: 130px; }
+.presc-cabecera { gap: 12px; }
+.presc-avatar { width: 52px; height: 52px; font-size: 17px; }
+.presc-cabecera .textos { min-width: 0; }
+
+.presc-tendencia { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; }
+.presc-tendencia-valor { font-family: var(--titulos); font-weight: 700; font-size: 24px; line-height: 1.25; margin-top: 4px; }
+.presc-tendencia-vacio { color: var(--texto-2); font-size: 15px; margin-top: 4px; }
+.presc-pct { font-size: 16px; }
+.presc-pct.sube { color: var(--exito); }
+.presc-pct.baja { color: var(--texto-2); }
+.presc-version { color: var(--texto-3); font-size: 13px; margin-top: -4px; }
+
+.presc-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.presc-fila.cambiado { border-color: rgba(255, 200, 61, 0.55); background: var(--acento-tenue); }
+.presc-textos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.presc-titulo { font-family: var(--titulos); font-size: 18px; }
+.presc-detalle { color: var(--texto-2); font-size: 15px; }
+.presc-fila .stepper { flex: none; }
+.presc-fila .stepper .valor { font-size: 22px; min-width: 52px; }
+
+.presc-mensaje { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.presc-mensaje.cambiado { border-color: rgba(255, 200, 61, 0.55); background: var(--acento-tenue); }
+.presc-mensaje label { color: var(--texto-2); font-size: 15px; }
+.presc-texto { background: transparent; border: 0; padding: 0; resize: none; font-size: 17px; line-height: 1.4; color: var(--texto); width: 100%; }
+.presc-texto:focus { outline: none; }
+.presc-texto::placeholder { color: var(--texto-3); }
+.presc-contador { align-self: flex-end; color: var(--texto-3); font-size: 13px; }
+
+.presc-error { color: var(--alerta); font-size: 14px; text-align: center; }
+.presc-resumen { gap: 8px; }
+.presc-cambio { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--fondo-2); border: 1px solid var(--borde); }
+.presc-cambio-nombre { color: var(--texto-2); font-size: 14px; }
+.presc-cambio-valor { font-size: 17px; }
+.presc-cambio-valor strong { color: var(--acento); font-family: var(--titulos); }
+.presc-cambio-mensaje { font-size: 16px; overflow-wrap: anywhere; }
