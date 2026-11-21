@@ -2,10 +2,11 @@
 // La mano sintética gira la palma con `pronacionDeg` (0 = palma abajo = de cara a la cámara; negativo = supinación,
 // la palma gira hacia arriba; positivo = pronación) y se pone sobre cada carta con las `celdas` que informa
 // window.__manoviva.juego.estado() (posición en la imagen y distancia que dejan la palma sobre esa carta).
+// - metaAgarres > 0 → la meta son los pares del nivel; metaAgarres 0 → práctica libre (sin meta, se arma otro tablero).
 // - Sesión REAL, nivel 1 (2×2, 45°), mano derecha: un giro menor al umbral inclina la carta pero no la voltea; sobre el
 //   umbral se voltea; sin volver a palma abajo no se voltea otra; un no_par vuelve a tapar; los dos pares terminan la
 //   sesión en /sensacion. Eventos y resumen (giro por volteo, máximos a cada lado) guardados. Mide el fps.
-//   Con CAPTURA_MEMORIA=<carpeta> guarda capturas horizontales (referencia: 05_memoria_de_cartas.png).
+//   Con CAPTURA_MEMORIA=docs/capturas guarda memoria-cartas.png y memoria-cartas-meta.png (más par y sin-memoria; esas no se commitean), horizontales (referencia: 05_memoria_de_cartas.png).
 // - Sesión REAL, mano izquierda: mismo giro, mismo signo (supinación positiva), un par y /sensacion.
 // - Sesión falsa, nivel 3 (2×4, 60°) y modo "sin memoria" (?sinMemoria=1).
 import { expect, test, type Page } from '@playwright/test'
@@ -74,7 +75,7 @@ test.describe('Memoria de cartas', () => {
     const desde = new Date(Date.now() - 5_000).toISOString()
     let id = ''
     try {
-      id = await crearSesion('memoria-cartas', 5, 0, 1)
+      id = await crearSesion('memoria-cartas', 5, 12, 1) // metaAgarres > 0: la meta es el total de pares del nivel (2)
       await page.setViewportSize(HORIZONTAL)
       const v = vigilarErrores(page)
       const rapier: string[] = []
@@ -83,9 +84,10 @@ test.describe('Memoria de cartas', () => {
       await expect(page.getByRole('heading', { level: 1, name: 'Memoria de cartas' })).toBeVisible({ timeout: 15_000 })
       await esperarFase(page, 'jugando', 15_000)
       await expect(page.getByText('Gira la palma hacia arriba para voltear la carta')).toBeVisible()
-      await expect(page.getByText('Giro del antebrazo')).toBeVisible()
-      await expect(page.getByText('Supinación máx.')).toBeVisible()
-      await expect(page.getByText('Pronación máx.')).toBeVisible()
+      // El terapeuta ve los grados como estimación no validada (nombres visibles, no solo la fórmula).
+      await expect(page.getByText('Giro (aprox., no validado)')).toBeVisible()
+      await expect(page.getByText('Máx. arriba (no validado)')).toBeVisible()
+      await expect(page.getByText('Máx. otro lado (no validado)')).toBeVisible()
       await expect(page.getByTestId('contador')).toHaveText('0/2')
 
       const e0 = await estado(page)
@@ -167,6 +169,10 @@ test.describe('Memoria de cartas', () => {
       await voltear(page, resto[0], 'derecha', 80)
       await voltear(page, resto[1], 'derecha', 80)
       await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 2/2', { timeout: 6_000 })
+      if (process.env.CAPTURA_MEMORIA) {
+        await page.waitForTimeout(300)
+        await page.screenshot({ path: `${process.env.CAPTURA_MEMORIA}/memoria-cartas-meta.png`, style: SIN_FPS })
+      }
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion\\?fuente=sintetica&guion=quieta&depuracion=1$`), { timeout: 10_000 })
       expect(rapier, 'Memoria de cartas no usa física').toEqual([])
       info.annotations.push({ type: 'fps', description: `${j0.fps} fps (calidad ${j0.calidad}, pixel ratio ${j0.pixelRatio})` })
@@ -177,7 +183,7 @@ test.describe('Memoria de cartas', () => {
       expect(s.estado).toBe('en curso')
       expect(s.metricas).toMatchObject({ contador: 2, meta: 2, metaCumplida: true, motivoFin: 'meta' })
       const m = s.metricas.juego
-      expect(m).toMatchObject({ pares: 2, intentos: 3, volteos: 6 })
+      expect(m).toMatchObject({ pares: 2, intentos: 3, volteos: 6, sinMemoria: 0 })
       expect(m.supinacionMax).toBeGreaterThanOrEqual(75) // giros de hasta 80° (suavizados)
       expect(m.supinacionMax).toBeLessThanOrEqual(85)
       expect(m.pronacionMax).toBeGreaterThanOrEqual(20) // un giro de 25° hacia el otro lado
@@ -213,7 +219,7 @@ test.describe('Memoria de cartas', () => {
     const desde = new Date(Date.now() - 5_000).toISOString()
     let id = ''
     try {
-      id = await crearSesion('memoria-cartas', 5, 0, 1, 'paciente', { parametros: { ...parametros(5, 0, 1), mano: 'izquierda' } })
+      id = await crearSesion('memoria-cartas', 5, 12, 1, 'paciente', { parametros: { ...parametros(5, 12, 1), mano: 'izquierda' } })
       await page.setViewportSize(HORIZONTAL)
       const v = vigilarErrores(page)
       await page.goto(`/sesion/${id}/jugar?fuente=sintetica&guion=quieta&lado=izquierda`)
@@ -256,7 +262,7 @@ test.describe('Memoria de cartas', () => {
 
   test('nivel 3 (2×4, 60°) y modo "sin memoria": mismo juego con las figuras a la vista', async ({ page }) => {
     test.setTimeout(120_000)
-    const escrituras = await sesionFalsa(page, 'memoria-cartas', 5, 0, 3)
+    const escrituras = await sesionFalsa(page, 'memoria-cartas', 5, 12, 3)
     await page.setViewportSize(HORIZONTAL)
     const v = vigilarErrores(page)
     await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta&sinMemoria=1`)
@@ -281,8 +287,36 @@ test.describe('Memoria de cartas', () => {
       await page.screenshot({ path: `${process.env.CAPTURA_MEMORIA}/memoria-cartas-sin-memoria.png`, style: SIN_FPS })
     }
     await terminar(page, ID_FALSO)
+    // El uso del modo "sin memoria" queda en el resumen.
+    const cierre = escrituras.filter((x) => x.tabla === 'sesiones').map((x) => x.cuerpo as { metricas?: { juego?: Record<string, unknown> } })
+    expect(cierre.some((x) => x.metricas?.juego?.sinMemoria === 1)).toBe(true)
     const evs = escrituras.filter((x) => x.tabla === 'eventos_sesion').flatMap((x) => x.cuerpo as { tipo: string; datos: Record<string, unknown> | null }[])
     expect(evs.filter((x) => x.tipo === 'volteo')).toMatchObject([{ datos: { carta: 6 } }])
+    v.sinErrores()
+  })
+
+  test('práctica libre (metaAgarres 0): sin meta, al completar el tablero se arma otro y los conteos siguen', async ({ page }) => {
+    test.setTimeout(120_000)
+    await sesionFalsa(page, 'memoria-cartas', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    const v = vigilarErrores(page)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await esperarFase(page, 'jugando', 15_000)
+    await expect(page.getByTestId('contador')).toHaveText('0')
+    expect((await estado(page)).meta).toBe(0)
+    await voltear(page, 0, 'derecha', 70)
+    await voltear(page, pareja(await estado(page), 0), 'derecha', 70)
+    await expect(page.getByTestId('contador')).toHaveText('1', { timeout: 4_000 })
+    const resto = (await estado(page)).estados.map((s, i) => (s === 'tapada' ? i : -1)).filter((i) => i >= 0)
+    await voltear(page, resto[0], 'derecha', 70)
+    await voltear(page, resto[1], 'derecha', 70)
+    await expect(page.getByTestId('contador')).toHaveText('2', { timeout: 4_000 })
+    // Se arma otro tablero (todo tapado) y la sesión sigue en juego, sin meta cumplida.
+    await expect.poll(async () => (await estado(page)).estados.every((s) => s === 'tapada'), { timeout: 6_000 }).toBe(true)
+    expect((await estado(page)).pares).toBe(2)
+    await expect(page.getByTestId('contador')).toHaveText('2')
+    await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
+    await terminar(page, ID_FALSO)
     v.sinErrores()
   })
 

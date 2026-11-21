@@ -9,7 +9,9 @@ import {
   configGiro,
   crearTablero,
   estadoManoInicial,
+  metaCartas,
   mezclar,
+  paresDeNivel,
   nivelCartas,
   normalPalma,
   pasoMano,
@@ -82,6 +84,79 @@ describe('suavizado del giro', () => {
     }
     expect(desv(suave.slice(60))).toBeLessThan(desv(crudo.slice(60)) * 0.6)
     expect(Math.abs(suave[89] - 60)).toBeLessThan(6)
+  })
+})
+
+describe('suavizado del giro cerca de palma arriba (salto de ±180°)', () => {
+  // atan2 da +175° y al cuadro siguiente −178° con la misma mano casi boca arriba (≈182°).
+  const cruce = [170, 172, 175, 176, 175, -178, 176, 174, -179, 177, 175, 173]
+
+  it('el salto +175 → −178 no se promedia como lineal: la salida se queda cerca de palma arriba', () => {
+    const s = new SuavizadorGiro()
+    const salida = cruce.map((g, i) => s.filtrar(g, i * 33))
+    expect(Math.min(...salida)).toBeGreaterThan(150)
+    expect(Math.max(...salida)).toBeLessThanOrEqual(180)
+  })
+
+  it('el giro real hacia el otro lado (−178 sostenido desde el principio) no se tuerce', () => {
+    const s = new SuavizadorGiro()
+    const salida = [-170, -172, -175, -178, -176].map((g, i) => s.filtrar(g, i * 33))
+    expect(Math.max(...salida)).toBeLessThan(-150)
+    expect(Math.min(...salida)).toBeGreaterThanOrEqual(-180)
+  })
+
+  it('reiniciar() olvida el valor previo (no se desenrolla contra una mano que ya no estaba)', () => {
+    const s = new SuavizadorGiro()
+    s.filtrar(175, 0)
+    s.reiniciar()
+    expect(s.filtrar(-170, 1000)).toBeCloseTo(-170, 5)
+  })
+
+  it('sin falso retorno_palma_abajo y sin inflar la pronación máxima al voltear con la palma casi arriba', () => {
+    const cfg = configGiro(60)
+    const s = new SuavizadorGiro()
+    const ag = new AgregadoCartas()
+    let e = estadoManoInicial()
+    const ev: EventoMano[] = []
+    let t = 0
+    const cuadro = (crudo: number) => {
+      const a = s.filtrar(crudo, t)
+      ag.giro(a)
+      const r = pasoMano(e, { angulo: a, carta: 0, dtMs: 33, bloqueado: false }, cfg)
+      e = r.estado
+      ev.push(...r.eventos)
+      t += 33
+    }
+    for (let i = 0; i < 10; i++) cuadro(0) // palma abajo sobre la carta 0
+    for (let i = 0; i < 20; i++) cuadro(100) // giro sostenido: se voltea
+    expect(tipos(ev)).toEqual(['sobre_carta', 'volteo'])
+    // Palma casi arriba con un cuadro ruidoso que cruza ±180°: no hay retorno, no se puede voltear otra carta.
+    for (const g of cruce) cuadro(g)
+    for (let i = 0; i < 20; i++) cuadro(176)
+    expect(tipos(ev)).toEqual(['sobre_carta', 'volteo'])
+    expect(e.esperaRetorno).toBe(true)
+    expect(e.armada).toBe(false)
+    expect(ag.pronacionMax).toBe(0)
+    expect(ag.supinacionMax).toBeGreaterThan(150)
+    expect(ag.supinacionMax).toBeLessThanOrEqual(180)
+    // Volver de verdad a palma abajo sí cuenta como retorno.
+    for (let i = 0; i < 60; i++) cuadro(0)
+    expect(tipos(ev)).toEqual(['sobre_carta', 'volteo', 'retorno_palma_abajo'])
+  })
+})
+
+describe('meta de la sesión', () => {
+  it('sin metaAgarres es práctica libre (0); con meta, los pares del nivel', () => {
+    expect(metaCartas(1, 0)).toBe(0)
+    expect(metaCartas(5, 0)).toBe(0)
+    expect(metaCartas(1, 12)).toBe(2)
+    expect(metaCartas(3, 5)).toBe(4)
+    expect(metaCartas(5, 1)).toBe(6)
+  })
+  it('paresDeNivel recibe el número de nivel, no la cantidad de pares', () => {
+    expect(paresDeNivel(3)).toBe(4)
+    expect(paresDeNivel(NIVELES_CARTAS[3].pares)).toBe(paresDeNivel(4)) // 4 como número de nivel = 5 pares, no 4
+    expect(paresDeNivel(4)).not.toBe(NIVELES_CARTAS[3].pares)
   })
 })
 
@@ -303,6 +378,16 @@ describe('métricas', () => {
       aciertos: 50,
       tiempoTotal: 95,
     })
+  })
+  it('reiniciar el tablero pone a cero pares, intentos y volteos, pero conserva los giros máximos', () => {
+    const a = new AgregadoCartas()
+    a.giro(70)
+    a.giro(-20)
+    a.volteo(66)
+    a.resultado('par')
+    a.resultado('no_par')
+    a.reiniciarTablero()
+    expect(a.resumen(10)).toMatchObject({ pares: 0, intentos: 0, volteos: 0, giroMedioVolteo: null, supinacionMax: 70, pronacionMax: 20 })
   })
   it('sin volteos los promedios quedan sin dato y no se divide por cero', () => {
     const r = new AgregadoCartas().resumen(0)

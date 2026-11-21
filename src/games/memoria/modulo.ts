@@ -7,9 +7,13 @@
 // voltea). Para voltear otra hay que volver a palma abajo (retorno_palma_abajo). Dos iguales forman un par y quedan
 // arriba; si no, se vuelven a tapar (no_par).
 //
-// Modo "sin memoria" (el terapeuta lo activa): las figuras se ven siempre (en pequeño sobre el reverso) y solo se trabaja
-// el giro. Se activa con el campo opcional `sinMemoria: true` en los parámetros de la sesión (jsonb, no necesita
-// migración; un ítem del plan lo puede traer) o con `?sinMemoria=1` en la URL (pruebas y demostración).
+// Meta: con metaAgarres > 0 en el plan, la sesión termina al encontrar todos los pares del tablero del nivel; con
+// metaAgarres = 0 es práctica libre (sin meta, termina solo por tiempo): al completar el tablero se arma otro.
+//
+// Modo "sin memoria": las figuras se ven siempre (en pequeño sobre el reverso) y solo se trabaja el giro. Se activa con
+// el campo opcional `sinMemoria: true` en los parámetros de la sesión (jsonb, no necesita migración; hoy ningún
+// formulario lo fija) o, solo con fuente simulada (sintética/grabación, nunca con la cámara real), con `?sinMemoria=1`
+// en la URL (pruebas y demostración). Si se usó, queda registrado en el resumen (`sinMemoria` = 1).
 //
 // Toda la lógica (giro, sostenido, tablero, métricas) está en logica.ts. Los grados son estimaciones SIN VALIDAR.
 import * as THREE from 'three'
@@ -30,8 +34,9 @@ import {
   estadoManoInicial,
   nivelCartas,
   pasoMano,
-  paresDeNivel,
+  metaCartas,
   progresoGiro,
+  tableroCompleto,
   tapar,
   voltear,
   type ConfigGiro,
@@ -46,6 +51,8 @@ export const VER_NO_PAR_MS = 1300
 /** Inclinación máxima de una carta que todavía no se voltea (°). */
 const INCLINACION_MAX = 55
 const PERDIDA_REINICIA_MS = 400
+/** Práctica libre: cuánto se ve el tablero completo antes de armar otro (ms). */
+export const REARMAR_MS = 1500
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_CARTAS[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
@@ -189,6 +196,7 @@ export const crearMemoria: CrearJuego = () => {
   let contador = 0
   let reloj = 0
   let resolviendoMs = 0
+  let completoMs = 0
   let resolviendo = false
   let conDato = false
   let ultimoGiro: number | null = null
@@ -211,7 +219,6 @@ export const crearMemoria: CrearJuego = () => {
   const materiales: THREE.Material[] = []
   const texturas: THREE.Texture[] = []
 
-  const metaPares = () => ctx?.meta || paresDeNivel(nivel.pares)
   const ladoVisible = (l: LadoMano) => !!ctx?.manos.visible(l)
 
   function construirTablero(c: ContextoJuego) {
@@ -278,11 +285,12 @@ export const crearMemoria: CrearJuego = () => {
     })
   }
 
-  function reiniciarTablero() {
+  /** Arma un tablero nuevo (los conteos de la sesión no se tocan). */
+  function nuevoTablero() {
     tablero = crearTablero(nivel.filas, nivel.columnas)
-    contador = 0
     resolviendo = false
     resolviendoMs = 0
+    completoMs = 0
     for (const v of visuales) grupo.remove(v.grupo)
     visuales.length = 0
     for (const m of materiales) m.dispose()
@@ -400,7 +408,7 @@ export const crearMemoria: CrearJuego = () => {
     }
     return {
       contador,
-      meta: metaPares(),
+      meta: ctx?.meta ?? 0,
       filas: nivel.filas,
       columnas: nivel.columnas,
       umbralDeg: nivel.umbralDeg,
@@ -426,23 +434,24 @@ export const crearMemoria: CrearJuego = () => {
     gestos: ['Giro del antebrazo'],
     miniatura: 'memoria',
     niveles,
-    meta: { etiqueta: 'Pares', unidad: 'pares', desdePlan: (p) => paresDeNivel(p.nivel) },
+    meta: { etiqueta: 'Pares', unidad: 'pares', desdePlan: (p) => metaCartas(p.nivel, p.metaAgarres) },
     tiposEvento: ['sobre_carta', 'volteo', 'par', 'no_par', 'retorno_palma_abajo'],
     metricasVivo: [
-      { id: 'giro', nombre: 'Giro del antebrazo', unidad: '°', formula: `${FORMULA_GIRO} (positivo = supinación, negativo = pronación; suavizado)`, aprox: true },
-      { id: 'supMax', nombre: 'Supinación máx.', unidad: '°', formula: `mayor giro hacia palma arriba de la sesión (${FORMULA_GIRO})`, aprox: true, mejor: 'mayor' },
-      { id: 'pronMax', nombre: 'Pronación máx.', unidad: '°', formula: `mayor giro hacia el otro lado de la sesión (${FORMULA_GIRO})`, aprox: true, mejor: 'mayor' },
+      { id: 'giro', nombre: 'Giro (aprox., no validado)', unidad: '°', formula: `${FORMULA_GIRO} (positivo = supinación, negativo = pronación; suavizado)`, aprox: true },
+      { id: 'supMax', nombre: 'Máx. arriba (no validado)', unidad: '°', formula: `mayor giro hacia palma arriba de la sesión, medido desde palma abajo (${FORMULA_GIRO})`, aprox: true, mejor: 'mayor' },
+      { id: 'pronMax', nombre: 'Máx. otro lado (no validado)', unidad: '°', formula: `mayor giro hacia el otro lado de palma abajo (la palma gira hacia el meñique) de la sesión (${FORMULA_GIRO})`, aprox: true, mejor: 'mayor' },
     ],
     metricasResumen: [
-      { id: 'supinacionMax', nombre: 'Supinación máxima', unidad: '°', formula: `mayor giro hacia palma arriba de la sesión; ${FORMULA_GIRO}`, aprox: true, mejor: 'mayor', corto: 'Supinación máx.' },
-      { id: 'pronacionMax', nombre: 'Pronación máxima', unidad: '°', formula: `mayor giro hacia el otro lado de la sesión; ${FORMULA_GIRO}`, aprox: true, mejor: 'mayor', corto: 'Pronación máx.' },
-      { id: 'giroMedioVolteo', nombre: 'Giro medio al voltear', unidad: '°', formula: `promedio del giro alcanzado en cada volteo (el máximo sostenido 0,3 s); ${FORMULA_GIRO}`, aprox: true, corto: 'Giro al voltear' },
-      { id: 'giroMinVolteo', nombre: 'Giro mínimo al voltear', unidad: '°', formula: `menor giro alcanzado en un volteo; ${FORMULA_GIRO}`, aprox: true, tarjeta: false },
-      { id: 'giroMaxVolteo', nombre: 'Giro máximo al voltear', unidad: '°', formula: `mayor giro alcanzado en un volteo; ${FORMULA_GIRO}`, aprox: true, tarjeta: false },
+      { id: 'supinacionMax', nombre: 'Giro hacia palma arriba (desde palma abajo), máximo', unidad: '°', formula: `mayor giro hacia palma arriba de la sesión, medido desde palma abajo (que anatómicamente ya es pronación completa: no es la supinación clínica); ${FORMULA_GIRO}`, aprox: true, mejor: 'mayor', corto: 'Giro a palma arriba máx. (no validado)' },
+      { id: 'pronacionMax', nombre: 'Giro hacia el otro lado (desde palma abajo), máximo', unidad: '°', formula: `mayor giro de la sesión hacia el lado contrario a palma arriba, medido desde palma abajo (la palma gira hacia el meñique); ${FORMULA_GIRO}`, aprox: true, mejor: 'mayor', corto: 'Giro al otro lado máx. (no validado)' },
+      { id: 'giroMedioVolteo', nombre: 'Giro medio al voltear (no validado)', unidad: '°', formula: `promedio del giro alcanzado en cada volteo (el máximo sostenido 0,3 s); ${FORMULA_GIRO}`, aprox: true, corto: 'Giro al voltear (no validado)' },
+      { id: 'giroMinVolteo', nombre: 'Giro mínimo al voltear (no validado)', unidad: '°', formula: `menor giro alcanzado en un volteo; ${FORMULA_GIRO}`, aprox: true, tarjeta: false },
+      { id: 'giroMaxVolteo', nombre: 'Giro máximo al voltear (no validado)', unidad: '°', formula: `mayor giro alcanzado en un volteo; ${FORMULA_GIRO}`, aprox: true, tarjeta: false },
       { id: 'pares', nombre: 'Pares encontrados', unidad: '', formula: "eventos 'par'", mejor: 'mayor' },
       { id: 'intentos', nombre: 'Intentos', unidad: '', formula: "parejas de cartas volteadas ('par' + 'no_par')", mejor: 'menor' },
       { id: 'volteos', nombre: 'Volteos', unidad: '', formula: "eventos 'volteo'" },
       { id: 'aciertos', nombre: 'Aciertos', unidad: '%', formula: 'pares / intentos', mejor: 'mayor', tarjeta: false },
+      { id: 'sinMemoria', nombre: 'Modo sin memoria (1 = se usó)', unidad: '', formula: 'figuras a la vista durante la sesión (solo se trabaja el giro)', tarjeta: false },
       { id: 'tiempoTotal', nombre: 'Tiempo total', unidad: 's', decimales: 0, formula: 'segundos de juego activo (sin pausas)', mejor: 'menor' },
     ],
     usaFisica: false,
@@ -456,7 +465,8 @@ export const crearMemoria: CrearJuego = () => {
       const mano = c.parametros.mano
       lados = mano === 'ambas' ? ['derecha', 'izquierda'] : [mano === 'izquierda' ? 'izquierda' : 'derecha']
       const extra = (c.parametros as unknown as { sinMemoria?: unknown }).sinMemoria
-      const url = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      // La URL solo vale con fuente simulada: con la cámara real no se puede activar desde la dirección.
+      const url = typeof window !== 'undefined' && c.fuente.tipo !== 'camara' ? new URLSearchParams(window.location.search) : null
       sinMemoria = extra === true || url?.get('sinMemoria') === '1'
       tablero = crearTablero(nivel.filas, nivel.columnas)
       construirTablero(c)
@@ -478,6 +488,11 @@ export const crearMemoria: CrearJuego = () => {
         }
       }
       for (const l of lados) procesarMano(l, manos.find((m) => m.lado === l), dtMs)
+      // Práctica libre (sin meta): al completar el tablero se arma otro, sin perder los conteos.
+      if (c.meta === 0 && tableroCompleto(tablero)) {
+        completoMs += dtMs
+        if (completoMs >= REARMAR_MS) nuevoTablero()
+      }
       const p = principal()
       ultimoGiro = p ? manosJuego[p].angulo : null
       dibujar(dt)
@@ -496,6 +511,7 @@ export const crearMemoria: CrearJuego = () => {
       const espera = lados.some((l) => manosJuego[l].estado.esperaRetorno && ladoVisible(l))
       let pista: string | undefined
       if (c && c.meta > 0 && contador >= c.meta) pista = '¡Muy bien! Encontraste todos los pares'
+      else if (c && c.meta === 0 && tableroCompleto(tablero)) pista = '¡Muy bien! Armamos otras cartas'
       else if (resolviendo) pista = 'No son iguales: vuelve a palma abajo'
       else if (espera) pista = 'Vuelve a palma abajo para elegir otra carta'
       else if (lados.some((l) => manosJuego[l].estado.sobre != null && ladoVisible(l))) pista = 'Gira la palma hacia arriba para voltear la carta'
@@ -513,7 +529,9 @@ export const crearMemoria: CrearJuego = () => {
     },
 
     reiniciar() {
-      reiniciarTablero()
+      contador = 0
+      agregado.reiniciarTablero()
+      nuevoTablero()
     },
 
     muestra() {
@@ -521,7 +539,7 @@ export const crearMemoria: CrearJuego = () => {
     },
 
     resumen(base) {
-      return agregado.resumen(base.duracionS)
+      return { ...agregado.resumen(base.duracionS), sinMemoria: sinMemoria ? 1 : 0 }
     },
 
     desmontar() {

@@ -49,8 +49,14 @@ export function nivelCartas(n: number): NivelCartas {
   return NIVELES_CARTAS[Math.min(5, Math.max(1, Math.round(n))) as 1 | 2 | 3 | 4 | 5]
 }
 
-/** Pares del tablero de un nivel (es la meta de la sesión). */
+/** Pares del tablero de un nivel. */
 export const paresDeNivel = (n: number) => nivelCartas(n).pares
+
+/**
+ * Meta de la sesión: sin meta en el plan (metaAgarres = 0) es práctica libre y la sesión termina solo por tiempo
+ * (0 = sin meta); con meta, se cumple al encontrar todos los pares del tablero del nivel.
+ */
+export const metaCartas = (nivel: number, metaAgarres: number) => (metaAgarres > 0 ? paresDeNivel(nivel) : 0)
 
 // ── Giro del antebrazo ────────────────────────────────────────────────────────────────────────────
 
@@ -95,14 +101,28 @@ export function anguloGiro(world: P3[], lado: LadoMano): number | null {
   return Math.atan2(punto(n, e2), punto(n, e1)) * RAD
 }
 
-/** Suavizado del giro (One Euro, en grados). Con `reiniciar()` al perder la mano. */
+/**
+ * Suavizado del giro (One Euro, en grados). Con `reiniciar()` al perder la mano.
+ * atan2 salta de +175° a −178° con la palma casi arriba: antes de filtrar se "desenrolla" el ángulo hacia el valor
+ * previo (si no, el filtro promedia el salto como si fuera lineal y da ~−47°, un falso retorno a palma abajo).
+ * La salida se acota a ±180°.
+ */
 export class SuavizadorGiro {
   private f = new FiltroOneEuro(1.0, 0.004, 1.0)
+  private previo: number | null = null
   filtrar(grados: number, tMs: number): number {
-    return this.f.filtrar(grados, tMs)
+    let a = grados
+    if (this.previo != null) {
+      while (a - this.previo > 180) a -= 360
+      while (a - this.previo < -180) a += 360
+    }
+    const y = this.f.filtrar(a, tMs)
+    this.previo = y
+    return Math.max(-180, Math.min(180, y))
   }
   reiniciar() {
     this.f.reiniciar()
+    this.previo = null
   }
 }
 
@@ -342,6 +362,12 @@ export class AgregadoCartas {
   resultado(r: 'par' | 'no_par') {
     if (r === 'par') this.pares++
     else this.noPares++
+  }
+  /** Reinicio del tablero: vuelven a cero los conteos del tablero (pares, intentos, volteos); los giros máximos de la sesión se conservan. */
+  reiniciarTablero() {
+    this.pares = 0
+    this.noPares = 0
+    this.volteos = []
   }
 
   resumen(duracionS: number): Record<string, number | null> {

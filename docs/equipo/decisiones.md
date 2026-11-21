@@ -6,3 +6,6 @@ Una línea por decisión que afecte a otros. Se agrega al final; no se reescribe
 - 2026-11-21 · coordinación · Una sola base de Supabase (la de producción) para desarrollo, CI y demo; migraciones solo aditivas y numeradas por persona.
 - 2026-11-21 · coordinación · Vercel se despliega desde la CI con token (el repositorio de la organización no se puede conectar a Vercel).
 - 2026-11-21 · P2 · Convención de profundidad corregida tras prueba con cámara real: acercar la mano a la cámara la mete hacia el fondo de la mesa.
+- 2026-11-21 · P3 · Memoria de cartas: con `metaAgarres` 0 es práctica libre (sin meta, se arma otro tablero al completar); con meta > 0 la meta son los pares del nivel.
+- 2026-11-21 · P3 · Memoria de cartas: el giro se desenrolla (±180°) antes de filtrar y los grados se rotulan "no validado" en las métricas visibles; "supinación/pronación máxima" pasan a "giro hacia palma arriba / hacia el otro lado (desde palma abajo)".
+- 2026-11-21 · P3 · Memoria de cartas: `?sinMemoria=1` no vale con cámara real y, si se usó, el resumen guarda `sinMemoria` = 1 (sin tocar `ParametrosSesion`).

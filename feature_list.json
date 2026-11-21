@@ -659,17 +659,17 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Giro bajo el umbral inclina pero no voltea",
         "Resumen muestra giro máximo a cada lado"
       ],
       "verify": [
         "npm run e2e -- cartas",
-        "npm test -- giro"
+        "npm test -- -t giro"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "Corrido en p3/memoria-cartas: npx tsc -b y npx oxlint sin errores; npx vitest run en verde (pruebas de giro, desenrollado de ±180°, meta, tablero y métricas); e2e cartas (5 pruebas: umbral, retorno a palma abajo, no_par, pares, mano izquierda, nivel 3 sin memoria, práctica libre) con fuente sintética, fps ~35 en el equipo de desarrollo. Capturas horizontales docs/capturas/memoria-cartas.png y memoria-cartas-meta.png comparadas con 05_memoria_de_cartas.png. Grados marcados aprox. y no validados hasta F21.",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },
