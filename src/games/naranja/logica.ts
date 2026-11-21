@@ -69,7 +69,7 @@ export interface EstadoNaranja {
   iniciada: boolean
   /** Cierre máximo (%) de la repetición en curso. */
   cierreMax: number
-  /** Ms con el puño sobre el umbral (con margen) en la repetición en curso. */
+  /** Ms con el puño sobre umbral − 10 en el paso 3 (queda fijo, en el tiempo pedido, al pasar al paso 4). */
   sostenidoMs: number
   /** Paso 4: ya empezó a abrir. */
   abriendo: boolean
@@ -134,6 +134,8 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
     if (cierre < suelta) return { estado: fallo(3), eventos }
     e.sostenidoMs += dtMs
     if (e.sostenidoMs >= n.sostenerMs) {
+      // Se guarda el tiempo pedido (no el exceso del último cuadro): el panel dice 3,0/3 y la métrica también.
+      e.sostenidoMs = n.sostenerMs
       eventos.push({ tipo: 'sostenido_completo', sostenidoMs: Math.round(e.sostenidoMs), cierreMaxPct: r1(e.cierreMax) })
       e.paso = 4
       e.abriendo = false
@@ -145,8 +147,8 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
   // Paso 4: abrir por completo.
   e.cierreMax = Math.max(e.cierreMax, cierre)
   if (cierre >= suelta) {
-    // Sigue con el puño: el tiempo sostenido sigue corriendo. Si ya había empezado a abrir y vuelve a cerrar, falla.
-    e.sostenidoMs += dtMs
+    // Sigue con el puño: el tiempo sostenido ya no suma (quedó fijo al completar el paso 3). Si ya había empezado a
+    // abrir y vuelve a cerrar, falla.
     if (e.abriendo && cierre >= n.umbral) return { estado: fallo(4), eventos }
     return { estado: e, eventos }
   }
@@ -157,6 +159,15 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
     return { estado: { ...estadoNaranjaInicial() }, eventos }
   }
   return { estado: e, eventos }
+}
+
+/**
+ * "Reiniciar" a mitad de una repetición: la deja anotada como incompleta con el paso en que estaba, para que no queden
+ * cierre_inicio / umbral_alcanzado sin cerrar. En el paso 1 (o en el 2 sin haber empezado a cerrar) no hay nada abierto.
+ */
+export function cortarRepeticion(s: EstadoNaranja): EventoNaranja[] {
+  if (s.paso === 1 || (s.paso === 2 && !s.iniciada)) return []
+  return [{ tipo: 'repeticion_incompleta', paso: s.paso as 2 | 3 | 4, cierreMaxPct: r1(s.cierreMax), sostenidoMs: Math.round(s.sostenidoMs) }]
 }
 
 /** Progreso (0..1) de la barra de cada paso, para el dibujo. */

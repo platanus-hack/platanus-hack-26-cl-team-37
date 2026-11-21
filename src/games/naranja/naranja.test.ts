@@ -7,6 +7,7 @@ import {
   NARANJA_MS,
   NIVELES_NARANJA,
   cierreDeApertura,
+  cortarRepeticion,
   estadoNaranjaInicial,
   nivelNaranja,
   pasoNaranja,
@@ -15,9 +16,11 @@ import {
   type EstadoNaranja,
   type EventoNaranja,
 } from './logica'
+import { crearNaranja } from './modulo'
 
-// Las dos palabras que la cámara no puede respaldar, armadas por partes para que este archivo no las contenga.
-const PROHIBIDAS = new RegExp(`${'fuer'}za|${'pre'}si[oó]n`, 'i')
+// Las palabras que la cámara no puede respaldar (las dos de siempre y los verbos que sugieren medir cuánto se cierra con empuje),
+// armadas por partes para que este archivo no las contenga.
+const PROHIBIDAS = new RegExp(`${'fuer'}za|${'pre'}si[oó]n|${'apr'}(?:e|ie)t`, 'i')
 
 const N1 = NIVELES_NARANJA[1] // 60 %, 1 s, abierta ≤ 25 %
 const N3 = NIVELES_NARANJA[3] // 75 %, 3 s
@@ -91,6 +94,45 @@ describe('repetición de cuatro pasos', () => {
     expect(r.estado.paso).toBe(1) // listo para la siguiente
   })
 
+  it('el tiempo sostenido deja de sumar al empezar el paso 4: 3 s de sostén y 10 s más de puño se guardan como 3 s', () => {
+    const r = correr(N3, [
+      [0, 400],
+      [100, 3500],
+    ])
+    expect(r.estado.paso).toBe(4)
+    expect(r.estado.sostenidoMs).toBe(N3.sostenerMs)
+    const largo = correr(N3, [[100, 10_000]], r.estado)
+    expect(largo.estado.paso).toBe(4)
+    expect(largo.estado.sostenidoMs).toBe(3000)
+    expect(progresoSostener(largo.estado, N3)).toBe(1)
+    const fin = correr(N3, [[0, 400]], largo.estado)
+    const ok = fin.eventos.find((e) => e.tipo === 'apertura_completa') as Extract<EventoNaranja, { tipo: 'apertura_completa' }>
+    expect(ok).toBeDefined()
+    expect(ok.sostenidoMs).toBe(3000)
+    expect(new AgregadoNaranja().resumen().tiempoSostenido).toBeNull()
+    const ag = new AgregadoNaranja()
+    ag.evento(ok, 0)
+    expect(ag.resumen().tiempoSostenido).toBe(3)
+  })
+
+  it('"Reiniciar" a mitad de una repetición la deja incompleta con su paso; en el paso 1 no hay nada que cerrar', () => {
+    expect(cortarRepeticion(estadoNaranjaInicial())).toEqual([])
+    expect(cortarRepeticion({ ...estadoNaranjaInicial(), paso: 2 })).toEqual([]) // aún no empezó a cerrar
+    const en2 = correr(N3, [[0, 400], [40, 200]])
+    expect(en2.estado).toMatchObject({ paso: 2, iniciada: true })
+    expect(cortarRepeticion(en2.estado)).toEqual([{ tipo: 'repeticion_incompleta', paso: 2, cierreMaxPct: 40, sostenidoMs: 0 }])
+    const en3 = correr(N3, [[0, 400], [90, 1000]])
+    expect(en3.estado.paso).toBe(3)
+    expect(cortarRepeticion(en3.estado)).toEqual([{ tipo: 'repeticion_incompleta', paso: 3, cierreMaxPct: 90, sostenidoMs: 950 }])
+    const en4 = correr(N3, [[0, 400], [90, 3500]])
+    expect(en4.estado.paso).toBe(4)
+    expect(cortarRepeticion(en4.estado)).toEqual([{ tipo: 'repeticion_incompleta', paso: 4, cierreMaxPct: 90, sostenidoMs: 3000 }])
+    // Cada cierre_inicio / umbral_alcanzado queda cerrado por una incompleta o una apertura_completa.
+    const ag = new AgregadoNaranja()
+    for (const ev of cortarRepeticion(en3.estado)) ag.evento(ev, 0)
+    expect(ag.resumen()).toMatchObject({ incompletas: 1, falloPaso3: 1, repeticiones: 0 })
+  })
+
   it('la naranja aparece solo con la mano abierta un rato seguido', () => {
     let r = correr(N1, [[0, NARANJA_MS - 100]])
     expect(r.estado.paso).toBe(1)
@@ -158,10 +200,10 @@ describe('repetición de cuatro pasos', () => {
     expect(r.tipos).not.toContain('apertura_completa')
     r = correr(N1, [...hasta4, [45, 400], [30, 400], [10, 200]])
     expect(r.tipos.at(-1)).toBe('apertura_completa')
-    // seguir con el puño cerrado mucho rato en el paso 4 no falla y el tiempo sostenido sigue corriendo
+    // seguir con el puño cerrado mucho rato en el paso 4 no falla y el tiempo sostenido ya no suma
     r = correr(N1, [...hasta4, [100, 3000], [0, 300]])
     expect(r.tipos.at(-1)).toBe('apertura_completa')
-    expect((r.eventos.at(-1) as { sostenidoMs: number }).sostenidoMs).toBeGreaterThan(3500)
+    expect((r.eventos.at(-1) as { sostenidoMs: number }).sostenidoMs).toBe(N1.sostenerMs)
   })
 
   it('varias repeticiones seguidas: solo cuentan las válidas', () => {
@@ -212,6 +254,13 @@ describe('agregados', () => {
 })
 
 describe('registro', () => {
+  it('la fórmula del tiempo sostenido dice sobre "umbral − 10" y los textos visibles dicen puño cerrado y cierres', () => {
+    const m = crearNaranja()
+    const f = m.metricasVivo.find((x) => x.id === 'sostenido')!.formula
+    expect(f).toContain('umbral − 10')
+    expect(m.meta.etiqueta).toBe('Cierres')
+    expect(m.meta.unidad).toBe('cierres')
+  })
   it('Exprime la naranja declara sus 5 niveles con el texto del módulo', () => {
     const j = JUEGOS.find((x) => x.id === 'exprime-naranja')!
     expect(j.niveles.map((n) => n.detalle)).toEqual(([1, 2, 3, 4, 5] as const).map((k) => NIVELES_NARANJA[k].detalle))

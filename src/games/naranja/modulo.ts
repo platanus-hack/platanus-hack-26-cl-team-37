@@ -5,8 +5,8 @@
 // izquierda y, a la derecha, las mitades ya exprimidas (una más por cada repetición válida, hasta 4). La mano virtual
 // de la base (copia la mano del paciente) flota sobre el vaso; cuando la abres aparece una naranja en ella, se achica
 // y se oscurece al cerrar el puño, y al sostenerlo caen gotas al vaso. Al abrir la mano por completo sube el nivel del
-// jugo. Arriba, bajo la barra de tiempo, una tira fija a la cámara muestra los cuatro pasos y dos barras: cierre de
-// puño (con la marca del nivel) y tiempo sostenido.
+// jugo. Arriba, bajo la barra de tiempo, una tarjeta fija a la cámara muestra dos barras: cierre de puño (con la marca
+// del nivel) y tiempo sostenido. Los cuatro pasos van en la pista del panel izquierdo, no se repiten en la tarjeta.
 //
 // Reglas y eventos: logica.ts (pasoNaranja). Eventos: cierre_inicio, umbral_alcanzado, sostenido_completo,
 // apertura_completa y repeticion_incompleta { paso en que falló }. Cada repetición cuenta solo si cumple los cuatro pasos.
@@ -25,6 +25,7 @@ import {
   NOMBRE_PASO,
   PISTAS_PASO,
   cierreDeApertura,
+  cortarRepeticion,
   estadoNaranjaInicial,
   nivelNaranja,
   pasoNaranja,
@@ -99,17 +100,21 @@ function texturaHalo(): THREE.Texture {
   return t
 }
 
-/** Tarjeta de pasos y barras (fija a la cámara, a la derecha): tamaño del lienzo en píxeles. */
-const ANCHO_GUIA = 340
-const ALTO_GUIA = 330
-/** Píxeles del lienzo por píxel de diseño (texto nítido en pantallas densas). */
-const RESOLUCION_GUIA = 2
+/**
+ * Tarjeta de las dos barras (fija a la cámara, a la derecha). Se diseña en píxeles CSS y se coloca para que mida eso
+ * mismo en pantalla (ver ubicarGuia), así la letra de 14-15 px se lee igual en un teléfono de 844x390.
+ */
+const ANCHO_GUIA = 210
+const ALTO_GUIA = 116
+/** Fracción del ancho de la pantalla como máximo (pantallas muy angostas). */
+const FRACCION_MAX_GUIA = 0.5
+/** Margen a la derecha de la pantalla (px CSS). */
+const MARGEN_GUIA = 14
 /** Distancia de la tarjeta a la cámara (unidades de escena). */
 const DIST_GUIA = 5
 
-const FUENTE = '700 22px Poppins, "DM Sans", system-ui, sans-serif'
-const COLORES_PASO = { hecho: '#4fd1a1', actual: '#ffc83d', fallo: '#ffa24d', pendiente: '#34485a' }
-const ETIQUETAS = ['Abre', 'Cierra', 'Sostén', 'Abre todo']
+const FUENTE_BARRA = '700 15px Poppins, "DM Sans", system-ui, sans-serif'
+const FUENTE_MARCA = '700 14px Poppins, "DM Sans", system-ui, sans-serif'
 
 export const crearNaranja: CrearJuego = () => {
   let ctx: ContextoJuego | null = null
@@ -158,6 +163,9 @@ export const crearNaranja: CrearJuego = () => {
   let lienzo: HTMLCanvasElement | null = null
   let texGuia: THREE.CanvasTexture | null = null
   let firmaGuia = ''
+  let firmaUbicacion = ''
+  let resolucionGuia = 1
+  let lienzoJuego: HTMLCanvasElement | null | undefined
 
   const metaAlcanzada = () => !!ctx && ctx.meta > 0 && contador >= ctx.meta
   const capacidad = () => (ctx && ctx.meta > 0 ? ctx.meta : 10)
@@ -253,7 +261,7 @@ export const crearNaranja: CrearJuego = () => {
       grupo.add(h)
     })
 
-    // Naranja en la mano: se aprieta (se achica y se oscurece) con el cierre del puño.
+    // Naranja en la mano: se achica y se oscurece con el cierre del puño.
     naranja = crearNaranja3d(0.3)
     cuerpoNaranja = naranja.userData.cuerpo as THREE.Mesh
     naranja.visible = false
@@ -276,14 +284,20 @@ export const crearNaranja: CrearJuego = () => {
     }
     c.escena.add(grupo)
 
-    // Tira de pasos y barras, fija a la cámara (bajo la barra de tiempo).
+    // Tarjeta de las dos barras, fija a la cámara (bajo la barra de tiempo). Lienzo = diseño x min(1.5, devicePixelRatio);
+    // sin mipmaps y con filtro lineal para que la letra no se emborrone, y sin tone mapping para que no se lave.
+    const resolucion = Math.min(1.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)
     lienzo = document.createElement('canvas')
-    lienzo.width = ANCHO_GUIA * RESOLUCION_GUIA
-    lienzo.height = ALTO_GUIA * RESOLUCION_GUIA
+    lienzo.width = Math.round(ANCHO_GUIA * resolucion)
+    lienzo.height = Math.round(ALTO_GUIA * resolucion)
+    resolucionGuia = lienzo.width / ANCHO_GUIA
     texGuia = new THREE.CanvasTexture(lienzo)
     texGuia.colorSpace = THREE.SRGBColorSpace
+    texGuia.generateMipmaps = false
+    texGuia.minFilter = THREE.LinearFilter
+    texGuia.magFilter = THREE.LinearFilter
     texturas.push(texGuia)
-    const matGuia = new THREE.SpriteMaterial({ map: texGuia, transparent: true, depthWrite: false, depthTest: false })
+    const matGuia = new THREE.SpriteMaterial({ map: texGuia, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })
     materiales.push(matGuia)
     const sGuia = new THREE.Sprite(matGuia)
     sGuia.renderOrder = 10
@@ -297,46 +311,40 @@ export const crearNaranja: CrearJuego = () => {
   function dibujarGuia() {
     if (!lienzo || !texGuia) return
     const prog = progresoSostener(estado, nivel)
-    const cierreVista = cierre == null ? -1 : Math.round(cierre / 4)
-    const falloVigente = falloT > 0 ? ultimoFallo : null
-    const firma = [estado.paso, falloVigente, Math.round(prog * 40), cierreVista, Math.round(estado.sostenidoMs / 100)].join(',')
+    const sost = estado.paso >= 3 ? Math.min(nivel.sostenerMs, estado.sostenidoMs) : 0
+    const sobre = cierre != null && cierre >= nivel.umbral
+    const firma = [cierre == null ? -1 : Math.round(cierre), Math.round(sost / 100), sobre ? 1 : 0, nivel.umbral].join(',')
     if (firma === firmaGuia) return
     firmaGuia = firma
     const g = lienzo.getContext('2d')!
     const W = ANCHO_GUIA
     const H = ALTO_GUIA
-    g.setTransform(RESOLUCION_GUIA, 0, 0, RESOLUCION_GUIA, 0, 0)
+    g.setTransform(resolucionGuia, 0, 0, resolucionGuia, 0, 0)
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.9)'
+    g.fillStyle = 'rgba(15,20,26,0.92)'
     g.beginPath()
-    g.roundRect(2, 2, W - 4, H - 4, 30)
+    g.roundRect(1, 1, W - 2, H - 2, 16)
     g.fill()
-    g.strokeStyle = 'rgba(255,255,255,0.16)'
-    g.lineWidth = 2
+    g.strokeStyle = 'rgba(255,255,255,0.22)'
+    g.lineWidth = 1.5
     g.stroke()
     g.textBaseline = 'middle'
-    // Cuatro pasos, uno bajo otro.
-    for (let i = 1; i <= 4; i++) {
-      const y = 36 + (i - 1) * 42
-      const estadoPaso = falloVigente === i ? 'fallo' : i < estado.paso ? 'hecho' : i === estado.paso ? 'actual' : 'pendiente'
-      g.font = FUENTE
-      g.fillStyle = COLORES_PASO[estadoPaso]
-      g.beginPath()
-      g.arc(38, y, 16, 0, Math.PI * 2)
-      g.fill()
-      g.fillStyle = estadoPaso === 'pendiente' ? '#cfd8e0' : '#14202b'
-      g.textAlign = 'center'
-      g.fillText(String(i), 38, y + 1)
-      g.textAlign = 'left'
-      g.fillStyle = estadoPaso === 'pendiente' ? '#8fa3b5' : '#eef3f7'
-      g.fillText(ETIQUETAS[i - 1], 66, y + 1)
+    // Texto blanco con contorno oscuro: se lee igual sobre la barra vacía, la amarilla y la verde.
+    const texto = (t: string, x: number, y: number, align: CanvasTextAlign, fuente: string) => {
+      g.font = fuente
+      g.textAlign = align
+      g.lineJoin = 'round'
+      g.lineWidth = 2.5
+      g.strokeStyle = 'rgba(10,16,22,0.9)'
+      g.strokeText(t, x, y)
+      g.fillStyle = '#ffffff'
+      g.fillText(t, x, y)
     }
-    // Barras: cierre de puño (con la marca del nivel) y tiempo sostenido.
-    const barra = (y: number, frac: number, color: string, texto: string, marca?: number) => {
-      const x = 24
-      const w = W - 48
-      const h = 36
-      g.fillStyle = 'rgba(255,255,255,0.1)'
+    const x = 10
+    const w = W - 2 * x
+    const h = 32
+    const barra = (y: number, frac: number, color: string, etiqueta: string) => {
+      g.fillStyle = 'rgba(255,255,255,0.14)'
       g.beginPath()
       g.roundRect(x, y, w, h, h / 2)
       g.fill()
@@ -346,31 +354,50 @@ export const crearNaranja: CrearJuego = () => {
         g.roundRect(x, y, Math.max(h, w * Math.min(1, frac)), h, h / 2)
         g.fill()
       }
-      if (marca != null) {
-        g.fillStyle = '#ffffff'
-        g.fillRect(x + w * marca - 2, y - 4, 4, h + 8)
-      }
-      g.font = '700 18px Poppins, "DM Sans", system-ui, sans-serif'
-      g.fillStyle = frac > 0.5 ? '#14202b' : '#eef3f7'
-      g.textAlign = 'left'
-      g.fillText(texto, x + 16, y + h / 2 + 1)
+      texto(etiqueta, x + 12, y + h / 2 + 1, 'left', FUENTE_BARRA)
     }
-    const sobre = cierre != null && cierre >= nivel.umbral
-    barra(210, (cierre ?? 0) / 100, sobre ? '#4fd1a1' : '#ffc83d', cierre == null ? 'Cierre —' : `Cierre ${Math.round(cierre)} % · marca ${nivel.umbral}`, nivel.umbral / 100)
-    const sost = estado.paso >= 3 ? Math.min(nivel.sostenerMs, estado.sostenidoMs) : 0
-    barra(264, prog, '#4fd1a1', `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, 0)} s`)
+    // Barra de cierre de puño: la marca del nivel es una raya con su número encima (la etiqueta de la barra no la toca).
+    const yCierre = 28
+    barra(yCierre, (cierre ?? 0) / 100, sobre ? '#4fd1a1' : '#ffc83d', cierre == null ? 'Cierre —' : `Cierre ${Math.round(cierre)} %`)
+    const xMarca = x + w * (nivel.umbral / 100)
+    g.fillStyle = '#ffffff'
+    g.fillRect(xMarca - 1.5, yCierre - 4, 3, h + 8)
+    g.font = FUENTE_MARCA
+    const textoMarca = `marca ${nivel.umbral} %`
+    const anchoMarca = g.measureText(textoMarca).width
+    const cx = Math.min(W - 6 - anchoMarca / 2, Math.max(6 + anchoMarca / 2, xMarca))
+    texto(textoMarca, cx, 14, 'center', FUENTE_MARCA)
+    // Barra de tiempo sostenido.
+    barra(72, prog, '#4fd1a1', `Sostén ${num(sost / 1000, 1)} / ${num(nivel.sostenerMs / 1000, 0)} s`)
     texGuia.needsUpdate = true
   }
 
-  /** Tarjeta de pasos pegada a la derecha, bajo "Menú" y sobre el visor de la cámara, según el campo de la cámara. */
+  /** Alto del lienzo 3D en píxeles CSS (la base lo dibuja a pantalla completa). */
+  function altoCss(): number {
+    if (typeof document === 'undefined') return 390
+    if (!lienzoJuego || !lienzoJuego.isConnected) lienzoJuego = document.querySelector<HTMLCanvasElement>('canvas.juego-lienzo')
+    return lienzoJuego?.clientHeight || window.innerHeight || 390
+  }
+
+  /**
+   * Tarjeta de las barras pegada a la derecha, bajo "Menú" y sobre el visor de la cámara. El tamaño se calcula en
+   * píxeles CSS: a DIST_GUIA de la cámara la pantalla mide 2·mitadAlto unidades de alto, o sea 2·mitadAlto/altoCss
+   * unidades por píxel. Así la tarjeta mide ANCHO_GUIA px en pantalla sea cual sea el campo de la cámara.
+   */
   function ubicarGuia(c: ContextoJuego) {
+    const alto = altoCss()
+    const firma = [c.camara.fov, c.camara.aspect, alto].join(',')
+    if (firma === firmaUbicacion) return
+    firmaUbicacion = firma
     const mitadAlto = DIST_GUIA * Math.tan((c.camara.fov * Math.PI) / 360)
     const mitadAncho = mitadAlto * c.camara.aspect
-    const ancho = Math.min(1.5, mitadAncho * 0.36)
-    const alto = (ancho * ALTO_GUIA) / ANCHO_GUIA
-    const sprite = luces.getObjectByName('guia')
-    sprite?.scale.set(ancho, alto, 1)
-    luces.position.set(mitadAncho - 0.14 - ancho / 2, mitadAlto * 0.6 - alto / 2, -DIST_GUIA)
+    const porPx = (2 * mitadAlto) / alto
+    const anchoPx = Math.min(ANCHO_GUIA, FRACCION_MAX_GUIA * alto * c.camara.aspect)
+    const k = anchoPx / ANCHO_GUIA
+    const ancho = anchoPx * porPx
+    const altoU = ALTO_GUIA * k * porPx
+    luces.getObjectByName('guia')?.scale.set(ancho, altoU, 1)
+    luces.position.set(mitadAncho - MARGEN_GUIA * porPx - ancho / 2, mitadAlto * 0.6 - altoU / 2, -DIST_GUIA)
   }
 
   function lanzarGota(origen: THREE.Vector3) {
@@ -541,11 +568,11 @@ export const crearNaranja: CrearJuego = () => {
     gestos: ['Cierre de puño'],
     miniatura: 'naranja',
     niveles,
-    meta: { etiqueta: 'Apretones', unidad: 'apretones', desdePlan: (p) => p.metaAgarres },
+    meta: { etiqueta: 'Cierres', unidad: 'cierres', desdePlan: (p) => p.metaAgarres },
     tiposEvento: ['cierre_inicio', 'umbral_alcanzado', 'sostenido_completo', 'apertura_completa', 'repeticion_incompleta'],
     metricasVivo: [
       { id: 'cierre', nombre: 'Cierre de puño', unidad: '%', formula: '1 − apertura calibrada: 0 % = mano abierta de la calibración, 100 % = puño de la calibración (distancia de las yemas a la palma normalizada por el largo de la mano)', aprox: true, mejor: 'mayor' },
-      { id: 'sostenido', nombre: 'Tiempo sostenido', unidad: 's', formula: 'segundos seguidos con el cierre sobre el umbral del nivel (con un margen de 10 puntos)', mejor: 'mayor' },
+      { id: 'sostenido', nombre: 'Tiempo sostenido', unidad: 's', formula: 'segundos seguidos con el cierre sobre umbral − 10 (el umbral del nivel menos 10 puntos de margen); deja de sumar al completar el tiempo pedido', mejor: 'mayor' },
       { id: 'apertura', nombre: 'Apertura completa', unidad: '%', formula: '100 % − cierre de puño actual', aprox: true, mejor: 'mayor' },
     ],
     metricasResumen: [
@@ -601,10 +628,10 @@ export const crearNaranja: CrearJuego = () => {
       for (const l of lados) {
         const k = cierreDe(l)
         if (k == null) continue
-        manos[l] = k >= nivel.umbral ? { texto: 'Apretando', tono: 'acento' } : k >= INICIO_CIERRE_PCT ? { texto: 'Cerrando', tono: 'acento' } : { texto: 'Abierta', tono: 'ok' }
+        manos[l] = k >= nivel.umbral ? { texto: 'Puño cerrado', tono: 'acento' } : k >= INICIO_CIERRE_PCT ? { texto: 'Cerrando', tono: 'acento' } : { texto: 'Abierta', tono: 'ok' }
       }
       let pista: string | undefined
-      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste los apretones'
+      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste los cierres'
       else if (falloT > 0 && ultimoFallo != null) pista = pistaFallo(ultimoFallo as 2 | 3 | 4, nivel)
       else if (cierre != null) {
         if (estado.paso === 3) pista = `Sostén el puño: faltan ${num(Math.max(0, nivel.sostenerMs - estado.sostenidoMs) / 1000, 1)} s`
@@ -625,6 +652,8 @@ export const crearNaranja: CrearJuego = () => {
     },
 
     reiniciar() {
+      // A mitad de una repetición: queda anotada como incompleta con su paso, para no dejar eventos sin cerrar.
+      if (ctx && !metaAlcanzada()) for (const ev of cortarRepeticion(estado)) aplicar(ev)
       estado = estadoNaranjaInicial()
       falloT = 0
     },

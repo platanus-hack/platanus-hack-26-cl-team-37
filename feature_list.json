@@ -635,7 +635,7 @@
       "dependencies": [
         "F10"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Soltar antes de tiempo = repetición incompleta con paso anotado",
         "grep sin 'fuerza'/'presión' en src/"
@@ -644,7 +644,7 @@
         "npm run e2e -- naranja"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-21: npx tsc -b, oxlint y vitest OK (22 unitarias de naranja); npm run e2e -- naranja → 4/4 (sesión real nivel 3 con incompletas en pasos 3 y 2, meta 2/2 y /sensacion; mano izquierda nivel 2; nivel 5 con Reiniciar a mitad de repetición = incompleta con paso; grep sin fuerza/presión/apretar). Captura 844x390: docs/capturas/exprime-naranja.png (tarjeta de barras ~210 px, letra 15 px legible). Revisión PR #20 atendida.",
       "owner": "P3",
       "nota_hoy": "Solo si llega antes del congelamiento de juegos (D-3h); si no, queda Próximamente."
     },

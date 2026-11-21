@@ -33,8 +33,9 @@ type Estado = {
   gotas: number
 }
 const SIN_FPS = '[data-testid=fps] { display: none !important }'
-// Las dos palabras que la cámara no puede respaldar: se arman por partes para que este archivo no las contenga.
-const PROHIBIDAS = new RegExp(`${'fuer'}za|${'pre'}si[oó]n`, 'i')
+// Las palabras que la cámara no puede respaldar (fuerza, presión, apretar/apretones/apretando): se arman por partes
+// para que este archivo no las contenga.
+const PROHIBIDAS = new RegExp(`${'fuer'}za|${'pre'}si[oó]n|${'apr'}(?:e|ie)t`, 'i')
 
 const estado = (p: Page) => p.evaluate(() => (globalThis as unknown as Ventana).__manoviva!.juego!.estado() as unknown) as Promise<Estado>
 const poner = (p: Page, pose: object, lado = 'derecha') => p.evaluate(([po, l]) => (globalThis as unknown as Ventana).__manoviva!.fuente!.fijarPose(po as object, l as string), [pose, lado] as const)
@@ -82,7 +83,7 @@ test.describe('Exprime la naranja', () => {
       await expect(page.getByText('Cierre de puño')).toBeVisible()
       await expect(page.getByText('Tiempo sostenido')).toBeVisible()
       await expect(page.getByText('Apertura completa')).toBeVisible()
-      await expect(page.getByText('Apretones')).toBeVisible()
+      await expect(page.getByText('Cierres')).toBeVisible()
       await expect(page.getByTestId('contador')).toHaveText('0/2')
       await expect(page.getByTestId('mano-derecha')).toContainText('Abierta')
       await expect(page.getByTestId('vivo-cierre')).toContainText('%')
@@ -96,7 +97,7 @@ test.describe('Exprime la naranja', () => {
       // Repetición A: suelta antes de tiempo (paso 3).
       await poner(page, PUNO)
       await esperarPaso(page, 3)
-      await expect(page.getByTestId('mano-derecha')).toContainText('Apretando')
+      await expect(page.getByTestId('mano-derecha')).toContainText('Puño cerrado')
       expect((await estado(page)).cierre).toBeGreaterThan(90)
       await page.waitForTimeout(300) // de 3 s de sostén
       await poner(page, { apertura: 0.6 }) // suelta a medias (≈ 34 %)
@@ -137,7 +138,10 @@ test.describe('Exprime la naranja', () => {
       }
       await esperarPaso(page, 4, 6_000)
       await expect(page.getByTestId('contador')).toHaveText('0/2') // todavía falta el paso 4
-      await expect(page.getByTestId('vivo-sostenido')).toContainText('s')
+      // Con el puño cerrado en el paso 4 el tiempo sostenido ya no suma: se queda en 3,0 s (el panel dice 3,0 / 3 s).
+      await page.waitForTimeout(1_500)
+      expect((await estado(page)).sostenidoMs).toBe(3000)
+      await expect(page.getByTestId('vivo-sostenido')).toContainText('3,0')
       await poner(page, ABIERTA)
       await expect.poll(async () => (await estado(page)).contador, { timeout: 5_000 }).toBe(1)
       await expect(page.getByTestId('contador')).toHaveText('1/2')
@@ -212,7 +216,7 @@ test.describe('Exprime la naranja', () => {
       await abrirYEsperarNaranja(page, 'izquierda')
       await poner(page, PUNO, 'izquierda')
       await esperarPaso(page, 3)
-      await expect(page.getByTestId('mano-izquierda')).toContainText('Apretando')
+      await expect(page.getByTestId('mano-izquierda')).toContainText('Puño cerrado')
       // El sostén de 2 s tiene que completarse antes del paso 4.
       await esperarPaso(page, 4, 6_000)
       expect((await estado(page)).sostenidoMs).toBeGreaterThanOrEqual(2000)
@@ -255,16 +259,26 @@ test.describe('Exprime la naranja', () => {
     await expect.poll(async () => (await estado(page)).ultimoFallo, { timeout: 4_000 }).toBe(3)
     await expect(page.getByTestId('contador')).toHaveText('0')
 
+    // "Reiniciar" a mitad de una repetición la deja anotada como incompleta (con su paso), sin eventos sin cerrar.
+    await abrirYEsperarNaranja(page)
+    await poner(page, PUNO)
+    await esperarPaso(page, 3)
+    await page.getByRole('button', { name: 'Reiniciar' }).click()
+    await expect.poll(async () => (await estado(page)).incompletas, { timeout: 3_000 }).toBe(2)
+    expect(await estado(page)).toMatchObject({ paso: 1, ultimoFallo: 3 })
+    await expect(page.locator('body')).not.toContainText(PROHIBIDAS)
+
     await page.getByRole('button', { name: 'Menú' }).click()
     await page.getByRole('button', { name: 'Terminar sesión' }).click()
     await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion`), { timeout: 10_000 })
     const final = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: Record<string, unknown> & { juego: Record<string, unknown> } }
     expect(final.metricas).toMatchObject({ contador: 0, meta: 0, motivoFin: 'manual' })
-    expect(final.metricas.juego).toMatchObject({ repeticiones: 0, incompletas: 1, falloPaso3: 1, completadas: 0, aperturaCompleta: null })
+    expect(final.metricas.juego).toMatchObject({ repeticiones: 0, incompletas: 2, falloPaso3: 2, completadas: 0, aperturaCompleta: null })
     const todos = escrituras.filter((e) => e.tabla === 'eventos_sesion').flatMap((e) => e.cuerpo as { tipo: string; datos: Record<string, unknown> | null }[])
     const evs = todos.filter((x) => !['pausa', 'reanudar', 'perdida_seguimiento'].includes(x.tipo))
-    expect(evs.map((x) => x.tipo)).toEqual(['cierre_inicio', 'umbral_alcanzado', 'repeticion_incompleta'])
+    expect(evs.map((x) => x.tipo)).toEqual(['cierre_inicio', 'umbral_alcanzado', 'repeticion_incompleta', 'cierre_inicio', 'umbral_alcanzado', 'repeticion_incompleta'])
     expect(evs[2].datos).toMatchObject({ paso: 3, requeridoMs: 5000, umbralPct: 90 })
+    expect(evs[5].datos).toMatchObject({ paso: 3, requeridoMs: 5000, umbralPct: 90 })
   })
 
   test('el código del juego no dice lo que la cámara no mide', () => {
