@@ -261,3 +261,7 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Fuente sintética: nuevo campo pinzaDedo (indice|medio|anular|menique) para que la pinza toque otro dedo; para alcanzarlo hay que flexionarlo (dedos: { medio: 0.6 }).
 - Para otros juegos: luces fijas a la pantalla con c.camara.add(grupo) + c.escena.add(c.camara); configurarManos acepta escala e inclinacionDeg; estado() en window.__manoviva.juego sirve para manejar la mano en lazo cerrado.
 - Observación: con 2 procesos de e2e y varias líneas activas los juegos con física fallan a veces por carga; con --workers=1 pasan. No hay e2e de Pinza fina con la mano izquierda.
+
+### 2026-11-21 · Trabajo detenido por el dueño
+- El dueño pidió parar para mover el proyecto a otro repositorio y seguir después. Se detuvieron las líneas G (F17), H (F19), I (F22) y J (F24); su trabajo quedó en commits wip en sus ramas. Las migraciones 700001 y 800001 ya estaban aplicadas a la base y se copiaron a master.
+- Estado: 19 features hechas (F00–F16, F18, F20, F23) y los juegos Caja y Movilidad. Detalle y cómo retomar: session-handoff.md.
