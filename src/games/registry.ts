@@ -1,5 +1,6 @@
 // Registro de juegos/ejercicios. Cada juego declara qué gestos trabaja y qué cambia en cada nivel.
 import { NIVELES_MOVILIDAD } from './movilidad/logica'
+import { NIVELES_NARANJA } from './naranja/logica'
 import { NIVELES_PINZA } from './pinza/logica'
 
 export type Gesto =
@@ -78,6 +79,17 @@ const nivelesPinza: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
   detalle: NIVELES_PINZA[n].detalle,
 }))
 
+// Exprime la naranja (F25): nombre, detalle y umbral de cada nivel viven en src/games/naranja/logica.ts. `cantidad` no se usa:
+// la meta de apretones viene del plan (metaAgarres).
+const nivelesNaranja: NivelJuego[] = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  nivel: n,
+  nombre: NIVELES_NARANJA[n].nombre,
+  tamano: 1,
+  cantidad: 0,
+  distanciaCaja: 0,
+  detalle: NIVELES_NARANJA[n].detalle,
+}))
+
 export const JUEGOS: Juego[] = [
   {
     id: 'caja-juguetes',
@@ -146,11 +158,11 @@ export const JUEGOS: Juego[] = [
     gestos: ['Cierre de puño'],
     filtros: ['Agarre'],
     descripcionCorta: 'Cierre de puño',
-    disponible: false,
+    disponible: true,
     usaCamara: true,
     ruta: null,
     miniatura: 'naranja',
-    niveles: nivelesCaja,
+    niveles: nivelesNaranja,
   },
   {
     id: 'memoria-cartas',
