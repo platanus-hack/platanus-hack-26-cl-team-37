@@ -67,6 +67,14 @@ const DIBUJOS: Record<string, ReactNode> = {
       <path d="M65.5 62h17l-1.8 20H67.3z" fill={C.amarillo} />
     </>
   ),
+  banda: (
+    <>
+      <path d="M30 40H70M30 60H70" stroke={C.amarillo} strokeWidth="5" strokeLinecap="round" />
+      <rect x="10" y="30" width="24" height="40" rx="10" fill={C.celeste} />
+      <rect x="66" y="30" width="24" height="40" rx="10" fill={C.celeste} />
+      <path d="M38 82q12 7 24 0" fill="none" stroke="#9fb0bf" strokeWidth="2.5" strokeDasharray="4 4" strokeLinecap="round" />
+    </>
+  ),
   memoria: (
     <>
       <rect x="18" y="18" width="28" height="30" rx="4" fill="#eef3f7" />

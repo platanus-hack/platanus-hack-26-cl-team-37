@@ -45,9 +45,9 @@ export interface MetaJuego {
 export interface DefMetrica {
   id: string
   nombre: string
-  unidad: '' | 'cm' | '°' | '%' | 's' | 'ms'
+  unidad: '' | 'cm' | '°' | '%' | 's' | 'ms' | 'kg'
   formula: string
-  /** Decimales al mostrar (por defecto: 1 para cm y s; 0 para el resto). */
+  /** Decimales al mostrar (por defecto: 1 para cm, s y kg; 0 para el resto). */
   decimales?: number
   /** Medidas de cámara (cm, grados): se muestran como estimación ("aprox.") en el resumen. */
   aprox?: boolean
@@ -189,7 +189,7 @@ export interface ModuloJuego<P extends ParametrosNivelBase = ParametrosNivel> {
 export type CrearJuego = () => ModuloJuego<ParametrosNivel>
 
 export function decimalesDe(def: Pick<DefMetrica, 'unidad' | 'decimales'>): number {
-  return def.decimales ?? (def.unidad === 'cm' || def.unidad === 's' ? 1 : 0)
+  return def.decimales ?? (def.unidad === 'cm' || def.unidad === 's' || def.unidad === 'kg' ? 1 : 0)
 }
 
 /** Formatea un valor de métrica con su unidad (es-CL, coma decimal): "2,1 cm", "68°", "86%", "0,9 s". */
