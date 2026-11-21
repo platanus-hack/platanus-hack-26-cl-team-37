@@ -177,9 +177,9 @@ describe('medidas y manos virtuales', () => {
     expect(c.x).toBeLessThan(0.5)
     const [x] = anclaEnEscena(c.x, c.y, 50)
     expect(x).toBeGreaterThan(0)
-    // subir en la imagen = subir en la escena; acercarse = venir al frente
+    // subir en la imagen = subir en la escena; acercar la mano a la cámara = meterla hacia el fondo de la mesa
     expect(anclaEnEscena(0.5, 0.2, 50)[1]).toBeGreaterThan(anclaEnEscena(0.5, 0.8, 50)[1])
-    expect(anclaEnEscena(0.5, 0.5, 30)[2]).toBeGreaterThan(anclaEnEscena(0.5, 0.5, 65)[2])
+    expect(anclaEnEscena(0.5, 0.5, 30)[2]).toBeLessThan(anclaEnEscena(0.5, 0.5, 65)[2])
     expect(anclaEnEscena(0, 0.5, null)[0]).toBe(ZONA_BASE.x[1])
   })
 

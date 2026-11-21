@@ -4,7 +4,8 @@
 // Mapeo a la escena (puro: puntosEnEscena, con pruebas):
 // - Posición: el centro de la palma en la imagen + la distancia estimada. Como un ESPEJO: la imagen cruda se
 //   invierte en x (la mano derecha del paciente aparece a la derecha de la pantalla); subir la mano en la imagen
-//   la sube sobre la mesa; acercarla a la cámara la trae hacia el frente de la mesa, alejarla la lleva al fondo.
+//   la sube sobre la mesa. La pantalla es una ventana al juego: acercar la mano a la cámara (a la pantalla) la
+//   METE hacia el fondo de la mesa y alejarla la trae hacia el frente (corregido tras la prueba con cámara real).
 // - Forma: worldLandmarks (metros, centrados) pasados al marco de la escena en espejo (x → −x, y → −y, z → −z),
 //   escalados (`escala` unidades por metro) e inclinados `inclinacionDeg` hacia el fondo, para que una mano con
 //   los dedos hacia arriba frente al teléfono se vea "entrando" a la mesa como en la imagen de referencia.
@@ -18,7 +19,7 @@ export interface ZonaManos {
   x: [number, number]
   /** Altura de la palma para la mano abajo y arriba en la imagen. */
   y: [number, number]
-  /** z de la escena con la mano cerca y lejos de la cámara. */
+  /** z de la escena con la mano cerca de la cámara (fondo de la mesa) y lejos de ella (frente de la mesa). */
   z: [number, number]
   /** Distancias (cm) que corresponden a z[0] y z[1]. */
   distanciaCm: [number, number]
@@ -32,7 +33,7 @@ export interface ZonaManos {
 export const ZONA_BASE: ZonaManos = {
   x: [-2.1, 2.1],
   y: [0.3, 1.6],
-  z: [0.9, -0.9],
+  z: [-0.9, 0.9],
   distanciaCm: [30, 65],
   margen: 0.1,
   escala: 6.2,
@@ -75,10 +76,11 @@ export function puntosEnEscena(mano: Pick<ManoSeguida, 'landmarks' | 'worldLandm
   const cos = Math.cos(a)
   const sin = Math.sin(a)
   return mano.worldLandmarks.map((w) => {
-    // espejo: x → −x; imagen y abajo → escena y arriba; z adelante (hacia el paciente) → hacia el fondo
+    // espejo: x → −x; imagen y abajo → escena y arriba; z de MediaPipe (+ = más lejos de la cámara) → hacia el frente.
+    // La pantalla es una ventana al juego: lo más cercano a la cámara queda más al fondo de la mesa.
     const x = -(w.x - w0.x) * zona.escala
     const y = -(w.y - w0.y) * zona.escala
-    const z = -(w.z - w0.z) * zona.escala
+    const z = (w.z - w0.z) * zona.escala
     // inclinación alrededor de x: los dedos (+y) se van hacia el fondo (−z)
     return [ax + x, ay + y * cos + z * sin, az - y * sin + z * cos]
   })
