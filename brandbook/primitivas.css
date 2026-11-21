@@ -191,6 +191,18 @@ select.entrada { cursor: pointer; }
 /* El input es invisible: el foco se dibuja en la pista. */
 .interruptor > input:focus-visible + .pista { outline: 2px solid var(--kw-tinta); outline-offset: 3px; }
 
+/* ———————————————————————————————————————— Hover (solo con puntero: mouse o trackpad; en táctil no hay) */
+@media (hover: hover) {
+  .boton.primario:hover:not(:disabled) { background: color-mix(in srgb, var(--kw-tinta) 86%, var(--kw-sobre-tinta)); }
+  .boton.secundario:hover:not(:disabled) { border-color: var(--kw-tinta); }
+  .boton.peligro:hover:not(:disabled) { background: var(--kw-alerta-fondo); }
+  .boton.texto:hover:not(:disabled) { text-decoration-thickness: 2px; }
+  .boton-icono:hover:not(:disabled),
+  .chip:hover:not(:disabled):not([aria-pressed='true']):not([aria-selected='true']):not(.activo),
+  .segmentos > button:hover:not(:disabled):not([aria-pressed='true']):not([aria-selected='true']) { color: var(--kw-tinta); background: var(--kw-pista); }
+  .entrada:hover:not(:disabled):not(:focus) { border-color: var(--kw-tinta); }
+}
+
 /* ———————————————————————————————————————— Foco (todos los controles) */
 .boton:focus-visible,
 .boton-icono:focus-visible,

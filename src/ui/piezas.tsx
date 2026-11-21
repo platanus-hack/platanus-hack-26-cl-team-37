@@ -1,6 +1,8 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Icono } from './Icono'
+import { useVista } from './vista'
+import logoHorizontal from '../../brandbook/logos/kuwu-horizontal.svg'
 import './salud.css'
 
 // ---------------------------------------------------------- estados de pantalla
@@ -75,6 +77,15 @@ export function Encabezado({ titulo, subtitulo, atras, derecha }: { titulo: Reac
 }
 
 // ---------------------------------------------------------- barras de navegación
+// En móvil es la barra inferior; en escritorio (src/ui/vista.ts) el CSS la vuelve barra lateral y aquí se suma el logo.
+function LogoBarra() {
+  return useVista() === 'escritorio' ? (
+    <div className="barra-logo">
+      <img src={logoHorizontal} alt="Kuwü" width={115} height={32} />
+    </div>
+  ) : null
+}
+
 export function BarraPaciente() {
   const items = [
     { a: '/inicio', n: 'Inicio', i: 'inicio' },
@@ -85,6 +96,7 @@ export function BarraPaciente() {
   ]
   return (
     <div className="barra-inferior">
+      <LogoBarra />
       <nav aria-label="Navegación principal">
         {items.map((x) => (
           <NavLink key={x.a} to={x.a}>
@@ -106,6 +118,7 @@ export function BarraTerapeuta({ alertas = 0 }: { alertas?: number }) {
   ]
   return (
     <div className="barra-inferior">
+      <LogoBarra />
       <nav aria-label="Navegación del terapeuta">
         {items.map((x) => (
           <NavLink key={x.a} to={x.a} end={x.a === '/terapeuta/pacientes'}>

@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AlInicio, Protegida, SoloPublica } from './auth/Protegida'
+import { useMarcarVista } from './ui/vista'
 import Acceso from './screens/acceso/Acceso'
 import { EstadoRed } from './ui/EstadoRed'
 import { PantallaCargando } from './ui/Marco'
@@ -30,6 +31,7 @@ const Primitivas = lazy(() => import('./screens/primitivas/Primitivas'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
 
 export default function App() {
+  useMarcarVista()
   return (
     <BrowserRouter>
       <AuthProvider>

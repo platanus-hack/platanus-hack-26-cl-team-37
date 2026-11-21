@@ -24,3 +24,8 @@ a.ter-paciente:active { background: var(--tarjeta-2); }
 .ter-enlace { color: var(--texto); text-decoration: none; }
 .ter-config .stepper { flex: none; }
 .ter-config .ter-sub { display: block; }
+
+/* ——— Escritorio (≥ 1024 px): la lista de pacientes en dos columnas. */
+@media (min-width: 1024px) {
+  .ter-lista { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+}

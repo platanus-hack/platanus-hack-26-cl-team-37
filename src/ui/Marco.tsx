@@ -8,7 +8,7 @@ import { BannerDemo, BarraPaciente, BarraTerapeuta, Cargando } from './piezas'
 export function Marco({ barra = false, banner = true }: { barra?: boolean; banner?: boolean }) {
   const { usuario } = useAuth()
   return (
-    <div className="app">
+    <div className={barra ? 'app con-nav' : 'app'}>
       {banner && usuario?.demo && <BannerDemo />}
       <Suspense fallback={<PantallaCargando />}>
         <Outlet />

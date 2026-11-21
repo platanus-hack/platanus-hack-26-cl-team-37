@@ -90,3 +90,23 @@
 
 /* ——— Título de pantalla: una línea, 30 px, 600 ——— */
 .pantalla > h1, .pantalla > header > h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }
+
+/* ——— Escritorio (≥ 1024 px, src/escritorio.css) ——— */
+@media (min-width: 1024px) {
+  .titulo-pantalla, .encabezado .textos h1, .pantalla > h1, .pantalla > header > h1 { font-size: 36px; }
+  /* El logo ya está en la barra lateral: el título sube a la fila del avatar. */
+  .app.con-nav .encabezado-marca { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .app.con-nav .encabezado-marca-barra { display: contents; }
+  .app.con-nav .encabezado-marca .marca { display: none; }
+  .app.con-nav .encabezado-marca .titulo-pantalla { order: -1; }
+  /* Inicio en dos columnas: la semana y el plan de hoy a la izquierda, «Ahora» a la derecha. */
+  .pantalla.inicio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 20px; }
+  .pantalla.inicio > * { grid-column: 1 / -1; }
+  .pantalla.inicio > .semana, .pantalla.inicio > .lista-hoy { grid-column: 1; }
+  .pantalla.inicio > .ahora { grid-column: 2; grid-row: span 2; align-self: stretch; min-height: 320px; }
+  /* Catálogo de ejercicios en dos columnas. */
+  .catalogo { padding: 4px 24px; }
+  .catalogo ul { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+  .catalogo li .catalogo-fila { border-top: 1px solid var(--linea); }
+  .catalogo li:nth-child(-n + 2) .catalogo-fila { border-top: 0; }
+}

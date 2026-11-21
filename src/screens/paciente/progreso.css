@@ -33,3 +33,10 @@
 .progreso-var { font-family: var(--letra); font-weight: 600; font-size: 15px; letter-spacing: 0; }
 .progreso-numero { font-family: var(--cifras); font-weight: 600; font-size: 16px; }
 .progreso-titulo { font-weight: 600; }
+
+/* ——— Escritorio (≥ 1024 px): el gráfico a todo el ancho y las tarjetas de abajo en dos columnas. */
+@media (min-width: 1024px) {
+  .pantalla.progreso { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 20px; }
+  .pantalla.progreso > * { grid-column: 1 / -1; }
+  .pantalla.progreso > .tarjeta:not(.progreso-apertura), .pantalla.progreso > .progreso-par { grid-column: auto; }
+}
