@@ -35,6 +35,8 @@ export interface PlanItem {
   mano: Mano
   metaAgarres: number
   metaPinzaCm: number
+  /** Meta de flexión máxima por dedo (°) fijada por el terapeuta. Opcional: sin meta, Progreso muestra grados. */
+  metaRangoGrados?: Partial<FlexionDedos>
 }
 
 export interface Plan {
