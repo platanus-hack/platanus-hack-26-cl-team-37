@@ -42,6 +42,16 @@ export interface MedidaBanda {
   extremos: [{ x: number; y: number }, { x: number; y: number }]
   /** Diferencia de escala entre las manos, 0..1 (0 = a la misma distancia de la cámara). */
   desnivel: number
+  /** Algún punto de las manos está pegado al borde de la imagen: al estirar más, se va a salir. */
+  alBorde: boolean
+}
+
+/** Margen (fracción de la imagen) bajo el que un punto se considera pegado al borde. */
+export const MARGEN_BORDE = 0.025
+
+export function manosAlBorde(manos: readonly Pick<ManoSeguida, 'landmarks'>[]): boolean {
+  const m = MARGEN_BORDE
+  return manos.some((mano) => mano.landmarks.some((p) => p.x < m || p.x > 1 - m || p.y < m || p.y > 1 - m))
 }
 
 /** Mide la banda en un cuadro. null si no hay dos manos o no se puede sacar la escala. */
@@ -61,6 +71,7 @@ export function medirBanda(cuadro: CuadroManos, agarre: Agarre): MedidaBanda | n
       { x: pb.x / cuadro.ancho, y: pb.y / cuadro.alto },
     ],
     desnivel: Math.abs(sa - sb) / escala,
+    alBorde: manosAlBorde([a, b]),
   }
 }
 
@@ -181,21 +192,46 @@ export class ContadorReps {
   }
 }
 
+/**
+ * Una repetición con menos tiempo que esto en tensión se marca como rápida: la cámara mide peor los movimientos
+ * rápidos (el error de MediaPipe crece con la velocidad: Sensors 2025, doi 10.3390/s25185716) y en terapia se
+ * pide un ritmo controlado.
+ */
+export const MIN_S_REP = 1
+
+/** Fracción de la meta desde la que una repetición cuenta como lograda (tolera el ruido de la medición). */
+export const TOLERANCIA_META = 0.95
+
+export function alcanzaMeta(r: Pick<Repeticion, 'picoKg'>, metaKg: number | null): boolean {
+  return metaKg != null && metaKg > 0 && r.picoKg >= metaKg * TOLERANCIA_META
+}
+
 export interface Totales {
   n: number
   mejorKg: number | null
   promedioKg: number | null
   tensionS: number
   trabajoJ: number
+  /** 1 − coeficiente de variación de los picos (1 = todas iguales). null con menos de 2 repeticiones. */
+  constancia: number | null
+  /** Repeticiones que llegaron a la meta (0 sin meta). */
+  enMeta: number
+  rapidas: number
 }
 
-export function totales(reps: Repeticion[]): Totales {
-  if (reps.length === 0) return { n: 0, mejorKg: null, promedioKg: null, tensionS: 0, trabajoJ: 0 }
+export function totales(reps: Repeticion[], metaKg: number | null = null): Totales {
+  if (reps.length === 0) return { n: 0, mejorKg: null, promedioKg: null, tensionS: 0, trabajoJ: 0, constancia: null, enMeta: 0, rapidas: 0 }
+  const picos = reps.map((r) => r.picoKg)
+  const media = picos.reduce((s, v) => s + v, 0) / picos.length
+  const desv = Math.sqrt(picos.reduce((s, v) => s + (v - media) ** 2, 0) / picos.length)
   return {
     n: reps.length,
-    mejorKg: Math.max(...reps.map((r) => r.picoKg)),
-    promedioKg: reps.reduce((s, r) => s + r.picoKg, 0) / reps.length,
+    mejorKg: Math.max(...picos),
+    promedioKg: media,
     tensionS: reps.reduce((s, r) => s + r.tensionS, 0),
     trabajoJ: reps.reduce((s, r) => s + r.trabajoJ, 0),
+    constancia: reps.length >= 2 && media > 0 ? Math.max(0, 1 - desv / media) : null,
+    enMeta: reps.filter((r) => alcanzaMeta(r, metaKg)).length,
+    rapidas: reps.filter((r) => r.tensionS < MIN_S_REP).length,
   }
 }

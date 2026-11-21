@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sintetica'
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
-import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, estiramiento, medirBanda, puntoAgarre, totales } from './medicion'
+import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
+import { CapturaReposo, ContadorReps, MS_REPOSO, alcanzaMeta, estiramiento, manosAlBorde, medirBanda, puntoAgarre, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -45,6 +45,15 @@ describe('curva de la banda', () => {
     expect(areaHasta(recta, 1.5)).toBeCloseTo(4.5)
     expect(areaHasta(recta, 0)).toBe(0)
     expect(areaHasta(amarilla, 0.5)).toBeCloseTo((0.48 / 2 + (0.48 + 0.83) / 2) * 0.25)
+  })
+
+  it('las tiras en paralelo suman su carga', () => {
+    // Thera-Band se midió en una tira: tomada en lazo (2 tiras) opone el doble.
+    expect(cargaEn(conTiras(amarilla, 2), 1).kg).toBeCloseTo(2.34)
+    // El envase de la Corength mide el lazo entero: una sola tira opone la mitad.
+    expect(cargaEn(conTiras(CORENGTH_5KG, 1), 1).kg).toBeCloseTo(2.5)
+    expect(conTiras(amarilla, 1)).toBe(amarilla)
+    expect(conTiras(amarilla, 0)).toBe(amarilla)
   })
 
   it('todas las curvas publicadas suben al estirar', () => {
@@ -92,7 +101,10 @@ describe('calibración con pesos', () => {
   it('sin reposo o sin medidas no hay curva propia', () => {
     expect(curvaPropia({ reposoCm: 0, filas: [{ kg: 1, largoCm: 120 }] })).toBeNull()
     expect(curvaPropia({ reposoCm: 100, filas: [] })).toBeNull()
-    expect(curvaPropia({ reposoCm: 100, filas: [{ kg: 1, largoCm: 120 }, { kg: 2, largoCm: 150 }] })?.fuente).toBe('Calibrada con 2 pesos colgados.')
+    const propia = curvaPropia({ reposoCm: 100, filas: [{ kg: 1, largoCm: 120 }, { kg: 2, largoCm: 150 }] })
+    expect(propia?.fuente).toBe('Calibrada con 2 pesos colgados, en 2 tiras.')
+    expect(propia?.tiras).toBe(2)
+    expect(curvaPropia({ reposoCm: 100, filas: [{ kg: 1, largoCm: 120 }], tiras: 1 })?.fuente).toBe('Calibrada con 1 peso colgado, en 1 tira.')
   })
 })
 
@@ -143,6 +155,13 @@ describe('medición entre las dos manos', () => {
   it('avisa cuando una mano está más cerca de la cámara que la otra', () => {
     const g: GuionSintetico = { manos: banda.manos.map((m, i) => ({ ...m, poses: m.poses.map((p) => ({ ...p, distanciaCm: i === 0 ? 40 : 60 })) })) }
     expect(medirBanda(cuadro(g, T_REPOSO), 'pinza')!.desnivel).toBeGreaterThan(0.2)
+  })
+
+  it('avisa cuando una mano se pega al borde de la imagen', () => {
+    expect(medirBanda(cuadro(banda, T_REPOSO), 'pinza')!.alBorde).toBe(false)
+    const abierta: GuionSintetico = { manos: banda.manos.map((m, i) => ({ ...m, poses: m.poses.map((p) => ({ ...p, x: i === 0 ? 0.08 : 0.92 })) })) }
+    expect(medirBanda(cuadro(abierta, T_REPOSO), 'pinza')!.alBorde).toBe(true)
+    expect(manosAlBorde([])).toBe(false)
   })
 
   it('con una sola mano no mide', () => {
@@ -222,13 +241,24 @@ describe('repeticiones', () => {
     expect(totales(c.repeticiones).mejorKg).toBeGreaterThan(2)
   })
 
-  it('suma los totales', () => {
-    expect(totales([])).toEqual({ n: 0, mejorKg: null, promedioKg: null, tensionS: 0, trabajoJ: 0 })
-    const t = totales([
+  it('suma los totales, la constancia, la meta y las rápidas', () => {
+    expect(totales([])).toEqual({ n: 0, mejorKg: null, promedioKg: null, tensionS: 0, trabajoJ: 0, constancia: null, enMeta: 0, rapidas: 0 })
+    const reps = [
       { picoKg: 2, picoEstiramiento: 0.5, tensionS: 2, trabajoJ: 1, fueraDeRango: false },
-      { picoKg: 3, picoEstiramiento: 0.7, tensionS: 3, trabajoJ: 2, fueraDeRango: false },
-    ])
-    expect(t).toEqual({ n: 2, mejorKg: 3, promedioKg: 2.5, tensionS: 5, trabajoJ: 3 })
+      { picoKg: 3, picoEstiramiento: 0.7, tensionS: 0.6, trabajoJ: 2, fueraDeRango: false },
+    ]
+    const t = totales(reps, 2.9)
+    expect(t).toMatchObject({ n: 2, mejorKg: 3, promedioKg: 2.5, tensionS: 2.6, trabajoJ: 3, enMeta: 1, rapidas: 1 })
+    // Picos 2 y 3: media 2,5 y desviación 0,5, así que la constancia es 1 − 0,2.
+    expect(t.constancia).toBeCloseTo(0.8)
+    expect(totales(reps.slice(0, 1)).constancia).toBeNull()
+  })
+
+  it('una repetición llega a la meta con una tolerancia chica', () => {
+    expect(alcanzaMeta({ picoKg: 2.9 }, 3)).toBe(true)
+    expect(alcanzaMeta({ picoKg: 2.8 }, 3)).toBe(false)
+    expect(alcanzaMeta({ picoKg: 9 }, null)).toBe(false)
+    expect(alcanzaMeta({ picoKg: 9 }, 0)).toBe(false)
   })
 })
 

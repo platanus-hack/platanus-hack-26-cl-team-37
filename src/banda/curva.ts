@@ -27,6 +27,11 @@ export interface CurvaBanda {
   fuente: string
   /** Ordenados por estiramiento, sin el origen (0, 0). */
   puntos: PuntoCurva[]
+  /**
+   * Cuántas tiras de banda trabajaban al medir la curva. Las tiras en paralelo suman su carga: un lazo tomado entero
+   * son 2 tiras. Ver `conTiras`.
+   */
+  tiras: number
 }
 
 export interface Carga {
@@ -61,6 +66,16 @@ export function areaHasta(curva: Pick<CurvaBanda, 'puntos'>, estiramiento: numbe
   return area
 }
 
+/**
+ * La misma curva para otro número de tiras entre las manos (tiras en paralelo suman su carga). Así una curva medida en
+ * una tira sirve para un lazo tomado entero, y al revés.
+ */
+export function conTiras(curva: CurvaBanda, tiras: number): CurvaBanda {
+  if (!(tiras > 0) || tiras === curva.tiras) return curva
+  const k = tiras / curva.tiras
+  return { ...curva, tiras, puntos: curva.puntos.map((p) => ({ estiramiento: p.estiramiento, kg: p.kg * k })) }
+}
+
 function entre(a: PuntoCurva, b: PuntoCurva, e: number): number {
   const ancho = b.estiramiento - a.estiramiento
   return ancho > 0 ? a.kg + ((b.kg - a.kg) * (e - a.estiramiento)) / ancho : b.kg
@@ -88,6 +103,8 @@ export const CURVAS_PUBLICADAS: CurvaBanda[] = UCHIDA.map(([id, nombre, kg]) => 
   origen: 'publicada',
   fuente: FUENTE_UCHIDA,
   puntos: kg.map((v, i) => ({ estiramiento: PASOS_UCHIDA[i], kg: v })),
+  // Uchida estiró una tira plana de 0,3 m.
+  tiras: 1,
 }))
 
 /**
@@ -107,13 +124,17 @@ export function curvaDesdeUnPunto(punto: PuntoCurva): PuntoCurva[] {
   return FORMA_LATEX.map((p) => ({ estiramiento: p.estiramiento, kg: p.kg * k }))
 }
 
-/** La banda del equipo según su envase: 5 kg al doble de su largo (ficha de Decathlon, ítem 2721020). Sin medir. */
+/**
+ * La banda del equipo según su envase: 5 kg al doble de su largo (ficha de Decathlon, ítem 2721020). Es un lazo de
+ * 1,04 m; se asume que el envase mide el lazo entero (2 tiras), como se mide en laboratorio una banda en lazo. Sin medir.
+ */
 export const CORENGTH_5KG: CurvaBanda = {
   id: 'corength-5kg',
   nombre: 'Corength 5 kg',
   origen: 'etiqueta',
-  fuente: 'Envase: 5 kg al doble del largo, con la forma típica del látex.',
+  fuente: 'Envase: 5 kg con el lazo al doble de su largo, con la forma típica del látex.',
   puntos: curvaDesdeUnPunto({ estiramiento: 1, kg: 5 }),
+  tiras: 2,
 }
 
 // ── Calibración propia con pesos ────────────────────────────────────────────────────────────────────────────────
@@ -129,6 +150,8 @@ export interface CalibracionPesos {
   /** Largo de la banda tensa sin peso, cm. */
   reposoCm: number
   filas: FilaPeso[]
+  /** Cuántas tiras sostenían el peso (un lazo colgado de un gancho son 2). Por defecto 2. */
+  tiras?: number
 }
 
 export interface ResultadoCalibracion {
@@ -170,11 +193,13 @@ export function curvaPropia(c: CalibracionPesos): CurvaBanda | null {
   const { puntos } = curvaDesdePesos(c)
   if (puntos.length === 0) return null
   const medidas = c.filas.filter((f) => f.kg > 0 && f.largoCm > c.reposoCm).length
+  const tiras = c.tiras ?? 2
   return {
     id: 'propia',
     nombre: 'Mi banda',
     origen: 'medida',
-    fuente: `Calibrada con ${medidas} ${medidas === 1 ? 'peso' : 'pesos'} colgados.`,
+    fuente: `Calibrada con ${medidas === 1 ? '1 peso colgado' : `${medidas} pesos colgados`}, en ${tiras === 1 ? '1 tira' : `${tiras} tiras`}.`,
     puntos,
+    tiras,
   }
 }
