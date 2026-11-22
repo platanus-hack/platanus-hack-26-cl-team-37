@@ -125,7 +125,9 @@ test.describe('Pacientes del terapeuta', () => {
     await expect(page.getByText('Paciente de prueba')).toHaveCount(0)
 
     await barra.getByText('Informes', { exact: true }).click()
-    await expect(page.getByTestId('aviso-informes')).toContainText('Aún no se pueden exportar informes')
+    // F17: exportar el período de un paciente (el detalle y la descarga se prueban en informes.spec.ts).
+    await expect(page.getByRole('heading', { name: 'Exportar informe' })).toBeVisible()
+    await expect(page.getByLabel('Paciente', { exact: true })).toHaveValue(/[0-9a-f-]{36}/)
     await expect(page.getByRole('list', { name: 'Pacientes' }).getByRole('listitem')).toHaveCount(4)
     v.sinErrores()
   })

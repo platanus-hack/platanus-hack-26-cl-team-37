@@ -37,6 +37,17 @@
 .presc-juego .presc-titulo { font-weight: 600; font-size: 16px; }
 .presc-juego .presc-fila + .presc-fila { padding-top: 12px; border-top: 1px solid var(--linea); }
 .presc-sin-ejercicios { color: var(--texto-2); font-size: 15px; }
+.presc-juego-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.presc-etiqueta { flex: none; padding: 4px 10px; border-radius: var(--pildora); background: var(--amarillo); color: var(--sobre-amarillo); font-size: 14px; font-weight: 600; }
+/* Ejercicio que se agrega o se quita al enviar: destacado como los demás cambios. */
+.presc-juego[data-estado='nuevo'],
+.presc-juego[data-estado='quitado'] { background: var(--amarillo-suave); }
+.presc-juego[data-estado='quitado'] .presc-juego-nombre { text-decoration: line-through; color: var(--texto-2); }
+.presc-juego-accion { align-self: flex-start; }
+.presc-juego .boton.texto { margin: -6px 0 -8px -6px; }
+.presc-agregar-fila { display: flex; gap: 8px; }
+.presc-agregar-fila .entrada { flex: 1; min-width: 0; }
+.presc-agregar-fila .boton { flex: none; }
 
 /* Mensaje */
 .presc-mensaje { margin-top: 4px; }
