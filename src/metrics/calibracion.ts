@@ -205,6 +205,14 @@ export function estadoPinza(m: Pick<MuestraCalibracion, 'pinzaCm' | 'pinzaRel' |
   return 'lejos'
 }
 
+/**
+ * Atajo para devs: Enter en la calibración la omite y pasa al juego (sin guardar calibración; el juego ya funciona
+ * con `calibracion: null`). Solo en desarrollo (`npm run dev`) o con ?debug=1; el paciente no lo ve.
+ */
+export function puedeOmitirCalibracion({ dev, search }: { dev: boolean; search: string }): boolean {
+  return dev || new URLSearchParams(search).has('debug')
+}
+
 /** Número del paso (1..3) para mostrar "Paso 1 de 3"; 3 cuando está lista. */
 export function numeroPaso(p: PasoCalibracion): number {
   return p === 'lista' ? PASOS.length : PASOS.indexOf(p) + 1
