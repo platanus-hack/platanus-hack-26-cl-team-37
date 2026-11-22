@@ -199,6 +199,9 @@ export class SesionHonda {
   private largoPrevio: { cm: number; t: number } | null = null
   private saltoDesde: number | null = null
   private dudoso = false
+  /** Aciertos seguidos ahora y el mejor de la sesión. */
+  racha = 0
+  rachaMax = 0
   private dudosoDesde: number | null = null
 
   constructor(curva: CurvaBanda, nivel: Pick<NivelHonda, 'estirar' | 'sostenerS'>) {
@@ -368,6 +371,8 @@ export class SesionHonda {
       sePaso: tr.sePaso,
     }
     this.tiros.push(tiro)
+    this.racha = tiro.resultado === 'acierto' ? this.racha + 1 : 0
+    this.rachaMax = Math.max(this.rachaMax, this.racha)
     return tiro
   }
 
@@ -397,6 +402,7 @@ export class SesionHonda {
       reposoCm: reposo == null ? null : r1(reposo),
       estiramientoMaxPct: n ? Math.round(maxE * 100) : null,
       estiramientoMaxCm: n && reposo != null ? r1(maxE * reposo) : null,
+      rachaMax: n ? this.rachaMax : null,
       cortos: ts.filter((t) => t.resultado === 'corto').length,
       largos: ts.filter((t) => t.sePaso).length,
     }

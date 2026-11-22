@@ -7,6 +7,7 @@ import { COLOR_DEDO, DEDOS_PIANO } from '../piano/logica'
 import { MANO, NEUTRO } from './colores'
 import { crearAnilloPlano } from './formas'
 import { ESTILO_JUGADOR, estiloGuia, ModeloMano } from './mano'
+import { crearBaseHonda, crearBaseMarcas, crearBlanco, crearBolsa, crearHorquilla, crearMarca } from './honda/honda'
 import { crearMesa } from './mesa'
 import { crearCuentas } from './movilidad/cuentas'
 import { crearGotas, crearMitades, crearNaranja3d, crearVaso } from './naranja/naranja'
@@ -27,6 +28,13 @@ function sinRegistrar(r: Recursos, objetos: THREE.Object3D[]): string[] {
   return faltan
 }
 
+/** Las piezas de la Honda: horquilla, tiras con bolsa y piedra, blanco y una marca de caída. */
+function hondas(r: Recursos): THREE.Object3D[] {
+  const base = crearBaseHonda(r)
+  const bolsa = crearBolsa(r, base, 0.085)
+  return [crearHorquilla(r, base, { z: 0.7, altoPuntas: 1.05, mitadAncho: 0.36 }).grupo, ...bolsa.tiras, bolsa.cuero, bolsa.piedra, crearBlanco(r, base, 0.42, 0.62).grupo, crearMarca(crearBaseMarcas(r), 0, 0)]
+}
+
 describe('assets de los juegos', () => {
   it('cada fábrica registra lo que crea', () => {
     const r = nuevosRecursos()
@@ -44,6 +52,7 @@ describe('assets de los juegos', () => {
       teclado.linea,
       ...crearNotas(r, 0.3, 4).map((n) => n.malla),
       crearSilueta(r, 0.4),
+      ...hondas(r),
     ]
     expect(sinRegistrar(r, objetos)).toEqual([])
     liberar(r)

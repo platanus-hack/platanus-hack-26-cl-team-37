@@ -16,7 +16,9 @@ import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import { AGARRE_POR_DEFECTO, medirBanda } from '../../banda/medicion'
 import type { ManoSeguida } from '../../tracking/tipos'
-import { NATURAL } from '../assets/naturales'
+import { crearEfectoReventar, texturaMasUno } from '../assets/burbujas/burbuja'
+import { crearBaseHonda, crearBaseMarcas, crearBlanco, crearBolsa, crearHorquilla, crearMarca, tender, type BaseMarcas } from '../assets/honda/honda'
+import { geometria, liberar, material as registrar, nuevosRecursos, textura } from '../assets/recursos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import {
   NIVELES_HONDA,
@@ -49,6 +51,9 @@ const RADIO_PIEDRA = 0.085
 const TIRON_MAX = 1.05
 const VUELO_S = 0.95
 const RESULTADO_S = 2.2
+/** Gotas del festejo y cuánto dura (s). */
+const N_GOTAS = 10
+const FESTEJO_S = 0.9
 /** Cuadros seguidos con una mano en el borde de la imagen antes de avisar (≈ 0,3 s). */
 const CUADROS_BORDE = 8
 
@@ -113,21 +118,22 @@ export const crearHonda: CrearJuego = () => {
 
   const grupo = new THREE.Group()
   const fija = new THREE.Group()
-  const geometrias: THREE.BufferGeometry[] = []
-  const materiales: THREE.Material[] = []
-  const texturas: THREE.Texture[] = []
+  const recursos = nuevosRecursos()
   const bolsa = new THREE.Vector3()
-  const dir = new THREE.Vector3()
-  const q = new THREE.Quaternion()
-  const ARRIBA = new THREE.Vector3(0, 1, 0)
-  const puntas = [new THREE.Vector3(-X_PUNTAS, Y_PUNTAS, Z_HONDA), new THREE.Vector3(X_PUNTAS, Y_PUNTAS, Z_HONDA)]
-  const tiras: THREE.Mesh[] = []
+  const extremo = new THREE.Vector3()
+  let puntas: [THREE.Vector3, THREE.Vector3] | null = null
+  let tiras: THREE.Mesh[] = []
   let matTira: THREE.MeshStandardMaterial | null = null
   let piedra: THREE.Mesh | null = null
   let cuero: THREE.Mesh | null = null
   let blanco: THREE.Group | null = null
   let matCentro: THREE.MeshStandardMaterial | null = null
+  let baseMarcas: BaseMarcas | null = null
   const marcas: THREE.Mesh[] = []
+  let efecto: ReturnType<typeof crearEfectoReventar> | null = null
+  /** Segundos desde el último acierto (anima las gotas y el «+1»); null sin efecto en curso. */
+  let festejo: number | null = null
+  const gotasVel: THREE.Vector3[] = []
   let lienzo: HTMLCanvasElement | null = null
   let texGuia: THREE.CanvasTexture | null = null
   let firmaGuia = ''
@@ -137,95 +143,24 @@ export const crearHonda: CrearJuego = () => {
 
   const metaAlcanzada = () => !!ctx && ctx.meta > 0 && sesion.aciertos >= ctx.meta
 
-  function material(color: number, extra: Partial<THREE.MeshStandardMaterialParameters> = {}): THREE.MeshStandardMaterial {
-    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra })
-    materiales.push(m)
-    return m
-  }
-  function geo<T extends THREE.BufferGeometry>(g: T): T {
-    geometrias.push(g)
-    return g
-  }
-  /** Cilindro unitario (alto 1 sobre Y) puesto entre dos puntos con ese radio. */
-  function entre(m: THREE.Mesh, desde: THREE.Vector3, hasta: THREE.Vector3, radio: number) {
-    dir.subVectors(hasta, desde)
-    const largo = dir.length()
-    m.visible = largo > 1e-4
-    if (!m.visible) return
-    q.setFromUnitVectors(ARRIBA, dir.multiplyScalar(1 / largo))
-    m.position.addVectors(desde, hasta).multiplyScalar(0.5)
-    m.quaternion.copy(q)
-    m.scale.set(radio, largo, radio)
-  }
-
   function construirEscena(c: ContextoJuego) {
-    const cilindro = geo(new THREE.CylinderGeometry(1, 1, 1, 14, 1))
-    const esfera = geo(new THREE.SphereGeometry(1, 20, 14))
-    const madera = material(new THREE.Color(NATURAL.madera).multiplyScalar(0.72).getHex(), { roughness: 0.75 })
-
-    // La honda: mango y dos brazos en Y, con una base para que se apoye en la mesa.
-    const base = new THREE.Mesh(geo(new THREE.CylinderGeometry(0.2, 0.24, 0.08, 20)), madera)
-    base.position.set(0, 0.04, Z_HONDA)
-    const mango = new THREE.Mesh(cilindro, madera)
-    entre(mango, new THREE.Vector3(0, 0.05, Z_HONDA), new THREE.Vector3(0, 0.62, Z_HONDA), 0.07)
-    const nudo = new THREE.Mesh(esfera, madera)
-    nudo.position.set(0, 0.62, Z_HONDA)
-    nudo.scale.setScalar(0.085)
-    grupo.add(base, mango, nudo)
-    for (const p of puntas) {
-      const brazo = new THREE.Mesh(cilindro, madera)
-      entre(brazo, new THREE.Vector3(0, 0.62, Z_HONDA), p, 0.06)
-      const punta = new THREE.Mesh(esfera, madera)
-      punta.position.copy(p)
-      punta.scale.setScalar(0.065)
-      grupo.add(brazo, punta)
-    }
-    for (const m of grupo.children) (m as THREE.Mesh).castShadow = true
-
-    // Tiras de la banda (del color de la banda real: azul) y la bolsa de cuero con la piedra.
-    matTira = material(kuwuNum('azul'), { roughness: 0.45, emissive: kuwuNum('marino'), emissiveIntensity: 0.35 })
-    for (let i = 0; i < 2; i++) {
-      const t = new THREE.Mesh(cilindro, matTira)
-      t.castShadow = true
-      t.frustumCulled = false
-      tiras.push(t)
-      grupo.add(t)
-    }
-    cuero = new THREE.Mesh(geo(new THREE.BoxGeometry(0.26, 0.1, 0.14)), material(NATURAL.cuero, { roughness: 0.85 }))
-    cuero.castShadow = true
-    piedra = new THREE.Mesh(esfera, material(NATURAL.piedra, { roughness: 0.9 }))
-    piedra.scale.setScalar(RADIO_PIEDRA)
-    piedra.castShadow = true
-    grupo.add(cuero, piedra)
-
-    // El blanco al fondo de la mesa, de pie sobre un poste: anillos rojo y blanco con el centro amarillo.
-    blanco = new THREE.Group()
-    const poste = new THREE.Mesh(cilindro, madera)
-    entre(poste, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, Y_BLANCO, 0), 0.05)
-    poste.castShadow = true
-    blanco.add(poste)
-    const anillos: [number, number][] = [
-      [1, kuwuNum('rojo')],
-      [0.78, kuwuNum('blanco')],
-      [0.56, kuwuNum('rojo')],
-      [0.34, kuwuNum('blanco')],
-    ]
-    anillos.forEach(([r, color], i) => {
-      const disco = new THREE.Mesh(geo(new THREE.CylinderGeometry(RADIO_BLANCO * r, RADIO_BLANCO * r, 0.05, 40)), material(color, { roughness: 0.55 }))
-      disco.rotation.x = Math.PI / 2
-      disco.position.set(0, Y_BLANCO, 0.01 + i * 0.012)
-      disco.castShadow = i === 0
-      blanco!.add(disco)
-    })
-    matCentro = material(kuwuNum('amarillo'), { roughness: 0.4, emissive: kuwuNum('amarillo'), emissiveIntensity: 0 })
-    const centro = new THREE.Mesh(geo(new THREE.CylinderGeometry(RADIO_BLANCO * 0.14, RADIO_BLANCO * 0.14, 0.05, 28)), matCentro)
-    centro.rotation.x = Math.PI / 2
-    centro.position.set(0, Y_BLANCO, 0.06)
-    blanco.add(centro)
+    const base = crearBaseHonda(recursos)
+    const horquilla = crearHorquilla(recursos, base, { z: Z_HONDA, altoPuntas: Y_PUNTAS, mitadAncho: X_PUNTAS })
+    puntas = horquilla.puntas
+    const b = crearBolsa(recursos, base, RADIO_PIEDRA)
+    tiras = b.tiras
+    matTira = b.matTira
+    cuero = b.cuero
+    piedra = b.piedra
+    const diana = crearBlanco(recursos, base, RADIO_BLANCO, Y_BLANCO)
+    blanco = diana.grupo
+    matCentro = diana.matCentro
     blanco.position.set(0, 0, Z_BLANCO)
-    grupo.add(blanco)
-
-    // Marcas en la mesa: dónde cayó cada tiro fallado (se ven los cortos y los largos).
+    baseMarcas = crearBaseMarcas(recursos)
+    // Festejo del acierto: las gotas y el «+1» de Atrapa burbujas, que salen del centro del blanco.
+    efecto = crearEfectoReventar(recursos, geometria(recursos, new THREE.SphereGeometry(0.07, 10, 8)), textura(recursos, texturaMasUno()), N_GOTAS)
+    for (let i = 0; i < N_GOTAS; i++) gotasVel.push(new THREE.Vector3())
+    grupo.add(horquilla.grupo, ...tiras, cuero, piedra, blanco, ...efecto.gotas, efecto.mas)
     c.escena.add(grupo)
     ponerBolsa(0)
 
@@ -235,15 +170,12 @@ export const crearHonda: CrearJuego = () => {
     lienzo.width = Math.round(ANCHO_GUIA * resolucion)
     lienzo.height = Math.round(ALTO_GUIA * resolucion)
     resolucionGuia = lienzo.width / ANCHO_GUIA
-    texGuia = new THREE.CanvasTexture(lienzo)
+    texGuia = textura(recursos, new THREE.CanvasTexture(lienzo))
     texGuia.colorSpace = THREE.SRGBColorSpace
     texGuia.generateMipmaps = false
     texGuia.minFilter = THREE.LinearFilter
     texGuia.magFilter = THREE.LinearFilter
-    texturas.push(texGuia)
-    const matGuia = new THREE.SpriteMaterial({ map: texGuia, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })
-    materiales.push(matGuia)
-    const sGuia = new THREE.Sprite(matGuia)
+    const sGuia = new THREE.Sprite(registrar(recursos, new THREE.SpriteMaterial({ map: texGuia, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })))
     sGuia.renderOrder = 10
     sGuia.name = 'guia'
     fija.add(sGuia)
@@ -253,26 +185,19 @@ export const crearHonda: CrearJuego = () => {
 
   /** Bolsa tirada hacia atrás (hacia la cámara) según `f` (0 = en reposo, 1 = el tirón máximo dibujado). */
   function ponerBolsa(f: number) {
+    if (!puntas) return
     bolsa.set(0, Y_PUNTAS - 0.06 - 0.22 * f, Z_HONDA + 0.12 + TIRON_MAX * f)
     if (cuero) cuero.position.copy(bolsa)
     // La piedra queda donde cayó mientras se muestra el resultado; después vuelve a la bolsa.
     if (piedra && !vuelo && resultado == null) piedra.position.set(bolsa.x, bolsa.y + 0.06, bolsa.z)
     const radio = 0.024 * (1 - 0.35 * Math.min(1, f))
-    tiras.forEach((t, i) => entre(t, puntas[i], new THREE.Vector3(bolsa.x + (i === 0 ? -0.12 : 0.12), bolsa.y, bolsa.z), radio))
+    tiras.forEach((t, i) => tender(t, puntas![i], extremo.set(bolsa.x + (i === 0 ? -0.12 : 0.12), bolsa.y, bolsa.z), radio))
   }
 
   function marcaCaida(p: THREE.Vector3) {
-    const c = ctx
-    if (!c) return
-    if (marcas.length >= 12) {
-      const vieja = marcas.shift()!
-      grupo.remove(vieja)
-    }
-    const mat = new THREE.MeshBasicMaterial({ color: kuwuNum('marino'), transparent: true, opacity: 0.35, depthWrite: false })
-    materiales.push(mat)
-    const m = new THREE.Mesh(geo(new THREE.CircleGeometry(0.12, 24)), mat)
-    m.rotation.x = -Math.PI / 2
-    m.position.set(p.x, 0.005, p.z)
+    if (!baseMarcas) return
+    if (marcas.length >= 12) grupo.remove(marcas.shift()!)
+    const m = crearMarca(baseMarcas, p.x, p.z)
     marcas.push(m)
     grupo.add(m)
   }
@@ -287,7 +212,41 @@ export const crearHonda: CrearJuego = () => {
     else if (t.resultado === 'sin-sostener') hasta = new THREE.Vector3(RADIO_BLANCO * 1.7, RADIO_PIEDRA, Z_BLANCO + 0.3)
     else if (t.resultado === 'largo') hasta = new THREE.Vector3(-RADIO_BLANCO * 1.7, RADIO_PIEDRA, Z_BLANCO - 0.2)
     else hasta = new THREE.Vector3(0.45, RADIO_PIEDRA, Z_HONDA - distancia * alcanceCorto(t.picoKg, sesion.zona))
-    vuelo = { t: 0, desde, hasta, altura: t.resultado === 'corto' ? 0.7 : t.resultado === 'largo' ? 1.5 : 1.2, tiro: t }
+    vuelo = { t: 0, desde, hasta, altura: t.resultado === 'corto' ? 0.4 : t.resultado === 'largo' ? 0.8 : 0.5, tiro: t }
+  }
+
+  /** Arranca el festejo: las gotas salen del centro del blanco hacia la cámara y cae un «+1». */
+  function festejar() {
+    if (!efecto) return
+    festejo = 0
+    efecto.gotas.forEach((g, i) => {
+      const a = (i / N_GOTAS) * Math.PI * 2
+      g.position.set(0, Y_BLANCO, Z_BLANCO + 0.12)
+      gotasVel[i].set(Math.cos(a) * (1.1 + 0.5 * ((i * 7) % 3)), 1.6 + 0.6 * Math.sin(a), 0.9 + 0.3 * ((i * 5) % 3))
+      g.visible = true
+    })
+    // El «+1» sale al lado del blanco (arriba lo taparía la barra del tiempo).
+    efecto.mas.position.set(RADIO_BLANCO + 0.45, Y_BLANCO - 0.1, Z_BLANCO + 0.1)
+    efecto.mas.visible = true
+  }
+
+  function avanzarFestejo(dt: number) {
+    if (festejo == null || !efecto) return
+    festejo += dt
+    const u = festejo / FESTEJO_S
+    efecto.gotas.forEach((g, i) => {
+      gotasVel[i].y -= 5.5 * dt
+      g.position.addScaledVector(gotasVel[i], dt)
+      if (g.position.y < 0.03) g.visible = false
+    })
+    efecto.matGota.opacity = Math.min(1, 2 * (1 - u))
+    efecto.mas.position.y += 0.35 * dt
+    efecto.matMas.opacity = u < 0.15 ? u / 0.15 : Math.max(0, 1 - (u - 0.15) / 0.85)
+    if (u >= 1) {
+      festejo = null
+      for (const g of efecto.gotas) g.visible = false
+      efecto.mas.visible = false
+    }
   }
 
   function avanzarVuelo(dt: number) {
@@ -297,8 +256,10 @@ export const crearHonda: CrearJuego = () => {
     piedra.position.lerpVectors(vuelo.desde, vuelo.hasta, u)
     piedra.position.y += vuelo.altura * 4 * u * (1 - u)
     if (u >= 1) {
-      if (vuelo.tiro.resultado === 'acierto') golpeBlanco = 1
-      else marcaCaida(vuelo.hasta)
+      if (vuelo.tiro.resultado === 'acierto') {
+        golpeBlanco = 1
+        festejar()
+      } else marcaCaida(vuelo.hasta)
       resultado = { r: vuelo.tiro.resultado, t: RESULTADO_S }
       vuelo = null
     }
@@ -310,7 +271,7 @@ export const crearHonda: CrearJuego = () => {
     const kg = sesion.kg
     const fase = sesion.fase
     const prog = sesion.progresoSostener
-    const firma = [fase, kg == null ? -1 : Math.round(kg * 20), Math.round(prog * 24), resultado?.r ?? '', Math.round(sesion.seguidor.reposoCm == null ? (sesion.ultimo?.progresoReposo ?? 0) * 20 : 99)].join(',')
+    const firma = [sesion.racha, fase, kg == null ? -1 : Math.round(kg * 20), Math.round(prog * 24), resultado?.r ?? '', Math.round(sesion.seguidor.reposoCm == null ? (sesion.ultimo?.progresoReposo ?? 0) * 20 : 99)].join(',')
     if (firma === firmaGuia) return
     firmaGuia = firma
     const g = lienzo.getContext('2d')!
@@ -389,7 +350,9 @@ export const crearHonda: CrearJuego = () => {
       texto('kg aprox.', cx, cy + 18, FUENTE_NOTA, kuwuAlfa('blanco', 0.75))
       const linea =
         resultado != null
-          ? CORTO_RESULTADO[resultado.r]
+          ? resultado.r === 'acierto' && sesion.racha >= 2
+            ? `¡En el blanco! ×${sesion.racha}`
+            : CORTO_RESULTADO[resultado.r]
           : fase === 'sostenido'
             ? '¡Suelta para lanzar!'
             : fase === 'en-ventana'
@@ -442,6 +405,7 @@ export const crearHonda: CrearJuego = () => {
       matTira.emissiveIntensity = fase === 'en-ventana' || fase === 'sostenido' || fase === 'pasado' ? 0.55 : 0.35
     }
     avanzarVuelo(dt)
+    avanzarFestejo(dt)
     if (blanco) {
       golpeBlanco = Math.max(0, golpeBlanco - dt * 0.8)
       blanco.rotation.x = -0.18 * Math.sin(golpeBlanco * 14) * golpeBlanco
@@ -518,6 +482,7 @@ export const crearHonda: CrearJuego = () => {
       { id: 'cargaMaxKg', nombre: 'Carga máxima aprox.', unidad: 'kg', formula: 'mayor pico de carga de un tiro (curva de la banda en el estiramiento pico)', aprox: true, mejor: 'mayor', corto: 'Carga máx. aprox.' },
       { id: 'constanciaPct', nombre: 'Constancia entre tiros', unidad: '%', formula: '1 − desviación estándar / promedio de los picos de carga (vacío con menos de 2 tiros)', mejor: 'mayor', corto: 'Constancia' },
       { id: 'tiempoBajoTensionS', nombre: 'Tiempo bajo tensión', unidad: 's', formula: 'suma de segundos con la banda estirada sobre el 10 % en cada tiro, hasta soltar', mejor: 'mayor', corto: 'Bajo tensión' },
+      { id: 'rachaMax', nombre: 'Mejor racha', unidad: '', formula: 'mayor cantidad de aciertos seguidos en la sesión', mejor: 'mayor', tarjeta: false },
       { id: 'cargaPromedioKg', nombre: 'Carga promedio aprox.', unidad: 'kg', formula: 'promedio de los picos de carga de los tiros', aprox: true, tarjeta: false },
       { id: 'cargaMetaKg', nombre: 'Carga del nivel', unidad: 'kg', formula: 'carga que da la banda configurada en el estiramiento que pide el nivel (borde inferior de la zona verde)', aprox: true, tarjeta: false },
       { id: 'tiros', nombre: 'Tiros', unidad: '', formula: 'estirones de al menos 0,4 s sobre el 10 % que terminan al soltar (la carga cae a la mitad del pico)', tarjeta: false },
@@ -609,9 +574,7 @@ export const crearHonda: CrearJuego = () => {
         c.camara.remove(fija)
         c.escena.remove(c.camara)
       }
-      for (const g of geometrias) g.dispose()
-      for (const m of materiales) m.dispose()
-      for (const t of texturas) t.dispose()
+      liberar(recursos)
       if (typeof window !== 'undefined' && window.__manoviva?.juego) {
         const { juego: _quitar, ...resto } = window.__manoviva
         void _quitar
