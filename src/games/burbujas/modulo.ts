@@ -23,6 +23,7 @@
 // de zona, umbral 80 %). Lo prueba el e2e inyectando el parámetro directo en la sesión; ver docs/equipo/registro-P3.md.
 import * as THREE from 'three'
 import { NEUTRO, tono } from '../assets/colores'
+import { crearAvisoManoAbierta } from '../assets/burbujas/aviso'
 import { crearBaseBurbujas, crearBurbujaAdorno, crearBurbujaObjetivo, crearEfectoReventar, texturaMasUno, type BaseBurbujas } from '../assets/burbujas/burbuja'
 import { geometria, textura, type Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
@@ -166,6 +167,9 @@ export const crearBurbujas: CrearJuego = () => {
   let tarjeta: { grupo: THREE.Group; esfera: THREE.Mesh; matEsfera: THREE.MeshStandardMaterial; halo: THREE.Sprite; aro: THREE.Sprite } | null = null
   const recursos: Recursos = { materiales, geometrias, texturas }
   let base: BaseBurbujas
+  /** Aviso fijo a la cámara si la mano toca la burbuja sin abrirse lo suficiente (assets/burbujas/aviso.ts). */
+  let aviso: ReturnType<typeof crearAvisoManoAbierta> | null = null
+  const fijo = new THREE.Group()
 
   const metaAlcanzada = () => !!ctx && ctx.meta > 0 && contador >= ctx.meta
 
@@ -303,7 +307,10 @@ export const crearBurbujas: CrearJuego = () => {
     if (!t) return
     const o = objetivo
     t.grupo.visible = !!o
-    if (!o) return
+    if (!o) {
+      aviso?.mostrar(false)
+      return
+    }
     const r = nivel.radio
     const edad = reloj - o.t0
     const entra = Math.min(1, edad / 260)
@@ -313,7 +320,10 @@ export const crearBurbujas: CrearJuego = () => {
     // Contacto: verde si la mano está abierta, naranja si no.
     let color = COLOR_ACENTO
     const adentro = LADOS.filter((l) => dentro[l] && armado[l])
-    if (adentro.length) color = adentro.some((l) => (ext[l] ?? 0) >= umbral) ? COLOR_OK : COLOR_AVISO
+    const abierta = adentro.some((l) => (ext[l] ?? 0) >= umbral)
+    if (adentro.length) color = abierta ? COLOR_OK : COLOR_AVISO
+    // Aviso solo si la mano toca la burbuja sin estar lo bastante abierta para reventarla.
+    aviso?.mostrar(adentro.length > 0 && !abierta)
     const latido = 0.5 + 0.5 * Math.sin(anim * 4)
     const restante = nivel.vidaMs > 0 ? Math.max(0, 1 - edad / nivel.vidaMs) : 1
     const urgente = nivel.vidaMs > 0 && restante < 0.3
@@ -413,6 +423,13 @@ export const crearBurbujas: CrearJuego = () => {
       crearTarjeta()
       crearEfectos()
       c.escena.add(grupo)
+      // Aviso bajo la barra de tiempo, fijo a la cámara (como las luces de Pinza fina).
+      aviso = crearAvisoManoAbierta(recursos)
+      aviso.sprite.scale.multiplyScalar(1.7)
+      fijo.position.set(0, 0.92, -5)
+      fijo.add(aviso.sprite)
+      c.camara.add(fijo)
+      c.escena.add(c.camara)
 
       // La primera burbuja espera a conocer el reposo de la mano (1 s con la mano a la vista), máximo ESPERA_INICIAL_MS.
       esperaMs = 0
@@ -534,7 +551,10 @@ export const crearBurbujas: CrearJuego = () => {
 
     desmontar() {
       const c = ctx
-      if (c) c.escena.remove(grupo)
+      if (c) {
+        c.escena.remove(grupo)
+        c.camara.remove(fijo)
+      }
       for (const m of materiales) m.dispose()
       for (const g of geometrias) g.dispose()
       for (const t of texturas) t.dispose()

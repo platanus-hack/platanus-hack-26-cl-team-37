@@ -37,6 +37,7 @@ export function catalogo(
 ): EntradaCatalogo[] {
   const asignados = new Set(items.map((it) => it.juego))
   return juegos
+    .filter((j) => !j.oculto)
     .filter((j) => !filtro || j.filtros.includes(filtro))
     .map((juego) => ({ juego, asignado: asignados.has(juego.id), nivel: nivelActual(juego.id, items, sesiones) }))
 }

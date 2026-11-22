@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { JUEGOS } from '../registry'
 import { crearTorre } from './modulo'
 import {
+  TORRES_POR_SESION,
   BASE,
   MAX_PISOS,
   NIVELES_TORRE,
@@ -58,12 +59,14 @@ describe('niveles', () => {
     }
     expect(NIVELES_TORRE[4].detalle).not.toContain('pequeños')
   })
-  it('la meta del plan: con metaAgarres 0 es práctica libre (sin meta); con meta, los cubos del nivel', () => {
-    const { desdePlan } = crearTorre().meta
-    const p = { nivel: 3, duracionMin: 5, metaPinzaCm: 0 }
-    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(0)
-    expect(desdePlan({ ...p, metaAgarres: 5 })).toBe(5)
-    expect(desdePlan({ ...p, nivel: 5, metaAgarres: 1 })).toBe(6)
+  it('la meta son torres completas: las del plan, o 2 si el plan no fija (metaAgarres 0)', () => {
+    const { desdePlan, etiqueta } = crearTorre().meta
+    expect(etiqueta).toBe('Torres')
+    const p = { nivel: 3, duracionMin: 5, metaPinzaCm: 0, mano: 'derecha' as const }
+    expect(TORRES_POR_SESION).toBe(2)
+    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(2)
+    expect(desdePlan({ ...p, metaAgarres: 3 })).toBe(3)
+    expect(desdePlan({ ...p, nivel: 5, metaAgarres: 1 })).toBe(1)
   })
   it('los textos no usan las palabras prohibidas', () => {
     const texto = JSON.stringify(NIVELES_TORRE).toLowerCase()

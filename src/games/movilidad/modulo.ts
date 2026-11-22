@@ -378,6 +378,8 @@ export const crearMovilidad: CrearJuego = () => {
       lados = mano === 'ambas' ? [...LADOS] : [mano === 'izquierda' ? 'izquierda' : 'derecha']
       const disp = disposicion(mano)
       c.configurarManos(disp.zona)
+      // Sin mesa: no hay objetos que tomar; las manos y los anillos quedan sobre el fondo (se repone al desmontar).
+      c.mesa.objeto.visible = false
 
       const tHalo = textura(recursos, texturaHalo([0.35, 0.45]))
 
@@ -502,6 +504,7 @@ export const crearMovilidad: CrearJuego = () => {
     },
 
     desmontar() {
+      if (ctx) ctx.mesa.objeto.visible = true
       ctx?.escena.remove(grupo)
       for (const g of geometrias) g.dispose()
       for (const m of materiales) m.dispose()

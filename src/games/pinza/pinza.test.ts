@@ -8,11 +8,13 @@ import {
   HOLD_MS,
   LARGO_SECUENCIA,
   NIVELES_PINZA,
+  SECUENCIAS_POR_MANO,
   distanciasPulgar,
   estadoPinzaInicial,
   fijarObjetivo,
   generarSecuencia,
   masCercano,
+  metaSecuencias,
   nivelPinza,
   pasoPinza,
   umbralesToque,
@@ -224,7 +226,7 @@ describe('Pinza fina: agregados', () => {
   })
 })
 
-describe('Pinza fina: margen del dedo medio', () => {
+describe('Pinza fina: margen de medio y anular, y meta en secuencias', () => {
   const entre = U.toqueCm * 1.3 // fuera del umbral común, dentro del margen 1,5× del medio
 
   it('pulgar–medio cuenta con más distancia que los otros dedos', () => {
@@ -237,6 +239,18 @@ describe('Pinza fina: margen del dedo medio', () => {
   it('la distancia mínima del medio se guarda en cm reales (el margen solo cambia el contacto)', () => {
     const r = correr(fijarObjetivo(estadoPinzaInicial(), 'medio', 0), [[HOLD_MS + 200, con('medio', entre)]], cfg())
     expect(r.eventos[0]).toMatchObject({ tipo: 'toque', dedo: 'medio', distMinCm: entre })
+  })
+
+  it('el anular también lleva el margen', () => {
+    const r = correr(fijarObjetivo(estadoPinzaInicial(), 'anular', 0), [[HOLD_MS + 200, con('anular', entre)]], cfg())
+    expect(r.eventos.map((e) => e.tipo)).toEqual(['toque'])
+  })
+
+  it('meta: secuencias por mano del plan, o SECUENCIAS_POR_MANO si el plan no fija', () => {
+    expect(metaSecuencias(0, 'derecha')).toBe(SECUENCIAS_POR_MANO)
+    expect(metaSecuencias(0, 'ambas')).toBe(2 * SECUENCIAS_POR_MANO)
+    expect(metaSecuencias(2, 'izquierda')).toBe(2)
+    expect(metaSecuencias(2, 'ambas')).toBe(4)
   })
 
   it('si el índice toca de verdad, el medio con margen no le quita el contacto', () => {

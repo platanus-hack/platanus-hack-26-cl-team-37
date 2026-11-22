@@ -1,11 +1,12 @@
 // F22 · Torre de cubos sobre /sesion/:id/jugar con ?fuente=sintetica (horizontal 844×390).
 // La mano sintética se maneja en lazo cerrado leyendo el estado del juego (window.__manoviva.juego.estado(): cubos, silueta,
 // punta del índice, zona de las manos): subir, ir sobre el cubo, bajar, cerrar la pinza, subir, ir sobre la silueta, bajar, abrir.
-// - Sesión REAL, nivel 1 (torre de 3), mano DERECHA y mano IZQUIERDA (dos pruebas): contador exacto, "¡Meta cumplida! 3/3",
+// - Sesión REAL, nivel 1 (torre de 3), meta 1 torre, mano DERECHA y mano IZQUIERDA (dos pruebas): altura exacta, "¡Meta cumplida! 1/1",
 //   eventos tomar/agarre_inicio/agarre_fin/soltar/colocado, desvío de cada cubo en metricas.juego (desvioCubo1..3) y en
 //   los eventos, y /sensacion. La de la derecha mide el fps. Con CAPTURA_TORRE=1 guarda docs/capturas/torre.png y torre-meta.png.
 // - Sesión falsa: bajar el cubo hasta meterlo en la torre y soltarlo no la derriba (piso de altura del cubo sostenido y al soltar).
-// - Sesión falsa, práctica libre (meta 0): al completar la torre se rearma sola, sin "Meta cumplida"; Reiniciar también rearma.
+// - Sesión falsa, sin meta en el plan (meta 0 → 2 torres por defecto): al completar la 1.ª torre se rearma sola, sin "Meta
+//   cumplida" todavía (1/2); Reiniciar también rearma.
 //   (La caída se cubre con las pruebas unitarias de `torreCaida`: ya no hay forma de empujar la torre con el cubo sostenido.)
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
@@ -14,7 +15,10 @@ import { HORIZONTAL, ID_FALSO, crearSesion, esperarFase, juego, limpiar, paramet
 type P3 = { x: number; y: number; z: number }
 type Cubo = P3 & { id: string; estado: string; mano: string | null; inicio: P3 }
 type EstadoTorre = {
+  /** Altura actual (cubos colocados). */
   contador: number
+  /** Torres completas (contador de la meta). */
+  torres: number
   meta: number
   caidas: number
   lado: number
@@ -109,7 +113,7 @@ async function torreCompleta(page: Page, lado: Lado, info: { annotations: { type
   const desde = new Date(Date.now() - 5_000).toISOString()
   let id = ''
   try {
-    id = await crearSesion('torre-cubos', 5, 3, 1, 'paciente', { parametros: { ...parametros(5, 3, 1), mano: lado } })
+    id = await crearSesion('torre-cubos', 5, 1, 1, 'paciente', { parametros: { ...parametros(5, 1, 1), mano: lado } })
     await page.setViewportSize(HORIZONTAL)
     const v = vigilarErrores(page)
     await page.goto(`/sesion/${id}/jugar?fuente=sintetica&guion=quieta&lado=${lado}&depuracion=1`)
@@ -120,12 +124,12 @@ async function torreCompleta(page: Page, lado: Lado, info: { annotations: { type
     await mano.mover({}, 100)
     await esperarFase(page, 'jugando', 15_000)
     expect((await juego(page))!.fisica).toBe(true)
-    await expect(page.getByTestId('contador')).toHaveText('0/3')
+    await expect(page.getByTestId('contador')).toHaveText('0/1') // torres completas
 
     // Nivel 1: 3 cubos grandes sueltos, silueta sobre la base.
     const e0 = await estadoTorre(page)
     expect(e0.cubos).toHaveLength(3)
-    expect(e0.meta).toBe(3)
+    expect(e0.meta).toBe(1)
     expect(e0.cubos.every((c) => c.estado === 'mesa')).toBe(true)
     expect(e0.silueta).not.toBeNull()
     expect(e0.toleranciaCm).toBeGreaterThanOrEqual(1.5)
@@ -143,7 +147,8 @@ async function torreCompleta(page: Page, lado: Lado, info: { annotations: { type
       const capturar = process.env.CAPTURA_TORRE && k === 3 ? () => page.screenshot({ path: 'docs/capturas/torre.png', style: SIN_FPS }).then(() => undefined) : undefined
       await apilar(page, mano, libre.id, 0, capturar)
       if (k < 3) {
-        await expect(page.getByTestId('contador')).toHaveText(`${k}/3`, { timeout: 6_000 })
+        await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(k)
+        await expect(page.getByTestId('contador')).toHaveText('0/1') // la torre aún no está completa
         const e = await estadoTorre(page)
         expect(e.contador).toBe(k)
         expect(e.desvioPorPiso[k - 1]).not.toBeNull()
@@ -156,7 +161,7 @@ async function torreCompleta(page: Page, lado: Lado, info: { annotations: { type
         expect(j0.fps).toBeGreaterThanOrEqual(24)
       }
     }
-    await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 3/3', { timeout: 6_000 })
+    await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 1/1', { timeout: 6_000 })
     if (process.env.CAPTURA_TORRE) await page.screenshot({ path: 'docs/capturas/torre-meta.png', style: SIN_FPS })
     await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion\\?fuente=sintetica&guion=quieta&lado=${lado}&depuracion=1$`), { timeout: 10_000 })
 
@@ -165,7 +170,7 @@ async function torreCompleta(page: Page, lado: Lado, info: { annotations: { type
     const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
     expect(s.estado).toBe('en curso')
     const m = s.metricas
-    expect(m).toMatchObject({ contador: 3, meta: 3, metaCumplida: true, motivoFin: 'meta', agarres: 3, intentos: 3, precision: 1 })
+    expect(m).toMatchObject({ contador: 1, meta: 1, metaCumplida: true, motivoFin: 'meta', agarres: 3, intentos: 3, precision: 1 })
     expect(lado === 'derecha' ? m.agarresDer : m.agarresIzq).toBe(3)
     expect(lado === 'derecha' ? m.agarresIzq : m.agarresDer).toBe(0)
     expect(m.juego).toMatchObject({ alturaMax: 3, caidas: 0 })
@@ -273,9 +278,9 @@ test.describe('Torre de cubos', () => {
     v.sinErrores()
   })
 
-  test('práctica libre (sin meta): al completar la torre se rearma sola y la sesión sigue; Reiniciar también rearma', async ({ page }) => {
+  test('sin meta en el plan (2 torres por defecto): al completar la 1.ª torre se rearma sola y la sesión sigue; Reiniciar también rearma', async ({ page }) => {
     test.setTimeout(170_000)
-    // meta 0 = práctica libre: no termina por meta, solo por tiempo o a mano.
+    // meta 0 en el plan → TORRES_POR_SESION = 2: la 1.ª torre no termina la sesión.
     const escrituras = await sesionFalsa(page, 'torre-cubos', 5, 0, 1)
     await page.setViewportSize(HORIZONTAL)
     const v = vigilarErrores(page)
@@ -284,13 +289,14 @@ test.describe('Torre de cubos', () => {
     const mano = new Mano(page, 'derecha')
     await mano.mover({}, 100)
     await esperarFase(page, 'jugando', 15_000)
-    expect((await estadoTorre(page)).meta).toBe(3)
+    expect((await estadoTorre(page)).meta).toBe(2)
 
     for (let k = 1; k <= 3; k++) {
       await apilar(page, mano, (await estadoTorre(page)).cubos.find((c) => c.estado === 'mesa')!.id)
       if (k < 3) await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 6_000 }).toBe(k)
     }
-    // Torre completa sin meta: no hay "¡Meta cumplida!", se rearma sola (contador 0, cubos en su lugar) y la sesión sigue.
+    // 1.ª torre de 2: cuenta 1/2, no hay "¡Meta cumplida!", se rearma sola (altura 0, cubos en su lugar) y la sesión sigue.
+    await expect(page.getByTestId('contador')).toHaveText('1/2', { timeout: 6_000 })
     await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
     await expect.poll(async () => (await estadoTorre(page)).contador, { timeout: 8_000 }).toBe(0)
     await expect.poll(async () => (await estadoTorre(page)).cubos.every((c) => c.estado === 'mesa' && Math.hypot(c.x - c.inicio.x, c.z - c.inicio.z) < 0.05), { timeout: 4_000 }).toBe(true)

@@ -32,6 +32,7 @@ import {
   COLORES,
   MS_MAX_ASENTAR,
   NIVELES_TORRE,
+  metaTorres,
   U_POR_CM,
   Y_CAIDA,
   alturaSilueta,
@@ -88,7 +89,9 @@ const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) =>
 /** Estado legible para e2e y depuración (window.__manoviva.juego.estado()). */
 export interface EstadoTorreDepuracion {
   contador: number
+  torres: number
   meta: number
+  cubosTorre: number
   caidas: number
   lado: number
   toleranciaCm: number
@@ -123,6 +126,8 @@ export const crearTorre: CrearJuego = () => {
   const registro = registroVacio()
   let caidaT: number | null = null
   let completaT: number | null = null
+  /** Torres completas (contador de la meta). */
+  let torres = 0
   let avisoHasta = 0
   let aviso = ''
   let vivoDesvio: number | null = null
@@ -350,8 +355,11 @@ export const crearTorre: CrearJuego = () => {
       }
     }
     return {
+      /** Altura actual (cubos colocados). */
       contador: colocados.length,
-      meta: nivel.cubos,
+      torres,
+      meta: ctx?.meta ?? 0,
+      cubosTorre: nivel.cubos,
       caidas: registro.caidas,
       lado,
       toleranciaCm: nivel.toleranciaCm,
@@ -373,7 +381,8 @@ export const crearTorre: CrearJuego = () => {
     gestos: ['Precisión', 'Control'],
     miniatura: 'torre',
     niveles,
-    meta: { etiqueta: 'Altura', unidad: 'cubos', desdePlan: (p) => (p.metaAgarres > 0 ? nivelTorre(p.nivel).cubos : 0) },
+    // Termina tras N torres completas (metaAgarres del plan, o TORRES_POR_SESION = 2).
+    meta: { etiqueta: 'Torres', unidad: 'torres', desdePlan: (p) => metaTorres(p.metaAgarres) },
     tiposEvento: ['tomar', 'agarre_inicio', 'agarre_fin', 'soltar', 'colocado', 'caida'],
     metricasVivo: [
       { id: 'desvio', nombre: 'Desvío al soltar', unidad: 'cm', formula: 'distancia horizontal entre el centro del cubo y el centro de la silueta al abrir la pinza (cm de la escena, aprox.)', aprox: true },
@@ -477,10 +486,15 @@ export const crearTorre: CrearJuego = () => {
         }
       }
       if (caidaT != null && t - caidaT >= MS_REARMAR) reconstruir('caida')
-      // 5) Práctica libre (sin meta): al completar la torre se rearma sola; la sesión termina solo por tiempo.
-      if (c.meta <= 0 && caidaT == null && colocados.length >= nivel.cubos) {
-        completaT ??= t
-        if (t - completaT >= MS_REARMAR) {
+      // 5) Torre completa: suma 1 a la meta en cuanto se completa (sin caerse). Si faltan torres, tras MS_REARMAR se
+      // rearma para la siguiente; con la última, la base muestra "¡Meta cumplida!" y termina.
+      if (caidaT == null && colocados.length >= nivel.cubos) {
+        if (completaT == null) {
+          completaT = t
+          torres++
+        }
+        const faltan = c.meta <= 0 || torres < c.meta
+        if (faltan && t - completaT >= MS_REARMAR) {
           mostrarAviso('¡Torre completa! La armamos de nuevo')
           reconstruir('completa')
         }
@@ -494,9 +508,9 @@ export const crearTorre: CrearJuego = () => {
       const sosteniendo = LADOS.some((l) => sostiene[l])
       const hayAviso = c != null && c.ahora() < avisoHasta
       return {
-        contador: colocados.length,
+        contador: torres,
         manos,
-        pista: hayAviso ? aviso : sosteniendo ? 'Suéltalo sobre la silueta amarilla' : undefined,
+        pista: hayAviso ? aviso : sosteniendo ? 'Suéltalo sobre la silueta amarilla' : `Apila el cubo sobre la torre (${colocados.length} de ${nivel.cubos})`,
         vivo: { desvio: vivoDesvio, apertura: vivoApertura, estabilidad: vivoEstab },
       }
     },

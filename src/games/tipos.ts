@@ -41,6 +41,8 @@ export interface Juego {
   descripcionCorta: string
   /** false = "Próximamente" en /ejercicios (no se puede abrir). Pasa a true cuando su feature esté done. */
   disponible: boolean
+  /** true = no aparece en el catálogo /ejercicios (el código y las sesiones guardadas siguen; se puede abrir por URL). */
+  oculto?: boolean
   usaCamara: boolean
   ruta: string | null
   miniatura: string
