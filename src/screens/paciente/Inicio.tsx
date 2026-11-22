@@ -145,15 +145,16 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
       {cita && <NotaCita cita={cita} />}
 
       {/* En escritorio «Empezar» va en la tarjeta Ahora, bajo la escena (como «Comenzar» en preparar). */}
-      {ahora && !escritorio && <BarraAccion>{botonEmpezar(ahora.item.juego)}</BarraAccion>}
+      {/* En móvil la barra fija tapa el nombre en la tarjeta Ahora al abrir: el botón lo repite. */}
+      {ahora && !escritorio && <BarraAccion>{botonEmpezar(ahora.item.juego, nombreJuego(ahora.item.juego))}</BarraAccion>}
     </>
   )
 }
 
-function botonEmpezar(juego: string) {
+function botonEmpezar(juego: string, nombre?: string) {
   return (
     <Link className="boton primario bloque" to={`/sesion/${juego}/preparar`}>
-      Empezar
+      {nombre ? `Empezar · ${nombre}` : 'Empezar'}
     </Link>
   )
 }
