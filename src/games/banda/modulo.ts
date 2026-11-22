@@ -447,6 +447,9 @@ export const crearBanda: CrearJuego = () => {
       ctx = c
       nivel = nivelBanda(c.parametros.nivel)
       sesion = new SesionBanda(nivel.kgBanda)
+      // Zona más angosta que la de la base: con la banda real se estira hasta el doble y las manos llegaban a los bordes
+      // de la imagen, detrás del panel y de la tarjeta (prueba con grabaciones reales, 22-nov-2026).
+      c.configurarManos({ x: [-1.55, 1.55] })
       construirEscena(c)
       dibujar(0)
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
