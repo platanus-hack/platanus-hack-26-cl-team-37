@@ -7,13 +7,13 @@ import { clienteComo, disponiblesDelRegistro, entrarComo, ocultosDelRegistro, vi
 // Los juegos con `oculto: true` en su juego.ts no salen en el catálogo y se quitan de estas listas.
 const OCULTOS = ocultosDelRegistro()
 const visibles = (ids: string[]) => ids.filter((id) => !OCULTOS.includes(id))
-const TODOS = visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d'])
+const TODOS = visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d', 'honda'])
 // Cuáles ya se juegan sí sale de cada src/games/<juego>/juego.ts (`disponible`): así habilitar un juego no edita este
 // archivo compartido. La lista de juegos y los filtros siguen fijos por la spec.
 const DISPONIBLES = disponiblesDelRegistro()
 const POR_FILTRO: Record<string, string[]> = {
   Pinza: visibles(['caja-juguetes', 'torre-cubos', 'pinza-fina']),
-  Agarre: visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica']),
+  Agarre: visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica', 'honda']),
   Alcance: visibles(['caja-juguetes', 'atrapa-burbujas']),
 }
 

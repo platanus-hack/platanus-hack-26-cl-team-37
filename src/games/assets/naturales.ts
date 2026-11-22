@@ -1,4 +1,4 @@
-// Colores de objetos reales, la excepción del brandbook (brandbook/README.md §3): madera, fruta, jugo, vidrio y las
+// Colores de objetos reales, la excepción del brandbook (brandbook/README.md §3): madera, fruta, jugo, vidrio, cuero, piedra y las
 // bandas elásticas, cuyo color indica su resistencia como en las bandas de terapia reales. Todo lo demás de las
 // escenas sale de la paleta (assets/colores.ts). Sin three.js: lo puede importar la lógica pura de un juego.
 // Junto con colores.ts, es el único archivo de src/games con colores escritos a mano (lo comprueba colores.test.ts).
@@ -18,6 +18,8 @@ export const NATURAL = {
   pulpa: 0xffd37a,
   pulpaBrillo: 0x7a4a00,
   vidrio: 0xcfe6f2,
+  cuero: 0x7a4b2a,
+  piedra: 0x8d8f99,
 } as const
 
 /** Vetas del lienzo de la mesa (madera natural). */

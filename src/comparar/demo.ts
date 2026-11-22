@@ -1,5 +1,5 @@
 // F38 · SOLO DESARROLLO (se descarta del build): sesiones ilustrativas para ver la vista Comparar de la muñeca 3D y la
-// banda elástica antes de que existan sesiones reales. Se activan con ?demo=muneca-3d | muneca-3d-modelo | banda-elastica.
+// banda elástica antes de que existan sesiones reales. Se activan con ?demo=muneca-3d | muneca-3d-modelo | banda-elastica | honda.
 import type { LadoMano, MetricasSesion, PoseClave, Sesion } from '../domain/types'
 import { poseModelo, poseMunecaModelo, type V3 } from './mano'
 
@@ -87,6 +87,22 @@ export function sesionesDemo(demo: string, pacienteId: string): Sesion[] {
       const juego = { estiramientoMaxCm: est, estiramientoMaxPct: Math.round((est / 40) * 100), repeticiones: 6 + i * 2, cargaMaxKg: [3.4, 4.9][i]!, tiempoBajoTensionS: 18 + i * 6, cambioPicoPct: [-18, -9][i]!, reposoCm: 40, kgBanda: 10 }
       return base(`DEMO-B-${i}`, pacienteId, 'banda-elastica', 3 + i * 14, juego, {
         muestras: { hz: 10, t: estCh.map((_, k) => k * 100), apertura: [], flexIndice: [], poses, canales: { estiramientoCm: estCh, cargaKg: estCh.map((v) => (v / est) * [3.4, 4.9][i]!) } },
+      })
+    })
+  }
+  if (demo === 'honda') {
+    const puno = poseModelo({ pulgar: 50, indice: 110, medio: 115, anular: 110, menique: 105 }, 0.7)
+    return [0, 1].map((i) => {
+      const kg = [2.1, 2.6][i]!
+      const n = 80
+      const kgCh = Array.from({ length: n }, (_, k) => Math.max(0, Math.sin((k / n) * Math.PI * 8)) * kg)
+      const poses = (['reposo', 'pico'] as const).flatMap((et) => [
+        pose(et, 'derecha', puno, null, [et === 'pico' ? 0.22 : 0.33, 0.5]),
+        pose(et, 'izquierda', puno, null, [et === 'pico' ? 0.78 : 0.67, 0.5]),
+      ])
+      const juego = { aciertos: [3, 6][i]!, tiros: [7, 8][i]!, precisionPct: [43, 75][i]!, cargaMetaKg: 2, cargaMaxKg: kg, cargaPromedioKg: kg - 0.3, constanciaPct: [71, 88][i]!, tiempoBajoTensionS: 14 + i * 6, sostenidoPromedioS: [0.7, 1.2][i]!, vueltaPromedioS: [0.4, 0.9][i]!, reposoCm: 30, estiramientoMaxCm: [8, 10][i]!, estiramientoMaxPct: [27, 34][i]! }
+      return base(`DEMO-H-${i}`, pacienteId, 'honda', 3 + i * 14, juego, {
+        muestras: { hz: 10, t: kgCh.map((_, k) => k * 100), apertura: [], flexIndice: [], poses, canales: { cargaKg: kgCh } },
       })
     })
   }

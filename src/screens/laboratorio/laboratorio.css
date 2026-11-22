@@ -1,0 +1,188 @@
+/* Laboratorio de banda (/laboratorio). Sistema «Salud»: fondo neutro, tarjetas blancas planas, el arco con la cifra
+   fina, botón negro en píldora y el amarillo solo de relleno. La cámara es el único panel oscuro.
+   Teléfono: una columna en el orden del HTML (cámara, lectura, repeticiones, banda…). Computador: dos columnas con la
+   cámara junto a la lectura; el orden del HTML no cambia, así el teclado y el lector de pantalla siguen lo que se ve. */
+.laboratorio { max-width: 1120px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; }
+.lab-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.lab-interno { padding: 5px 12px; border-radius: var(--pildora); background: var(--pista); color: var(--suave); font-size: 14px; font-weight: 600; }
+.lab-titulo { display: grid; gap: 6px; }
+.lab-titulo p { font-size: 16px; max-width: 52ch; }
+.laboratorio .titulo-pantalla { margin: 0; }
+
+.lab-grilla { display: grid; gap: 14px; }
+.laboratorio .tarjeta { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.laboratorio h2 { font-size: 18px; }
+.laboratorio .rotulo { color: var(--suave); font-size: 14px; font-weight: 600; }
+
+/* ——— Pasos ——— */
+.lab-pasos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lab-pasos li { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border-radius: 16px; background: var(--tarjeta); color: var(--suave); font-size: 14px; font-weight: 600; line-height: 1.2; }
+.lab-paso-num { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--pista); color: var(--suave); font: 600 14px / 1 var(--cifras); }
+.lab-pasos [data-estado='actual'] { color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--tinta); }
+.lab-pasos [data-estado='actual'] .lab-paso-num { background: var(--tinta); color: var(--sobre-tinta); }
+.lab-pasos [data-estado='hecho'] { color: var(--tinta); }
+.lab-pasos [data-estado='hecho'] .lab-paso-num { background: var(--amarillo); color: var(--sobre-amarillo); }
+
+/* ——— Cámara ——— */
+.lab-escena { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.lab-camara { position: relative; overflow: hidden; border-radius: var(--radio); background: #10161c; aspect-ratio: 4 / 3; max-height: 72dvh; margin-inline: auto; width: 100%; }
+.lab-camara.vertical { width: auto; height: min(60dvh, 520px); max-width: 100%; }
+.lab-fondo, .lab-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lab-fondo video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.lab-lienzo { pointer-events: none; }
+.lab-hud { position: absolute; top: 12px; right: 12px; display: grid; justify-items: end; gap: 2px; padding: 10px 14px 10px 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.94); color: var(--tinta); pointer-events: none; }
+.lab-hud b { font: 300 40px / 0.95 var(--cifras); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.lab-hud span { color: var(--suave); font-size: 13px; font-weight: 600; }
+.lab-hud .lab-hud-reps { margin-top: 4px; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.lab-hud[data-meta='si'] { background: var(--amarillo); }
+.lab-hud[data-meta='si'] span { color: var(--sobre-amarillo); }
+.lab-chips { position: absolute; top: 12px; left: 12px; right: 140px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.lab-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: var(--pildora); background: rgba(16, 22, 28, 0.82); color: #ffffff; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lab-chip.grabando { background: #ffffff; color: var(--tinta); }
+.lab-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--dolor); }
+.lab-indicacion { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px; border-radius: 16px; background: rgba(16, 22, 28, 0.82); color: #ffffff; font-size: 16px; font-weight: 600; line-height: 1.25; text-wrap: balance; }
+.lab-avance { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--amarillo); transform-origin: left; }
+
+.lab-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.lab-barra-fin { margin-left: auto; }
+.lab-boton-grabar { display: inline-flex; align-items: center; gap: 10px; min-height: var(--toque); padding: 0 18px 0 14px; border-radius: var(--pildora); border: 0; background: var(--tarjeta); color: var(--tinta); font-weight: 600; font-size: 15px; }
+.lab-boton-grabar:disabled { color: var(--control); cursor: default; }
+.lab-icono-grabar { width: 14px; height: 14px; border-radius: 50%; background: var(--dolor); }
+.lab-boton-grabar[aria-pressed='true'] { background: var(--tinta); color: var(--sobre-tinta); }
+.lab-boton-grabar[aria-pressed='true'] .lab-icono-grabar { border-radius: 3px; background: var(--sobre-tinta); }
+.lab-privado { color: var(--suave); font-size: 13px; }
+.lab-camara.eligiendo { cursor: crosshair; }
+.lab-marcas { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--radio-s); background: var(--fondo); }
+.lab-color { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+.lab-muestra { width: 22px; height: 22px; border-radius: 50%; background: var(--pista); box-shadow: inset 0 0 0 1.5px rgba(22, 23, 26, 0.15); }
+.lab-girar { display: flex; align-items: center; gap: 8px; color: var(--tinta); font-size: 14px; font-weight: 600; }
+.lab-girar svg { flex: none; }
+
+/* ——— Lectura ——— */
+.lab-lectura { justify-items: center; }
+.lab-lectura .boton { width: 100%; }
+.lab-arco .lab-marca-meta { stroke: var(--tinta); stroke-width: 16; stroke-linecap: butt; }
+.lab-datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin: 0; text-align: center; }
+.lab-datos dt { color: var(--suave); font-size: 14px; }
+.lab-datos dd { margin: 2px 0 0; font: 400 20px / 1.1 var(--cifras); font-variant-numeric: tabular-nums; }
+.lab-trazo { width: 100%; height: 72px; display: block; }
+.lab-trazo .base { stroke: var(--linea); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.lab-trazo .meta { stroke: var(--control); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.lab-trazo polyline { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.lab-aviso { color: var(--dolor-texto); font-size: 14px; }
+
+/* ——— Repeticiones ——— */
+.lab-enlace { min-height: var(--toque); padding: 0 4px; border: 0; background: none; color: var(--tinta); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 0.2em; }
+.lab-acciones { display: flex; gap: 8px; }
+.lab-enlace:disabled { color: var(--control); text-decoration: none; cursor: default; }
+.lab-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 4px 0 12px; border-bottom: 1px solid var(--linea); }
+.lab-meta .stepper .valor { min-width: 92px; font-size: 18px; }
+.lab-meta .stepper button { background: var(--tarjeta); border-color: var(--linea); }
+.lab-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; margin: 0; }
+.lab-cifras div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 4px; }
+.lab-cifras dd { margin: 0; font: 300 34px / 1 var(--cifras); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.lab-cifras dt { color: var(--suave); font-size: 14px; }
+.lab-picos { position: relative; height: 64px; }
+.lab-picos ol { display: flex; align-items: flex-end; gap: 6px; height: 100%; margin: 0; padding: 0; list-style: none; }
+.lab-picos li { flex: 1; max-width: 26px; border-radius: 6px 6px 2px 2px; background: var(--amarillo); }
+.lab-picos li[data-meta='no'] { background: var(--pista); box-shadow: inset 0 0 0 1.5px var(--control); }
+.lab-picos-meta { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--tinta); }
+.lab-nota { color: var(--suave); font-size: 14px; }
+
+/* ——— Banda ——— */
+.lab-origen { color: var(--suave); font-size: 14px; }
+.lab-origen span { display: inline-block; margin-right: 8px; padding: 3px 10px; border-radius: var(--pildora); background: var(--pista); color: var(--tinta); font-weight: 600; }
+.lab-origen[data-origen='etiqueta'] span { background: var(--amarillo-suave); color: var(--sobre-amarillo); }
+.lab-curva { width: 100%; max-width: 440px; height: auto; display: block; }
+.lab-curva .eje { stroke: var(--linea); stroke-width: 1; }
+.lab-curva polyline { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; }
+.lab-curva .medida { fill: var(--tarjeta); stroke: var(--tinta); stroke-width: 2; }
+.lab-curva .ahora { fill: var(--amarillo); stroke: var(--tinta); stroke-width: 2; }
+.lab-curva text { fill: var(--suave); font-size: 12px; font-family: var(--letra); }
+.laboratorio select.entrada { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--tinta) 50%), linear-gradient(135deg, var(--tinta) 50%, transparent 50%); background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }
+.lab-dos { display: grid; gap: 14px; }
+.lab-banda .segmentos { background: var(--pista); }
+.lab-detalle { border-top: 1px solid var(--linea); padding-top: 4px; }
+.lab-detalle summary { min-height: var(--toque); display: flex; align-items: center; justify-content: space-between; font-weight: 600; cursor: pointer; list-style: none; }
+.lab-detalle summary::-webkit-details-marker { display: none; }
+.lab-detalle summary::after { content: '+'; font: 300 26px / 1 var(--cifras); color: var(--suave); }
+.lab-detalle[open] summary::after { content: '−'; }
+.lab-detalle > .boton { width: 100%; margin-top: 12px; }
+.lab-pesos { display: grid; gap: 14px; padding-top: 4px; }
+.lab-instrucciones { margin: 0; padding-left: 20px; color: var(--suave); font-size: 14px; display: grid; gap: 4px; }
+.lab-filas { display: grid; grid-template-columns: 1fr 1fr var(--toque); gap: 8px; align-items: center; }
+.lab-fila { display: contents; }
+.lab-quitar { width: var(--toque); height: var(--toque); border-radius: 50%; border: 0; background: var(--pista); color: var(--tinta); font-size: 22px; line-height: 1; }
+.lab-quitar:disabled { color: var(--control); cursor: default; }
+.boton.chico { min-height: var(--toque); font-size: 15px; }
+
+/* ——— Reporte de la cámara ——— */
+.lab-tabla { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; margin: 0; font-size: 15px; }
+.lab-tabla dt { color: var(--suave); }
+.lab-tabla dd { margin: 0; max-width: 22ch; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* ——— Cómo se calcula ——— */
+.lab-formula { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 15px; line-height: 1.45; }
+.lab-formula b { font-weight: 600; }
+.lab-como p { line-height: 1.5; }
+
+.lab-pie { color: var(--suave); font-size: 14px; max-width: 62ch; }
+
+@media (max-width: 420px) {
+  .lab-pasos li { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; font-size: 13px; }
+}
+
+/* En teléfonos la lectura sobre el video se achica para no tapar la mano. */
+@media (max-width: 480px) {
+  .lab-hud { top: 10px; right: 10px; padding: 6px 10px 7px 12px; border-radius: 14px; }
+  .lab-hud b { font-size: 28px; }
+  .lab-hud span { font-size: 12px; }
+  .lab-hud .lab-hud-reps { margin-top: 2px; }
+  .lab-chips { top: 10px; left: 10px; right: 110px; }
+}
+
+@media (min-width: 560px) {
+  .lab-dos { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+}
+
+@media (min-width: 900px) {
+  .laboratorio { padding: 28px 28px 40px; gap: 18px; }
+  /* Izquierda: cámara y banda. Derecha: lectura, repeticiones, cámara del equipo y cómo se calcula. */
+  .lab-grilla { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-areas: 'escena lectura' 'escena reps' 'banda reporte' 'banda como'; align-items: start; gap: 18px; }
+  .lab-escena { grid-area: escena; }
+  .lab-lectura { grid-area: lectura; }
+  .lab-reps { grid-area: reps; }
+  .lab-banda { grid-area: banda; }
+  .lab-reporte { grid-area: reporte; }
+  .lab-como { grid-area: como; }
+}
+
+/* Teléfono en horizontal (como conviene usarlo: caben las manos estiradas): la cámara tiene que verse sin bajar.
+   El encabezado y el título quedan solo para lectores de pantalla y los pasos se compactan. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .laboratorio { padding: 8px max(12px, env(safe-area-inset-right, 0px)) 24px max(12px, env(safe-area-inset-left, 0px)); gap: 8px; }
+  .lab-cabeza, .lab-titulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .lab-pasos { gap: 6px; }
+  .lab-pasos li { flex-direction: row; align-items: center; min-height: 34px; padding: 4px 10px; gap: 8px; font-size: 13px; border-radius: 12px; }
+  .lab-paso-num { width: 22px; height: 22px; font-size: 12px; }
+  .lab-grilla { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-areas: 'escena lectura' 'escena reps' 'banda reporte' 'banda como'; align-items: start; gap: 10px; }
+  .lab-escena { grid-area: escena; }
+  .lab-lectura { grid-area: lectura; }
+  .lab-reps { grid-area: reps; }
+  .lab-banda { grid-area: banda; }
+  .lab-reporte { grid-area: reporte; }
+  .lab-como { grid-area: como; }
+  .lab-camara { max-height: calc(100dvh - 58px); }
+  .lab-lectura { gap: 8px; padding: 12px 14px; }
+  .lab-lectura .arco { transform: scale(0.8); margin: -14px 0 -18px; }
+  .lab-hud { top: 10px; right: 10px; padding: 6px 10px 7px 12px; border-radius: 14px; }
+  .lab-hud b { font-size: 28px; }
+  .lab-hud span { font-size: 12px; }
+  .lab-indicacion { right: auto; max-width: min(70%, 460px); padding: 8px 12px; font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lab-avance { transition: scale 100ms linear; }
+  .lab-chip.grabando .lab-punto { animation: lab-latido 1.2s ease-in-out infinite; }
+}
+@keyframes lab-latido { 50% { opacity: 0.35; } }

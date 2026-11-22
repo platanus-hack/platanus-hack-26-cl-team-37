@@ -32,6 +32,7 @@ const CompararTerapeuta = lazy(() => import('./comparar/Comparar').then((m) => (
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
 const Primitivas = lazy(() => import('./screens/primitivas/Primitivas'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
+const Laboratorio = lazy(() => import('./screens/laboratorio/Laboratorio'))
 
 export default function App() {
   useMarcarVista()
@@ -94,6 +95,8 @@ export default function App() {
 
               {/* Vista previa pública del ambiente 3D de la oficina */}
               <Route path="/oficina-3d" element={<VistaOficina3D />} />
+              {/* Prueba interna: carga de una banda elástica desde la cámara, sin sesión ni base de datos */}
+              <Route path="/laboratorio" element={<Laboratorio />} />
 
               <Route path="*" element={<AlInicio />} />
             </Routes>

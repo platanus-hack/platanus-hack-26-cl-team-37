@@ -121,8 +121,14 @@ function Contenido({ d, reintentar }: { d: DatosResumen; reintentar: () => void 
               {m.metaCumplida ? 'Meta cumplida' : 'Meta no alcanzada'}
             </span>
           )}
-          <BarraMano etiqueta="Izq." nombre="Mano izquierda" valor={izq} max={maxMano} clase="izq" />
-          <BarraMano etiqueta="Der." nombre="Mano derecha" valor={der} max={maxMano} clase="der" />
+          {/* El reparto por mano solo existe en los juegos que anotan con qué mano se hizo cada agarre (Caja): en los de
+              las dos manos a la vez (Banda, Honda) dos barras en 0 junto a la meta cumplida confunden. */}
+          {izq + der > 0 && (
+            <>
+              <BarraMano etiqueta="Izq." nombre="Mano izquierda" valor={izq} max={maxMano} clase="izq" />
+              <BarraMano etiqueta="Der." nombre="Mano derecha" valor={der} max={maxMano} clase="der" />
+            </>
+          )}
         </div>
       </section>
 

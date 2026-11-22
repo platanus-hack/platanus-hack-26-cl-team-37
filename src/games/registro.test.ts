@@ -5,8 +5,8 @@ import { JUEGOS } from './registry'
 import { MODULOS } from './shell/modulos'
 
 describe('registro de juegos (un archivo por juego)', () => {
-  it('trae los 10 juegos del catálogo, en el orden de la spec', () => {
-    expect(JUEGOS.map((j) => j.id)).toEqual(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d'])
+  it('trae los 11 juegos del catálogo, en el orden de la spec', () => {
+    expect(JUEGOS.map((j) => j.id)).toEqual(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d', 'honda'])
   })
 
   it('ids y orden no se repiten', () => {

@@ -4,6 +4,7 @@
 import banda from './escenas/banda.jpg'
 import burbujas from './escenas/burbujas.jpg'
 import caja from './escenas/caja.jpg'
+import honda from './escenas/honda.jpg'
 import movilidad from './escenas/movilidad.jpg'
 import naranja from './escenas/naranja.jpg'
 import pinza from './escenas/pinza.jpg'
@@ -17,5 +18,6 @@ const ESCENAS: Record<string, string> = {
   'exprime-naranja': naranja,
   'atrapa-burbujas': burbujas,
   'banda-elastica': banda,
+  honda,
 }
 export const escenaDe = (juego: string): string | undefined => ESCENAS[juego]
