@@ -8,6 +8,7 @@ import { repos } from '../data/repos'
 import type { EventoSesion, Paciente, Sesion } from '../domain/types'
 import { cargarModulo } from '../games/shell/modulos'
 import { fechaCorta, hora } from '../lib/formato'
+import { esSimulada } from '../metrics/sesion'
 import { useCarga } from '../lib/useCarga'
 import { Cargando, Encabezado, Estados, Vacio } from '../ui/piezas'
 import './comparar.css'
@@ -175,7 +176,8 @@ const EVACIO: EventoSesion[] = []
 
 function etiquetaSesion(s: Sesion, conNivel: boolean): string {
   const f = new Date(s.inicio!)
-  return `${fechaCorta(f)} ${hora(f)}${conNivel ? ` · N${s.parametros?.nivel ?? 1}` : ''}`
+  // Una sesión con mano simulada (pruebas sin cámara) se puede elegir, pero se dice: sus medidas no son de la mano del paciente.
+  return `${fechaCorta(f)} ${hora(f)}${conNivel ? ` · N${s.parametros?.nivel ?? 1}` : ''}${esSimulada(s) ? ' · simulada' : ''}`
 }
 
 function Selector({ k, etiqueta, validas, valor, onCambio }: { k: 'antes' | 'despues'; etiqueta: string; validas: Sesion[]; valor: string; onCambio: (k: 'antes' | 'despues', id: string) => void }) {

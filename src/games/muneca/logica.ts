@@ -311,6 +311,11 @@ export const HISTERESIS_DEG = 4
 /** Volver al neutro: flexión y desviación bajo este ángulo (°) durante RETORNO_MS. */
 export const RETORNO_DEG = 10
 export const RETORNO_MS = 400
+/**
+ * Tiempo máximo (ms, con la mano a la vista) esperando la vuelta al neutro. Una muñeca que no logra volver a menos de
+ * RETORNO_DEG (o un neutro que quedó corrido) no deja el juego detenido: pasado este tiempo sigue con la fase siguiente.
+ */
+export const RETORNO_MAX_MS = 8000
 
 export const AVISO_ANTEBRAZO = 'Puede ser el antebrazo: mantenlo quieto'
 export const LIM_GIRO_DEG = 45
@@ -333,7 +338,7 @@ export interface EstadoMuneca {
   anunciado: boolean
   /** ms seguidos sobre el objetivo. */
   sostenidoMs: number
-  /** ms desde que se mostró el objetivo. */
+  /** Etapa 'ir': ms desde que se mostró el objetivo. Etapa 'volver': ms esperando la vuelta al neutro. */
   esperaMs: number
   /** Mayor valor de la fase en esta ronda (°). */
   maxFase: number
@@ -375,15 +380,17 @@ export function pasoMuneca(e: EstadoMuneca, a: Pick<AngulosMuneca, 'flexExt' | '
     else s.sostenidoMs = 0
     if (s.sostenidoMs >= n.sostenerMs) {
       eventos.push({ tipo: 'acierto', fase, grados: r1(s.maxFase) })
-      s = { ...s, etapa: 'volver', retornoMs: 0, sostenidoMs: 0 }
+      s = { ...s, etapa: 'volver', retornoMs: 0, sostenidoMs: 0, esperaMs: 0 }
     } else if (s.esperaMs >= n.maxEsperaMs) {
       eventos.push({ tipo: 'no_alcanzado', fase, maxGrados: r1(s.maxFase) })
-      s = { ...s, etapa: 'volver', retornoMs: 0, sostenidoMs: 0 }
+      s = { ...s, etapa: 'volver', retornoMs: 0, sostenidoMs: 0, esperaMs: 0 }
     }
   } else {
     if (Math.abs(a.flexExt) < RETORNO_DEG && Math.abs(a.desviacion) < RETORNO_DEG) s.retornoMs += dtMs
     else s.retornoMs = 0
-    if (s.retornoMs >= RETORNO_MS) s = estadoMunecaInicial((s.indice + 1) % ORDEN_FASES.length)
+    s.esperaMs += dtMs
+    // Volvió al neutro, o no logra volver y se acabó la espera: sigue la fase siguiente (nunca se queda detenido).
+    if (s.retornoMs >= RETORNO_MS || s.esperaMs >= RETORNO_MAX_MS) s = estadoMunecaInicial((s.indice + 1) % ORDEN_FASES.length)
   }
   return { estado: s, eventos }
 }

@@ -1,7 +1,7 @@
 // F14 · Progreso: cálculos puros sobre las sesiones cerradas del paciente (sin React, sin repos).
 // Solo describe los datos; no interpreta ni recomienda.
 import type { FlexionDedos, Plan, Sesion } from '../domain/types'
-import { calidadSuficiente, claveDia, planificadasPorSemana, variacionPct } from './sesion'
+import { calidadSuficiente, claveDia, esSimulada, planificadasPorSemana, variacionPct } from './sesion'
 
 export type Rango = '7d' | '4s' | 'todo'
 export const RANGOS: { id: Rango; texto: string }[] = [
@@ -124,7 +124,8 @@ export function planificadasEnRango(plan: Plan | null, inicioPlan: Date | null, 
 export function calcularProgreso(sesiones: Sesion[], plan: Plan | null, inicioPlan: Date | null, rango: Rango, hoy: Date): ProgresoCalculado {
   const desdeD = desdeRango(rango, hoy)
   const cerradas = sesiones
-    .filter((s) => s.estado === 'cerrada' && s.inicio && s.metricas && dentro(s, desdeD, hoy))
+    // Las sesiones con mano simulada (pruebas sin cámara) no son ejercicio del paciente: no cuentan ni se grafican.
+    .filter((s) => s.estado === 'cerrada' && s.inicio && s.metricas && !esSimulada(s) && dentro(s, desdeD, hoy))
     .sort((a, b) => (a.inicio! < b.inicio! ? -1 : 1))
   const validas = cerradas.filter(calidadSuficiente)
 

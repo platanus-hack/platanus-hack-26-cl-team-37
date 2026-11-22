@@ -9,7 +9,7 @@ Después de una lesión, una cirugía o un accidente cerebrovascular, recuperar 
 ## Qué hace Kuwü
 
 - **La mano es el control.** La cámara frontal del teléfono sigue 21 puntos de la mano en tiempo real. No hace falta guante, sensor ni ningún equipo aparte.
-- **Ocho juegos, cada uno para un gesto.** Caja de juguetes (pinza y agarre), Movilidad guiada (abrir y cerrar), Torre de cubos (precisión y control), Pinza fina (oposición del pulgar), Atrapa burbujas (alcance y extensión), Exprime la naranja (cierre de puño), Memoria de cartas (giro del antebrazo) y Piano de dedos (independencia de dedos). Cada juego tiene cinco niveles.
+- **Diez juegos, cada uno para un gesto.** Caja de juguetes (pinza y agarre), Movilidad guiada (abrir y cerrar), Torre de cubos (precisión y control), Pinza fina (oposición del pulgar), Atrapa burbujas (alcance y extensión), Exprime la naranja (cierre de puño), Memoria de cartas (giro del antebrazo), Piano de dedos (independencia de dedos), Banda elástica (estirar una banda con ambas manos) y Muñeca 3D (flexión y desviación de la muñeca). Cada juego tiene cinco niveles.
 - **Cada sesión deja medidas.** Repeticiones, precisión, apertura, rango por dedo y suavidad del movimiento, siempre mostradas como estimaciones de cámara. Al terminar, el paciente registra cómo se sintió y cuánto le dolió.
 - **El terapeuta ve el avance a distancia.** Tiene la lista de sus pacientes, las alertas (por ejemplo, dolor alto o varios días sin ejercitar) y el historial de cada uno.
 - **Registro que se puede verificar.** Una sesión cerrada no se puede modificar y lleva un sello (hash) que permite comprobar que nadie la alteró.

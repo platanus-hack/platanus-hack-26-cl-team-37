@@ -472,7 +472,7 @@ export const crearMuneca: CrearJuego = () => {
   return {
     id: 'muneca-3d',
     nombre: 'Muñeca 3D',
-    gestos: ['Giro del antebrazo'],
+    gestos: ['Control'],
     miniatura: 'muneca',
     niveles,
     meta: { etiqueta: 'Movimientos', unidad: 'movimientos', desdePlan: (p) => p.metaAgarres },

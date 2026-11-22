@@ -5,7 +5,7 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - Trabajas en tu rama (`p1/…`, `p2/…`, `p3/…`) y entregas por Pull Request a `dev` (a `main` solo llega el PR `dev` → `main`). **Nunca empujes directo a `dev` ni a `main`.**
 - Cada rol tiene su área (mapa orientativo en `docs/equipo/contratos.md` §7), pero **cualquiera puede editar cualquier archivo**. Si cambias algo en que trabaja otra persona, avísale en el chat para no pisarse.
 - Solo marcas en `feature_list.json` las funcionalidades que te pertenecen (campo `owner`). `node scripts/siguiente-feature.mjs --owner P2` te dice cuál toca.
-- La base de datos es UNA sola y es la de producción: migraciones solo aditivas, nunca `npm run db:seed`.
+- Hay **dos ambientes** (`docs/equipo/ambientes.md`): se desarrolla y se prueba contra **desarrollo**; producción solo la tocan la CI y la coordinación. Antes de correr pruebas o scripts que escriben datos: `node scripts/entorno.mjs --actual` (si dice `prod`, no sigas). Migraciones solo aditivas; `npm run db:seed` solo en desarrollo.
 - Duda sobre un contrato o archivo compartido: pregunta al equipo. Duda de detalle dentro de lo tuyo: decide, anótalo en `docs/equipo/decisiones.md` y sigue.
 
 ## Inicio de cada sesión — Startup Workflow (antes de escribir código, en este orden)
@@ -37,8 +37,8 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 ## Seguridad y límites
 
 - Secretos solo en `.env.secrets` y `.env.local` (git y Vercel los ignoran). Nunca imprimirlos, commitearlos ni ponerlos en el código cliente. La clave `service_role` solo la usan los scripts de `scripts/`.
-- Supabase: solo el proyecto `iniposctftmzxkqasikh`. Cambios de esquema = **migración nueva** en `supabase/migrations/` + `supabase db push`. Nunca editar una migración ya aplicada. Nunca borrar ni pausar proyectos.
-- Vercel: solo el proyecto `manoviva`. El deploy a producción lo hace la CI al unir a `main` (o P1 / coordinación); el resto no despliega a producción.
+- Supabase: desarrollo es `adpwhfcgssgpgomzoljm` (`manoviva-dev`) y producción `iniposctftmzxkqasikh` (`manoviva`). Cambios de esquema = **migración nueva** en `supabase/migrations/`, aplicada primero a desarrollo y a producción cuando llega a `main` (`docs/equipo/ambientes.md` §3). Nunca editar una migración ya aplicada. Nunca borrar ni pausar proyectos.
+- Vercel: `manoviva-dev` lo despliega la CI al unir a `dev`; `manoviva` (producción) lo despliega la CI al unir a `main` (o P1 / coordinación). El resto no despliega a mano.
 - Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `dev`. Prohibido empujar directo a `dev` o `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
 - **Pull antes de unir (merge).** Antes de unir un PR, trae lo último de su rama base (`dev` para las ramas `p1/…`, `p2/…`, `p3/…`; `main` solo para el PR `dev` → `main` o un `hotfix/…`): `git fetch origin && git merge origin/dev` en tu rama (o `gh pr update-branch <n>` en una ajena), vuelve a correr `npm run verify` y únelo solo con `verificar` en verde **sobre ese commit nuevo**. GitHub no exige rama al día: un PR verde contra un `dev` viejo puede romper `dev` al unirse. Si el choque está en código de otra persona, avísale.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
@@ -76,10 +76,11 @@ Un feature pasa a `done` solo si (done only when) — y nada fuera de su alcance
 bash init.sh                 # verificación completa de inicio (obligatoria)
 npm run dev                  # http://localhost:5174
 npm run verify               # tipos + lint + unitarias + build
+node scripts/entorno.mjs --actual   # contra qué base estás (dev o prod)
 npm run verify:db            # permisos y hashes contra Supabase real
 npm run e2e                  # Playwright (fuente de manos sintética)
 npm run captura -- /inicio inicio   # captura 390x844 en docs/capturas/
-npm run db:seed              # re-sembrar datos demo ficticios
+npm run db:seed              # re-sembrar datos demo ficticios (solo en desarrollo)
 node scripts/siguiente-feature.mjs  # qué feature toca
 ```
 

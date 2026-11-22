@@ -8,7 +8,7 @@
 | **D − 3 h** | **Congela juegos nuevos.** Un juego que no esté en `main` con su e2e en verde queda como "Próximamente" | P3 + coordinación |
 | **D − 2 h** | **Congela funcionalidades.** Desde aquí solo se aceptan correcciones de errores | coordinación |
 | **D − 1 h** | Regresión completa sobre producción (§2) con teléfono real. Se anotan fallas; solo se arreglan las que rompen la demo | P1 ejecuta, P2 confirma lo de cámara |
-| **D − 30 min** | Deploy final, `npm run db:seed` (una sola vez, reinicia los datos de demo), ficha de entrega completa | coordinación |
+| **D − 30 min** | Deploy final, `npm run db:seed` **en producción** (una sola vez, reinicia los datos de demo; ver `ambientes.md`), ficha de entrega completa | coordinación |
 | **D − 15 min** | Nadie empuja nada. Solo se mira la demo | todos |
 
 Si algo no llega a su hito, **se recorta**, no se corre. La demo vale más con 3 juegos que andan que con 6 a medias.

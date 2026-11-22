@@ -1,8 +1,9 @@
 // Hook para pantallas: crea la fuente según ?fuente= (o `config`), la inicia al montar y la detiene al
 // desmontar. Devuelve la fuente y su estado; los cuadros se leen con fuente.alCuadro(...) o fuente.ultimo
-// (no se re-renderiza en cada cuadro).
+// (no se re-renderiza en cada cuadro). `reintentar` vuelve a crear la fuente: sirve cuando ni siquiera se pudo crear (p. ej.
+// no bajó el código de la cámara), caso en que no hay `fuente` a la que pedirle iniciar().
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { configDesdeUrl, crearFuente, type ConfigFuente } from './fuentes'
 import type { EstadoSeguimiento, FuenteManos } from './tipos'
 
@@ -10,6 +11,7 @@ export function useFuenteManos(search: string, config: Partial<ConfigFuente> = {
   const [fuente, setFuente] = useState<FuenteManos | null>(null)
   const [estado, setEstado] = useState<EstadoSeguimiento>('iniciando')
   const [error, setError] = useState<string | null>(null)
+  const [vuelta, setVuelta] = useState(0)
   const clave = JSON.stringify({ ...configDesdeUrl(search), ...config })
 
   useEffect(() => {
@@ -34,7 +36,13 @@ export function useFuenteManos(search: string, config: Partial<ConfigFuente> = {
       quitar()
       f?.detener()
     }
-  }, [clave])
+  }, [clave, vuelta])
 
-  return { fuente, estado, error }
+  const reintentar = useCallback(() => {
+    setError(null)
+    setEstado('iniciando')
+    setVuelta((v) => v + 1)
+  }, [])
+
+  return { fuente, estado, error, reintentar }
 }

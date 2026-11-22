@@ -272,3 +272,25 @@ Ambigüedades resueltas sin el dueño. Agregar aquí, con fecha y motivo.
 - Manos más cercanas (2 en juegos, 1 en calibración) y calibración con más margen; pruebas en cercanas.test.ts y calibracion.test.ts (408 unitarias). e2e calibrar/tracking/smoke/caja/movilidad: 43 de 44; el que falla es el conteo exacto de Caja, inestable conocido (solo, pasa 1 de 2 veces; Caja no usa estos umbrales).
 - F36 Banda elástica, F37 Muñeca 3D y F38 Comparar sesiones en 3D: hechos por 3 agentes en paralelo y unidos en la línea R. 484 unitarias; e2e de lo nuevo en verde; progreso.spec (4 semanas) falla por una sesión sintética de hoy en la BD de desarrollo de Carmen (apertura 9,3), no por este código.
 - Pendientes menores: en el resumen de Banda el anillo dice "/3 repeticiones" muy justo, las barras Izq./Der. (agarres) salen en 0 y el cambio del pico no muestra el signo +. Probar Banda y Muñeca con cámara real.
+
+## 2026-11-22 · coordinación · línea V (coord/arreglos-evaluacion, desde dev e105f44)
+Arreglos tras una evaluación independiente de `dev` (hecha sin leer el harness). Detalle de cada decisión en `docs/equipo/decisiones.md`.
+- **F19 Perfil: done.** Ficha del paciente, entrada a /privacidad (no había ningún enlace), largo de mano editable con auditoría, cerrar sesión. e2e perfil 9/9.
+- **F17 Prescripción: in-progress.** La pantalla funciona de punta a punta (editar con +/−, resumen, enviar crea versión N+1; el paciente ve el mensaje y el cambio). e2e prescripcion 8/8. Falta exportar informes y agregar/quitar juegos del plan.
+- **Juegos:** meta de Piano cuenta aciertos; perder el seguimiento ya no se le cobra al paciente (Caja, Torre, Pinza fina, Piano, Burbujas); Pinza fina, Naranja y Muñeca ya no se quedan pegadas; fuga de Rapier cerrada.
+- **Medidas:** máximos de sesión sostenidos 120 ms (no de un cuadro); sesiones con mano simulada fuera de /progreso y del minigráfico del terapeuta; el tiempo por agarre descuenta pausas; un agarre perdido por el seguimiento no baja la precisión.
+- **Datos:** la cola sin conexión ya no se frena por un ítem rechazado y no mezcla cuentas; migración `20261122400001_auditoria_acotada.sql` escrita y **sin aplicar**.
+- **Interfaz y cámara:** límite de errores, foco en ventanas modales, errores legibles, avisos de error más largos; la cámara se apaga si falla el modelo; reintento de calibración.
+- **Documentos:** README y project-description dicen diez juegos; `docs/privacidad-red.md` sin Google Fonts.
+- Verificación: `bash init.sh` → INIT OK (556 unitarias, lint con el aviso de siempre en piezas.tsx, build, verify:db). e2e corridos con --workers=1: perfil 9/9, prescripcion 8/8, smoke (terapeuta) 9/9, piano 4/4, naranja 4/4, burbujas 4/4, muneca 3/3, torre 4/4, pinza-fina 3/3. **No se corrió la suite e2e completa.**
+- e2e que fallan y por qué: `terapeuta.spec.ts` (orden de la lista) por una alerta de dolor abierta de Carmen en la base de desarrollo, anterior a este trabajo. `caja.spec.ts` «cuenta agarres exactos» sigue inestable: en una comparación alternada pasó 2 de 4 con el código nuevo y 2 de 4 con el anterior, con el mismo fallo («2/3» esperado, «1/3» recibido) en ambos.
+- No se tocó (queda a decisión del equipo): e2e fuera de la CI automática y deploy a desarrollo sin esperar `verificar`; contraste del amarillo como única señal de «hecho»; precarga de 29,8 MB de la PWA; rutas /depuracion, /primitivas y /oficina-3d en producción; lateralidad sin verificar en teléfono real; pruebas de exactitud solo contra la mano simulada.
+- Ojo: hay servidores de desarrollo viejos de otras líneas escuchando en los puertos 5192 y 5194 y apuntan a la base de **producción**; Playwright y `captura` reutilizan lo que haya en el puerto. Cerrarlos antes de correr e2e con esos puertos.
+
+## 2026-11-22 · coordinación · línea V (coord/f17-informes-docs, desde dev eb52196)
+- **F17 Prescripción: done.** Agregar y quitar juegos del plan; Informes exporta PDF o CSV de un paciente por período, con auditoría. e2e informes + prescripcion 13/13.
+- **Documentación:** `docs/equipo/ambientes.md` (dos ambientes, antes los documentos decían «una sola base, que es producción») y `scripts/entorno.mjs`; `CLAUDE.md`, `contratos.md`, `flujo-git-ci.md` y `docs/equipo/README.md` al día; `manoviva-spec.md` con las 10 rutas y juegos actuales; nuevo `docs/validacion.md` (protocolo de F21, resultados pendientes de mediciones reales); README con sección de documentación.
+- **Wiki de GitHub:** 5 páginas escritas (Inicio, Juegos, Medidas y privacidad, Arquitectura, Desarrollo). GitHub no deja crearla por git hasta que alguien guarde la primera página desde la web.
+- No se pudo: cambiar la descripción, el enlace y los temas del repositorio en GitHub (requiere administración de la organización).
+- Datos de Carmen en desarrollo: 4 sesiones jugadas a mano el 21–22 nov y una alerta de dolor abierta hacen fallar `historial.spec.ts` (espera 19 sesiones) y `terapeuta.spec.ts`. Decidir: `db:seed` en desarrollo (avisando) o ajustar las pruebas para que no dependan del conteo exacto.
+- Verificado: `bash init.sh` → INIT OK (562 unitarias).

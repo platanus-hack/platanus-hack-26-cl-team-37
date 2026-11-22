@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { CONFIG_AGARRE, GRACIA_SIN_MANO_MS, pasoAgarre, pasoAgarreTolerante, type EstadoAgarre } from '../../metrics/agarre'
 import { JUEGOS } from '../registry'
-import { CAJA, ZONA_JUGUETES, cayoDeLaMesa, dentroDeCaja, distanciaToma, estaQuieto, interiorCaja, posicionesJuguetes, radioPlano, TAM_BASE } from './logica'
+import { CAJA, ZONA_JUGUETES, cayoDeLaMesa, dentroDeCaja, distanciaToma, estaQuieto, interiorCaja, posicionesJuguetes, radioPlano, resultadoSoltar, TAM_BASE } from './logica'
 
 const caja = JUEGOS.find((j) => j.id === 'caja-juguetes')!
 
@@ -58,5 +59,61 @@ describe('Caja de juguetes: reglas puras', () => {
     expect(cayoDeLaMesa({ x: 0, y: 0.1, z: 0 })).toBe(false)
     expect(estaQuieto({ x: 0.01, y: 0, z: 0 }, { x: 0, y: 0.1, z: 0 })).toBe(true)
     expect(estaQuieto({ x: 0.5, y: 0, z: 0 }, { x: 0, y: 0, z: 0 })).toBe(false)
+  })
+})
+
+describe('Caja de juguetes: perder la mano no se le cobra al paciente', () => {
+  /** Corre cuadros de 16 ms con esa apertura (null = no se ve la mano) y junta los cambios. */
+  function correr(e0: EstadoAgarre, apertura: number | null, ms: number, cerca = true) {
+    let e = e0
+    const cambios: { cambio: string; perdida: boolean; t: number }[] = []
+    for (let t = 16; t <= ms; t += 16) {
+      const r = pasoAgarreTolerante(e, apertura, cerca, 16)
+      e = r.estado
+      if (r.cambio) cambios.push({ cambio: r.cambio, perdida: r.perdida, t })
+    }
+    return { e, cambios }
+  }
+  const agarrando = () => correr({ agarrando: false }, 2.0, 16).e
+
+  it('un cuadro (o un hueco corto) sin mano NO suelta el juguete; antes un solo cuadro lo soltaba', () => {
+    expect(agarrando().agarrando).toBe(true)
+    expect(pasoAgarre(agarrando(), null, true).cambio).toBe('fin') // el comportamiento que se le cobraba al paciente
+    const unCuadro = correr(agarrando(), null, 16)
+    expect(unCuadro.cambios).toEqual([])
+    expect(unCuadro.e.agarrando).toBe(true)
+    const hueco = correr(agarrando(), null, GRACIA_SIN_MANO_MS - 32)
+    expect(hueco.cambios).toEqual([])
+    // Vuelve la mano con la pinza cerrada: sigue el mismo agarre, y el hueco no se acumula para el siguiente.
+    const vuelve = correr(hueco.e, 2.0, 160)
+    expect(vuelve.cambios).toEqual([])
+    expect(vuelve.e).toEqual({ agarrando: true })
+    expect(correr(vuelve.e, null, GRACIA_SIN_MANO_MS - 32).cambios).toEqual([])
+  })
+
+  it('pasada la gracia el agarre termina marcado como pérdida (no como un soltar del paciente)', () => {
+    const r = correr(agarrando(), null, 2000)
+    expect(r.cambios).toHaveLength(1)
+    expect(r.cambios[0]).toMatchObject({ cambio: 'fin', perdida: true })
+    expect(r.cambios[0].t).toBeGreaterThanOrEqual(GRACIA_SIN_MANO_MS)
+    expect(r.cambios[0].t).toBeLessThan(GRACIA_SIN_MANO_MS + 32)
+    expect(r.e.agarrando).toBe(false)
+    expect(GRACIA_SIN_MANO_MS).toBeGreaterThanOrEqual(300)
+    expect(GRACIA_SIN_MANO_MS).toBeLessThanOrEqual(400)
+  })
+
+  it('con la mano a la vista se comporta igual que pasoAgarre: abrir la pinza suelta de inmediato y no es pérdida', () => {
+    const abre = pasoAgarreTolerante(agarrando(), CONFIG_AGARRE.umbralAperturaCm + 0.5, true, 16)
+    expect(abre).toMatchObject({ cambio: 'fin', perdida: false, estado: { agarrando: false } })
+    expect(pasoAgarreTolerante({ agarrando: false }, 2.0, true, 16)).toMatchObject({ cambio: 'inicio', perdida: false })
+    expect(pasoAgarreTolerante({ agarrando: false }, 2.0, false, 16).cambio).toBeNull() // sin juguete cerca no toma
+    expect(pasoAgarreTolerante({ agarrando: false }, null, true, 16)).toMatchObject({ cambio: null, perdida: false })
+  })
+
+  it('un juguete soltado por pérdida nunca cuenta como guardado; si cayó en la caja vuelve a su lugar', () => {
+    expect(resultadoSoltar(true, false)).toEqual({ enCaja: true, vuelve: false }) // lo soltó el paciente dentro: cuenta
+    expect(resultadoSoltar(false, false)).toEqual({ enCaja: false, vuelve: false })
+    expect(resultadoSoltar(true, true)).toEqual({ enCaja: false, vuelve: true }) // cayó dentro sin mano: no cuenta
+    expect(resultadoSoltar(false, true)).toEqual({ enCaja: false, vuelve: false })
   })
 })
