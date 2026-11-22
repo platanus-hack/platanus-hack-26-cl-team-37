@@ -387,7 +387,7 @@ export const crearHonda: CrearJuego = () => {
             ? `¡En el blanco! ×${sesion.racha}`
             : CORTO_RESULTADO[resultado.r]
           : fase === 'sostenido'
-            ? '¡Suelta para lanzar!'
+            ? '¡Junta las manos!'
             : fase === 'en-ventana'
               ? `Sostén ${num(Math.max(0, nivel.sostenerS * (1 - prog)), 1)} s`
               : fase === 'pasado'

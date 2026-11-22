@@ -343,6 +343,41 @@ describe('honda: la zona verde y el tiro', () => {
     })
   })
 
+  describe('soltar (segunda prueba real: «no me queda claro cómo soltar»)', () => {
+    it('con el sostén cumplido, el tiro sale apenas la banda empieza a volver', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.85)
+      tramo(s, r, 1300, 0.85)
+      expect(s.fase).toBe('sostenido')
+      // Vuelve despacio: en 0,5 s baja solo hasta 60 % (aún lejos del reposo y de la mitad del pico) y se queda ahí.
+      const vuelta = [...tramo(s, r, 500, 0.85, 0.6), ...tramo(s, r, 250, 0.6)]
+      expect(vuelta.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
+      expect(s.tiros[0].resultado).toBe('acierto')
+    })
+
+    it('bajar las manos fuera de la imagen después de sostener también lanza', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.85)
+      tramo(s, r, 1300, 0.85)
+      const ev: EventoHonda[] = []
+      for (let i = 0; i < 30; i++) ev.push(...s.paso((r.t += 1000 / CPS), null))
+      expect(ev.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
+      expect(s.tiros[0].resultado).toBe('acierto')
+      // Al volver las manos, el siguiente tiro se arma normal.
+      tramo(s, r, 2500, 0)
+      tiro(s, r, 0.85, 1300)
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])
+    })
+
+    it('perder las manos sin haber sostenido no inventa un tiro', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.85)
+      tramo(s, r, 300, 0.85)
+      for (let i = 0; i < 100; i++) s.paso((r.t += 1000 / CPS), null)
+      expect(s.tiros).toHaveLength(0)
+    })
+  })
+
   it('el resumen cuenta aciertos, precisión, carga y tiempo bajo tensión', () => {
     const { s, r } = nueva(2)
     tiro(s, r, 0.65, 1300)
