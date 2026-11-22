@@ -173,7 +173,8 @@ export const crearHonda: CrearJuego = () => {
     ponerBolsa(0)
 
     // Tarjeta del medidor fija a la cámara (misma técnica que Banda elástica y Exprime la naranja).
-    const resolucion = Math.min(1.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)
+    // Lienzo a 2,5× el diseño: la tarjeta crece en pantallas grandes y no debe verse borrosa.
+    const resolucion = 2.5
     lienzo = document.createElement('canvas')
     lienzo.width = Math.round(ANCHO_GUIA * resolucion)
     lienzo.height = Math.round(ALTO_GUIA * resolucion)
@@ -417,7 +418,8 @@ export const crearHonda: CrearJuego = () => {
     const mitadAlto = DIST_GUIA * Math.tan((c.camara.fov * Math.PI) / 360)
     const mitadAncho = mitadAlto * c.camara.aspect
     const porPx = (2 * mitadAlto) / alto
-    const anchoPx = Math.min(ANCHO_GUIA, FRACCION_MAX_GUIA * alto * c.camara.aspect, 0.42 * alto * (ANCHO_GUIA / ALTO_GUIA))
+    // En teléfono mide ANCHO_GUIA; en pantallas más altas crece con la ventana (un tercio del alto) para que se lea de lejos.
+    const anchoPx = Math.min(Math.max(ANCHO_GUIA, 0.34 * alto), FRACCION_MAX_GUIA * alto * c.camara.aspect, 0.42 * alto * (ANCHO_GUIA / ALTO_GUIA))
     const k = anchoPx / ANCHO_GUIA
     const ancho = anchoPx * porPx
     const altoU = ALTO_GUIA * k * porPx

@@ -110,6 +110,19 @@ export class SeguidorBanda {
     this.capturaPedida.cortar()
   }
 
+  /**
+   * Hubo un corte en los cuadros (el juego estuvo en pausa): las ventanas de quietud y el suavizado parten de nuevo,
+   * para que dos muestras a ambos lados de la pausa no cuenten como «quieta todo ese tiempo».
+   */
+  interrumpir() {
+    this.filtro.reiniciar()
+    this.captura.cortar()
+    this.capturaPedida.cortar()
+    this.vigia.cortar()
+    this.vigiaCaida.cortar()
+    this.quietaEstirada.cortar()
+  }
+
   get capturando(): boolean {
     return this.pedido
   }

@@ -146,6 +146,10 @@ export const VARIACION_CERO = 0.1
 export const MS_GRACIA_ZONA = 200
 /** La medida imposible debe durar esto para avisar que el cero quedó mal (ms): un cuadro suelto no basta. */
 const MS_DUDOSO = 300
+/** Sin cuadros durante más que esto hubo una pausa (el juego no llama a `paso` mientras está en pausa), ms. */
+export const MS_PAUSA = 600
+/** Tras una pausa más larga que esto, el tiro que estaba en curso se descarta (ms). */
+const MS_PAUSA_TIRO = 2000
 /** Sobre este estiramiento la medida no es creíble: casi siempre el cero quedó con la banda suelta. */
 export const ESTIRAMIENTO_CREIBLE = 2.2
 const G = 9.80665
@@ -203,6 +207,7 @@ export class SesionHonda {
   racha = 0
   rachaMax = 0
   private dudosoDesde: number | null = null
+  private tPrevio: number | null = null
 
   constructor(curva: CurvaBanda, nivel: Pick<NivelHonda, 'estirar' | 'sostenerS'>) {
     this.curva = curva
@@ -284,6 +289,24 @@ export class SesionHonda {
 
   paso(t: number, largoCrudo: number | null): EventoHonda[] {
     const eventos: EventoHonda[] = []
+    // Pausa (manual, sin manos, pestaña oculta): al volver, ni el cero ni el sostén pueden contar el tiempo detenido.
+    const pausa = this.tPrevio == null ? 0 : t - this.tPrevio
+    this.tPrevio = t
+    if (pausa > MS_PAUSA) {
+      this.seguidor.interrumpir()
+      this.largoPrevio = null
+      this.saltoDesde = null
+      this.dudosoDesde = null
+      if (this.tiro && pausa > MS_PAUSA_TIRO) {
+        this.tiro = null
+        this.suelto = this.seguidor.contador.estirando
+        this.minTrasSoltar = Infinity
+      } else if (this.tiro && !this.tiro.sostuvo) {
+        this.tiro.enZonaDesde = null
+        this.tiro.fueraDesde = null
+        this.tiro.sostenidoMs = 0
+      }
+    }
     const antes = this.seguidor.reposoCm
     const p = this.seguidor.paso(t, this.sinSaltos(t, largoCrudo), this.curva)
     this.ultimo = p

@@ -215,6 +215,35 @@ describe('honda: la zona verde y el tiro', () => {
     expect(s.seguidor.reposoCm!).toBeLessThan(REPOSO * 1.04)
   })
 
+  it('una pausa no cuenta como tiempo quieto ni como tiempo sostenido', () => {
+    // El cero no se marca con dos muestras a los lados de una pausa de 5 s.
+    const a = new SesionHonda(curva, nivelHonda(3))
+    a.paso(1000, REPOSO)
+    a.paso(1033, REPOSO)
+    a.paso(6000, REPOSO)
+    a.paso(6033, REPOSO)
+    expect(a.seguidor.reposoCm).toBeNull()
+    // Sostener 0,3 s, pausa de 1,5 s y 0,3 s más no completa 1 s de sostén; hay que sostenerlo de nuevo.
+    const { s, r } = nueva(3)
+    tramo(s, r, 800, 0, 0.85)
+    tramo(s, r, 300, 0.85)
+    r.t += 1500
+    const tras = tramo(s, r, 400, 0.85)
+    expect(tras.some((e) => e.tipo === 'sostenido')).toBe(false)
+    expect(tramo(s, r, 900, 0.85).some((e) => e.tipo === 'sostenido')).toBe(true)
+    tramo(s, r, 300, 0.85, 0)
+    expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto'])
+    // Tras una pausa larga a mitad de un estirón, ese tiro se descarta y el siguiente cuenta normal.
+    tramo(s, r, 1500, 0)
+    tramo(s, r, 800, 0, 0.85)
+    r.t += 4000
+    tramo(s, r, 300, 0.85, 0)
+    tramo(s, r, 1500, 0)
+    expect(s.tiros).toHaveLength(1)
+    tiro(s, r, 0.85, 1300)
+    expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])
+  })
+
   it('el resumen cuenta aciertos, precisión, carga y tiempo bajo tensión', () => {
     const { s, r } = nueva(2)
     tiro(s, r, 0.65, 1300)
