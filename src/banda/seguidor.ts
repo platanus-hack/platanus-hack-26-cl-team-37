@@ -64,7 +64,7 @@ export interface OpcionesSeguidor {
   bajarSolo?: boolean
   /**
    * Hasta qué estiramiento un largo quieto puede pasar a ser el reposo (por defecto SEGUIR_REPOSO_MAX). Un juego que
-   * pide SOSTENER un estiramiento lo baja, para que el sostén no se tome por reposo nuevo.
+   * pide SOSTENER un estiramiento lo pone bajo ese estiramiento, para que el sostén no se tome por reposo nuevo.
    */
   seguirMax?: number
   /**
@@ -74,13 +74,22 @@ export interface OpcionesSeguidor {
    */
   msCero?: number
   variacionCero?: number
+  /**
+   * Fracción del recorrido desde el pico que debe caer la banda para que un largo quieto sea reposo nuevo (por defecto
+   * CAIDA_REPOSO). Un juego que ya protege su zona de sostén con `seguirMax` puede pedir menos: si el cero quedó con la
+   * banda colgando, volver al reposo real es una caída parcial.
+   */
+  caida?: number
 }
 
 export class SeguidorBanda {
   readonly contador = new ContadorReps()
   reposoCm: number | null = null
   private readonly bajarSolo: boolean
+  /** El último reposo marcado a propósito (el primero o «Poner en cero»): con `bajarSolo` apagado, es el piso. */
+  private piso: number | null = null
   private readonly seguirMax: number
+  private readonly caida: number
   private pedido = false
   private readonly filtro = new FiltroOneEuro(1.2, 0.05)
   private readonly perdida = new ToleranciaPerdida()
@@ -95,7 +104,8 @@ export class SeguidorBanda {
 
   constructor(o: OpcionesSeguidor = {}) {
     this.bajarSolo = o.bajarSolo ?? true
-    this.seguirMax = Math.min(SEGUIR_REPOSO_MAX, o.seguirMax ?? SEGUIR_REPOSO_MAX)
+    this.seguirMax = o.seguirMax ?? SEGUIR_REPOSO_MAX
+    this.caida = o.caida ?? CAIDA_REPOSO
     this.captura = new CapturaReposo(o.msCero ?? MS_REPOSO_AUTO, o.variacionCero)
   }
 
@@ -171,6 +181,7 @@ export class SeguidorBanda {
         // Las repeticiones se cuentan desde el primer reposo; «Poner en cero» a mitad de serie no las borra.
         if (primero) this.contador.reiniciar()
         this.fijar(reposo)
+        this.piso = reposo
         salida.evento = primero ? 'marcado' : 'pedido'
         salida.reposoCm = reposo
       }
@@ -181,10 +192,17 @@ export class SeguidorBanda {
     const estable = this.vigia.agregar(t, largo)
     const estableCorto = this.vigiaCaida.agregar(t, largo)
     const dentro = (cm: number) => cm > reposo && cm <= reposo * (1 + this.seguirMax)
-    const cayo = (cm: number) => this.picoLargo != null && this.picoLargo - cm >= CAIDA_REPOSO * (this.picoLargo - reposo)
-    if (this.bajarSolo && estable != null && !this.contador.estirando && reposoMalMarcado(reposo, estable)) {
+    const cayo = (cm: number) => this.picoLargo != null && this.picoLargo - cm >= this.caida * (this.picoLargo - reposo)
+    const masCorta = estable != null && !this.contador.estirando && reposoMalMarcado(reposo, estable)
+    if (masCorta && this.bajarSolo) {
       // Quieta y más corta que el reposo: se había marcado estirada.
-      this.fijar(estable)
+      this.fijar(estable!)
+      this.piso = Math.min(this.piso ?? estable!, estable!)
+      salida.evento = 'bajado'
+    } else if (masCorta && this.piso != null && reposo > this.piso * 1.001) {
+      // Sin `bajarSolo`: el reposo que subió siguiendo a la banda puede volver a bajar, pero nunca bajo el último cero
+      // marcado a propósito (juntar las manos con la banda suelta no lo baja más que eso).
+      this.fijar(Math.max(estable!, this.piso))
       salida.evento = 'bajado'
     } else if (estableCorto != null && this.contador.estirando && dentro(estableCorto) && cayo(estableCorto)) {
       // Tras una repetición volvió y quedó quieta un poco más larga que antes (la banda resbaló en el puño o las manos no

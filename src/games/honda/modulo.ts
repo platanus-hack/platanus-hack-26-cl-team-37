@@ -304,7 +304,7 @@ export const crearHonda: CrearJuego = () => {
     const kg = sesion.kg
     const fase = sesion.fase
     const prog = sesion.progresoSostener
-    const firma = [sesion.racha, fase, kg == null ? -1 : Math.round(kg * 20), Math.round(prog * 24), resultado?.r ?? '', Math.round(sesion.seguidor.reposoCm == null ? (sesion.ultimo?.progresoReposo ?? 0) * 20 : 99)].join(',')
+    const firma = [sesion.racha, fase, kg == null ? -1 : Math.round(kg * 20), Math.round(prog * 24), resultado?.r ?? '', Math.round(fase === 'reposo' ? (sesion.ultimo?.progresoReposo ?? 0) * 20 : 99)].join(',')
     if (firma === firmaGuia) return
     firmaGuia = firma
     const g = lienzo.getContext('2d')!
@@ -370,7 +370,7 @@ export const crearHonda: CrearJuego = () => {
       g.arc(cx, cy - 18, 25, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * prog)
       g.stroke()
     }
-    const sinReposo = sesion.seguidor.reposoCm == null
+    const sinReposo = fase === 'reposo'
     if (fase === 'sin-manos') {
       texto('—', cx, cy - 17, FUENTE_GRANDE)
       texto('Muestra las dos manos', cx, cy + 32, FUENTE_TEXTO)

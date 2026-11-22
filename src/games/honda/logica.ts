@@ -143,7 +143,14 @@ export const SUELTA = 0.5
 /** Un tiro dura al menos esto en tensión; menos es un salto del seguimiento, no un movimiento de la persona. */
 export const MS_MIN_TIRO = 400
 /** Tras soltar, estirar de nuevo esta fracción de la carga mínima de la zona sobre lo más bajo arma otro tiro. */
-const REARME = 0.25
+const REARME = 0.4
+/** Tras haber llegado a la zona, quedarse bajo ella este tiempo también es soltar (ms): con el cero corto la carga no
+ *  cae a la mitad del pico al volver, y el tiro no salía nunca. */
+export const MS_BAJO_ZONA = 700
+/** El reposo sigue a la banda hasta esta fracción del estiramiento que pide el nivel. */
+const SEGUIR_HASTA = 0.85
+/** Caída desde el pico (fracción del recorrido) que basta para que un largo quieto bajo la zona sea el reposo nuevo. */
+const CAIDA_JUEGO = 0.25
 /** Cambio de largo entre dos cuadros seguidos que una mano no hace (otra mano se coló o una se perdió). */
 export const SALTO_MAX = 0.35
 /** Ventana en la que dos cuadros cuentan como seguidos para SALTO_MAX (ms). */
@@ -187,6 +194,8 @@ interface TiroEnCurso {
   picoE: number
   picoT: number
   enZonaDesde: number | null
+  /** Desde cuándo está bajo la zona después de haber llegado a ella. */
+  bajoDesde: number | null
   /** Desde cuándo está fuera de la zona durante un sostén (para la gracia). */
   fueraDesde: number | null
   sostenidoMs: number
@@ -224,9 +233,11 @@ export class SesionHonda {
     this.curva = curva
     this.zona = zonaDe(nivel, curva)
     this.sostenerS = nivel.sostenerS
-    // El reposo solo baja con el botón, y un largo quieto dentro de la zona (un sostén) nunca se toma por reposo.
+    // Un largo quieto dentro de la zona (un sostén) nunca se toma por reposo.
     // El primer cero pide 1,5 s dentro de 10 %: sostener una banda oscila ±5 % y con el criterio del laboratorio tardaba.
-    this.seguidor = new SeguidorBanda({ bajarSolo: false, seguirMax: 0.6 * nivel.estirar, msCero: MS_CERO, variacionCero: VARIACION_CERO })
+    // Sigue al reposo hasta justo bajo la zona (así un cero marcado con la banda colgando se corrige tras el primer tiro)
+    // y nunca lo baja del último cero marcado a propósito.
+    this.seguidor = new SeguidorBanda({ bajarSolo: false, seguirMax: SEGUIR_HASTA * nivel.estirar, caida: CAIDA_JUEGO, msCero: MS_CERO, variacionCero: VARIACION_CERO })
   }
 
   /** Carga que pide el nivel con esta banda (borde inferior de la zona), kg aprox. */
@@ -237,7 +248,7 @@ export class SesionHonda {
   get fase(): FaseHonda {
     const u = this.ultimo
     if (!u || u.estado === 'perdida' || (u.largoCm == null && u.estado !== 'hueco')) return 'sin-manos'
-    if (u.reposoCm == null) return 'reposo'
+    if (u.reposoCm == null || this.seguidor.capturando) return 'reposo'
     const t = this.tiro
     if (!t) return 'listo'
     if ((u.kg ?? 0) > this.zona.maxKg) return 'pasado'
@@ -269,7 +280,9 @@ export class SesionHonda {
 
   /** La medida pasó de lo creíble: casi siempre el cero quedó con la banda suelta. Se apaga al poner en cero. */
   get ceroDudoso(): boolean {
-    return this.dudoso
+    // También si la banda lleva varios segundos «estirada» y quieta sin haber llegado a la zona: es lo que pasa cuando el
+    // cero quedó con la banda colgando y la persona está en su reposo real.
+    return this.dudoso || (!this.tiro?.avisoZona && (this.ultimo?.sospecha ?? false))
   }
 
   /** «Poner en cero»: el próximo tramo quieto pasa a ser el reposo. */
@@ -303,12 +316,13 @@ export class SesionHonda {
     // Pausa (manual, sin manos, pestaña oculta): al volver, ni el cero ni el sostén pueden contar el tiempo detenido.
     const pausa = this.tPrevio == null ? 0 : t - this.tPrevio
     this.tPrevio = t
-    if (pausa > MS_PAUSA) {
+    // Un reloj que retrocede (una grabación que vuelve a empezar) se trata igual que una pausa larga.
+    if (pausa > MS_PAUSA || pausa < 0) {
       this.seguidor.interrumpir()
       this.largoPrevio = null
       this.saltoDesde = null
       this.dudosoDesde = null
-      if (this.tiro && pausa > MS_PAUSA_TIRO) {
+      if (this.tiro && (pausa > MS_PAUSA_TIRO || pausa < 0)) {
         this.tiro = null
         this.suelto = this.seguidor.contador.estirando
         this.minTrasSoltar = Infinity
@@ -320,6 +334,8 @@ export class SesionHonda {
     }
     const antes = this.seguidor.reposoCm
     const p = this.seguidor.paso(t, this.sinSaltos(t, largoCrudo), this.curva)
+    // Un cuadro sin medida dentro de la tolerancia no cambia lo que se muestra: si no, la carga parpadea a 0.
+    if (p.estado === 'hueco' && this.ultimo) return eventos
     this.ultimo = p
     if (antes == null && p.reposoCm != null) eventos.push({ tipo: 'reposo' })
     if (p.estado === 'hueco') return eventos
@@ -329,7 +345,10 @@ export class SesionHonda {
       return eventos
     }
     if (p.evento) {
-      // El reposo cambió: lo que se venía midiendo era con otro cero.
+      // El reposo cambió: lo que se venía midiendo era con otro cero. Si la banda volvió y quedó quieta tras un tiro que
+      // aún no se había soltado, ese tiro cuenta con lo que alcanzó.
+      const enCurso = this.tiro
+      if (enCurso && p.evento === 'seguido' && t - enCurso.t0 >= MS_MIN_TIRO && enCurso.picoE <= ESTIRAMIENTO_CREIBLE) eventos.push({ tipo: 'tiro', tiro: this.cerrar(enCurso, t, antes ?? 0) })
       this.tiro = null
       this.suelto = false
       return eventos
@@ -346,7 +365,7 @@ export class SesionHonda {
       if (!estirando || p.kg >= this.minTrasSoltar + REARME * minKg) this.suelto = false
     }
     if (!this.tiro && !this.suelto && estirando) {
-      this.tiro = { t0: t, picoKg: 0, picoE: 0, picoT: t, enZonaDesde: null, fueraDesde: null, sostenidoMs: 0, mejorSostenidoMs: 0, avisoZona: false, sostuvo: false, sePaso: false }
+      this.tiro = { t0: t, picoKg: 0, picoE: 0, picoT: t, enZonaDesde: null, bajoDesde: null, fueraDesde: null, sostenidoMs: 0, mejorSostenidoMs: 0, avisoZona: false, sostuvo: false, sePaso: false }
     }
     const tr = this.tiro
     if (!tr) return eventos
@@ -382,7 +401,11 @@ export class SesionHonda {
 
     // Soltar: la carga cayó a la mitad del pico (o la banda ya volvió al reposo). Ahí sale el tiro.
     // Si se pasó, el umbral se mide contra el tope de la zona: así puede volver a la zona y sostener sin que se dispare.
-    if (p.kg <= SUELTA * Math.min(tr.picoKg, maxKg) || !estirando) {
+    // Y tras haber llegado a la zona, quedarse bajo ella un rato también es soltar.
+    if (tr.avisoZona && p.kg < minKg) tr.bajoDesde ??= t
+    else tr.bajoDesde = null
+    const bajoZona = tr.bajoDesde != null && t - tr.bajoDesde >= MS_BAJO_ZONA
+    if (p.kg <= SUELTA * Math.min(tr.picoKg, maxKg) || bajoZona || !estirando) {
       this.tiro = null
       this.suelto = estirando
       this.minTrasSoltar = p.kg
@@ -405,6 +428,8 @@ export class SesionHonda {
       sePaso: tr.sePaso,
     }
     this.tiros.push(tiro)
+    // Un tiro creíble muestra que la medida volvió a tener sentido.
+    this.dudoso = false
     this.racha = tiro.resultado === 'acierto' ? this.racha + 1 : 0
     this.rachaMax = Math.max(this.rachaMax, this.racha)
     return tiro

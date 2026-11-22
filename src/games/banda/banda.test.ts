@@ -206,6 +206,21 @@ describe('deriva del reposo (prueba real: la banda resbala en el puño)', () => 
     expect(s.repeticiones).toBe(1)
   })
 
+  it('si el reposo subió por deriva y la banda vuelve a quedar quieta en su largo, baja de nuevo, pero no bajo el marcado', () => {
+    const s = new SesionBanda(6)
+    correr(s, REPOSO_MS + 200, () => 200)
+    correr(s, 1500, (t) => 200 + tiron(t, 0, 1500, 50))
+    correr(s, REPOSO_MS + 400, () => 216)
+    expect(s.reposoPx).toBeCloseTo(216, 0)
+    // Vuelve a 200 px y queda quieta: el reposo baja a 200.
+    correr(s, REPOSO_MS + 400, () => 200)
+    expect(s.reposoPx).toBeCloseTo(200, 0)
+    // Manos juntas (120 px, banda suelta): no baja más.
+    correr(s, REPOSO_MS + 1000, () => 120)
+    expect(s.reposoPx).toBeCloseTo(200, 0)
+    expect(s.estiramientoPct).toBe(0)
+  })
+
   it('no toca el reposo si la banda vuelve a su largo, ni mientras se sostiene un estiramiento de repetición', () => {
     const s = new SesionBanda(6)
     correr(s, REPOSO_MS + 200, () => 200)

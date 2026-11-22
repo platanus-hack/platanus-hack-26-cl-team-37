@@ -310,6 +310,8 @@ export class SesionBanda {
   private historial: number[] = []
   private escalas: number[] = []
   private corrida = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
+  /** Reposo marcado a propósito (el automático del inicio o el botón): la deriva puede volver hasta aquí, no más abajo. */
+  private reposoBasePx: number | null = null
   /** Ventana de distancia estable con el reposo ya marcado (para seguir su deriva). */
   private deriva = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
   private cargas: number[] = []
@@ -407,7 +409,12 @@ export class SesionBanda {
   private seguirDeriva(px: number, dt: number): EventoBanda | null {
     const vacia = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
     const pct = (px / this.reposoPx! - 1) * 100
-    if (this.detector.abiertoAhora || pct <= DERIVA_MIN_PCT || pct >= this.detector.umbralPct) {
+    // Hacia arriba, entre 3 % y el umbral de una repetición. Hacia abajo, si el reposo ya había subido por deriva y la
+    // banda queda quieta más corta: vuelve, sin pasar bajo el reposo marcado a propósito (las manos juntas con la banda
+    // suelta no cuentan).
+    const sube = pct > DERIVA_MIN_PCT && pct < this.detector.umbralPct
+    const baja = pct < -DERIVA_MIN_PCT && this.reposoBasePx != null && this.reposoPx! > this.reposoBasePx * 1.001
+    if (this.detector.abiertoAhora || (!sube && !baja)) {
       this.deriva = vacia
       return null
     }
@@ -419,7 +426,7 @@ export class SesionBanda {
     d = d.n > 0 && (max - min) / (suma / n) > 2 * REPOSO_TOL ? { min: px, max: px, suma: px, n: 1, ms: 0 } : { min, max, suma, n, ms: d.ms + dt }
     this.deriva = d
     if (d.ms < REPOSO_MS || this.pxPorCm == null) return null
-    const nuevo = d.suma / d.n
+    const nuevo = baja ? Math.max(d.suma / d.n, this.reposoBasePx!) : d.suma / d.n
     this.deriva = vacia
     this.reposoPx = nuevo
     this.reposoCm = nuevo / this.pxPorCm
@@ -451,6 +458,7 @@ export class SesionBanda {
     const escala = mediana(this.escalas)
     if (!(px > 1) || !(escala > 0)) return null
     this.reposoPx = px
+    this.reposoBasePx = px
     this.pxPorCm = escala
     this.deriva = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
     this.reposoCm = px / escala
@@ -465,6 +473,7 @@ export class SesionBanda {
   /** Borra el reposo (se vuelve a esperar uno nuevo). Las repeticiones ya contadas se conservan. */
   borrarReposo() {
     this.reposoPx = this.reposoCm = this.pxPorCm = null
+    this.reposoBasePx = null
     this.estiramientoPct = this.estiramientoCm = this.cargaKg = null
     this.reiniciarCorrida()
     this.detector.descartar()

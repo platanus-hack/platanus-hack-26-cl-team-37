@@ -250,6 +250,99 @@ describe('honda: la zona verde y el tiro', () => {
     expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])
   })
 
+  describe('casos de la revisión independiente del 22-nov-2026', () => {
+    it('con el cero marcado con la banda colgando, el tiro igual sale y el cero se corrige solo', () => {
+      // El cero queda en 30 cm con la banda suelta; la banda recién tensa está a 42 cm (+40 %).
+      const { s, r } = nueva(2)
+      tramo(s, r, 800, 0, 0.7)
+      expect(tramo(s, r, 1300, 0.7).some((e) => e.tipo === 'sostenido')).toBe(true)
+      const vuelta = [...tramo(s, r, 300, 0.7, 0.4), ...tramo(s, r, 3000, 0.4)]
+      expect(vuelta.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
+      expect(s.tiros[0].resultado).toBe('acierto')
+      expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO * 1.4, 0)
+      expect(s.kg).toBe(0)
+      expect(s.fase).toBe('listo')
+    })
+
+    it('si el cero subió porque la persona se detuvo a medio camino, vuelve a bajar hasta el cero marcado', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.6)
+      tramo(s, r, 400, 0.6, 0.3)
+      tramo(s, r, 1500, 0.3)
+      expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO * 1.3, 0)
+      tramo(s, r, 300, 0.3, 0)
+      tramo(s, r, 3500, 0)
+      expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO, 0)
+      const n = s.tiros.length
+      tiro(s, r, 0.85, 1300)
+      expect(s.tiros).toHaveLength(n + 1)
+      expect(s.tiros[n].resultado).toBe('acierto')
+      // Juntar las manos después no lo baja del cero marcado.
+      tramo(s, r, 4000, -0.5)
+      expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO, 0)
+    })
+
+    it('un tiro ya sostenido no se pierde si la banda vuelve a quedar quieta un poco estirada', () => {
+      const { s, r } = nueva(2)
+      tramo(s, r, 800, 0, 0.6)
+      tramo(s, r, 1600, 0.6)
+      tramo(s, r, 300, 0.6, 0.28)
+      tramo(s, r, 2500, 0.28)
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto'])
+      expect(s.aciertos).toBe(1)
+    })
+
+    it('mientras se pone en cero la fase es «reposo», no «listo»', () => {
+      const { s, r } = nueva(3)
+      s.pedirCero()
+      s.paso((r.t += 33), REPOSO)
+      expect(s.fase).toBe('reposo')
+      tramo(s, r, 1000, 0)
+      expect(s.fase).toBe('listo')
+    })
+
+    it('un cuadro perdido a mitad del sostén no hace parpadear la carga a cero', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.85)
+      tramo(s, r, 400, 0.85)
+      const antes = s.kg!
+      s.paso((r.t += 33), null)
+      expect(s.kg).toBe(antes)
+      expect(s.fase).toBe('en-ventana')
+    })
+
+    it('el aviso de cero dudoso se apaga con un tiro creíble', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 600, 0, 2.6)
+      tramo(s, r, 700, 2.6)
+      tramo(s, r, 600, 2.6, 0)
+      tramo(s, r, 1500, 0)
+      expect(s.ceroDudoso).toBe(true)
+      tiro(s, r, 0.85, 1300)
+      expect(s.ceroDudoso).toBe(false)
+    })
+
+    it('volver a quedar un poco estirado y con temblor tras un acierto no inventa un tiro corto', () => {
+      const { s, r } = nueva(1)
+      tramo(s, r, 800, 0, 0.45)
+      tramo(s, r, 900, 0.45)
+      tramo(s, r, 300, 0.45, 0.2)
+      // 3 s oscilando ±6 puntos alrededor de +20 %.
+      for (let i = 0; i < 90; i++) s.paso((r.t += 1000 / CPS), REPOSO * (1.2 + 0.06 * Math.sin(i / 3)))
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto'])
+    })
+
+    it('si el reloj vuelve atrás (una grabación que parte de nuevo), el juego sigue contando bien', () => {
+      const { s, r } = nueva(3)
+      tiro(s, r, 0.85, 1300)
+      r.t = 0
+      tramo(s, r, 2500, 0)
+      tiro(s, r, 0.85, 1300)
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])
+      expect(s.progresoSostener).toBeGreaterThanOrEqual(0)
+    })
+  })
+
   it('el resumen cuenta aciertos, precisión, carga y tiempo bajo tensión', () => {
     const { s, r } = nueva(2)
     tiro(s, r, 0.65, 1300)
