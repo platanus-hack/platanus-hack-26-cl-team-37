@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EventoSesion, Sesion } from '../domain/types'
-import { baseLocal, guardarAlias, hayPendientes } from './colaLocal'
+import { baseLocal, encolar, ESPERA_ENTRE_INTENTOS_MS, fijarProveedorDueno, guardarAlias, hayPendientes, MAX_INTENTOS, vaciarCola, type Pendiente } from './colaLocal'
 import type { Repos } from './repos'
 import { conRespaldoLocal, esIdProvisional, idProvisional } from './sinConexion'
 
@@ -44,6 +44,8 @@ beforeEach(async () => {
   await baseLocal.pendientes.clear()
   await baseLocal.cache.clear()
   await baseLocal.alias.clear()
+  await baseLocal.descartados.clear()
+  fijarProveedorDueno(async () => null)
   enLinea(true)
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -143,5 +145,91 @@ describe('sesión creada sin conexión', () => {
     await baseLocal.pendientes.clear()
     await repos.sesiones.cerrar(PROV)
     expect(r.sesiones.cerrar).toHaveBeenCalledWith(REAL)
+  })
+})
+
+describe('cola: rechazos del servidor y cuentas', () => {
+  const pend = (sesionId: string, creado: number, extra: Partial<Pendiente> = {}): Pendiente => ({ tipo: 'actualizarSesion', sesionId, payload: {}, creado, ...extra })
+  const quedan = async () => (await baseLocal.pendientes.orderBy('creado').toArray()).map((p) => `${p.sesionId}:${p.creado}`)
+
+  it('un ítem rechazado no frena a las demás sesiones y conserva el orden dentro de la suya', async () => {
+    await baseLocal.pendientes.bulkAdd([pend('S-A', 1), pend('S-A', 2), pend('S-B', 3)])
+    const subidos: string[] = []
+    await vaciarCola(async (p) => {
+      if (p.sesionId === 'S-A' && p.creado === 1) throw new Error('sesión cerrada: es inmutable')
+      subidos.push(`${p.sesionId}:${p.creado}`)
+    })
+    // S-A:2 no se sube antes que S-A:1 (orden de la sesión); S-B sí pasa.
+    expect(subidos).toEqual(['S-B:3'])
+    expect(await quedan()).toEqual(['S-A:1', 'S-A:2'])
+    expect((await baseLocal.pendientes.orderBy('creado').first())?.intentos).toBe(1)
+  })
+
+  it('sin red la pasada se corta y no cuenta como rechazo', async () => {
+    await baseLocal.pendientes.bulkAdd([pend('S-A', 1), pend('S-B', 2)])
+    await expect(vaciarCola(async () => Promise.reject(new TypeError('Failed to fetch')))).rejects.toThrow('Failed to fetch')
+    expect(await quedan()).toEqual(['S-A:1', 'S-B:2'])
+    expect((await baseLocal.pendientes.toArray()).every((p) => !p.intentos)).toBe(true)
+  })
+
+  it('tras varios rechazos espaciados el ítem se aparta (no se borra) y la sesión sigue', async () => {
+    await baseLocal.pendientes.bulkAdd([pend('S-A', 1), pend('S-A', 2)])
+    const ejecutar = vi.fn(async (p: Pendiente) => {
+      if (p.creado === 1) throw new Error('violates row-level security policy')
+    })
+    let t = 1_000_000
+    for (let i = 0; i < MAX_INTENTOS; i++) {
+      await vaciarCola(ejecutar, undefined, () => t)
+      // Un reintento inmediato (doble toque en «Reintentar») no gasta otro intento.
+      await vaciarCola(ejecutar, undefined, () => t + 1)
+      t += ESPERA_ENTRE_INTENTOS_MS
+    }
+    expect(await quedan()).toEqual([])
+    const apartados = await baseLocal.descartados.toArray()
+    expect(apartados).toHaveLength(1)
+    expect(apartados[0]).toMatchObject({ sesionId: 'S-A', creado: 1, intentos: MAX_INTENTOS, error: 'violates row-level security policy' })
+  })
+
+  it('solo sube lo de la cuenta abierta; lo de otra cuenta espera y sin cuenta no sube nada', async () => {
+    await baseLocal.pendientes.bulkAdd([pend('S-A', 1, { usuario: 'ana' }), pend('S-B', 2, { usuario: 'beto' }), pend('S-C', 3)])
+    const ejecutar = vi.fn(async () => undefined)
+    await vaciarCola(ejecutar, null)
+    expect(ejecutar).not.toHaveBeenCalled()
+    await vaciarCola(ejecutar, 'beto')
+    // Lo de Beto y lo antiguo sin dueño; lo de Ana queda intacto para cuando vuelva a entrar.
+    expect(await quedan()).toEqual(['S-A:1'])
+    expect((await baseLocal.pendientes.toArray())[0].intentos).toBeUndefined()
+  })
+
+  it('lo encolado queda a nombre de la última cuenta conocida (copia local) o, sin copia, de la sesión abierta', async () => {
+    fijarProveedorDueno(async () => 'ana')
+    await encolar({ tipo: 'eventos', sesionId: 'S-A', payload: [] })
+    await baseLocal.cache.put({ clave: 'usuario', valor: { id: 'beto' } })
+    await encolar({ tipo: 'eventos', sesionId: 'S-B', payload: [] })
+    expect((await baseLocal.pendientes.orderBy('id').toArray()).map((p) => p.usuario)).toEqual(['ana', 'beto'])
+  })
+
+  it('dos llamadas a la vez comparten la misma pasada', async () => {
+    await baseLocal.pendientes.bulkAdd([pend('S-A', 1)])
+    const ejecutar = vi.fn(async () => undefined)
+    const [a, b] = [vaciarCola(ejecutar), vaciarCola(ejecutar)]
+    expect(a).toBe(b)
+    await Promise.all([a, b])
+    expect(ejecutar).toHaveBeenCalledTimes(1)
+  })
+
+  it('entrar con otra cuenta borra la copia local de la anterior', async () => {
+    const { base, r } = baseFalsa()
+    const ana = { id: 'ana', rol: 'paciente', nombre: 'Ana', titulo: null, clinicaId: 'c', demo: true }
+    const beto = { ...ana, id: 'beto', nombre: 'Beto' }
+    r.auth.usuarioActual.mockResolvedValue(ana)
+    const repos = conRespaldoLocal(base, async () => undefined)
+    await repos.auth.usuarioActual()
+    await repos.pacientes.miPaciente() // deja copia de la ficha de Ana
+    ;(r.auth as unknown as { ingresar: unknown }).ingresar = vi.fn(async () => beto)
+    const repos2 = conRespaldoLocal(base, async () => undefined)
+    await repos2.auth.ingresar({ email: 'b@x.cl', password: 'x', rol: 'paciente', codigoClinica: 'CRM-0000' })
+    expect(await baseLocal.cache.get('pacientes.miPaciente')).toBeUndefined()
+    expect((await baseLocal.cache.get('usuario'))?.valor).toEqual(beto)
   })
 })

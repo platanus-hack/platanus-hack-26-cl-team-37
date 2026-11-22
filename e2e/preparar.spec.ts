@@ -43,8 +43,9 @@ async function revisarDefectos(page: Page, it: Item, autor: string | null) {
   await expect(grupoMano(page).getByRole('button', { name: MANO[it.mano] })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByTestId('nivel')).toContainText(`Nivel ${it.nivel}`)
   await expect(page.getByRole('group', { name: 'Dificultad' }).getByRole('button', { name: `Nivel ${it.nivel}` })).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByTestId('duracion')).toHaveText(`${it.duracionMin} minutos`)
-  await expect(page.getByRole('slider', { name: 'Duración en minutos' })).toHaveValue(String(it.duracionMin))
+  const dur = Math.min(5, Math.max(1, it.duracionMin)) // la sesión dura de 1 a 5 min aunque el plan diga más
+  await expect(page.getByTestId('duracion')).toHaveText(`${dur} ${dur === 1 ? 'minuto' : 'minutos'}`)
+  await expect(page.getByRole('slider', { name: 'Duración en minutos' })).toHaveValue(String(dur))
   const meta = page.getByTestId('meta')
   await expect(meta).toContainText(`${it.metaAgarres} agarres`)
   await expect(meta).toContainText(`Pinza ≥ ${cm(it.metaPinzaCm)} cm`)
@@ -76,7 +77,7 @@ test.describe('preparar la sesión', () => {
     v.sinErrores()
   })
 
-  test('controles: mano, nivel, duración con +/− (límites 2–10) y deslizador', async ({ page }) => {
+  test('controles: mano, nivel, duración con +/− (límites 1–5) y deslizador', async ({ page }) => {
     await page.goto('/sesion/caja-juguetes/preparar')
     await grupoMano(page).getByRole('button', { name: 'Derecha' }).click()
     await expect(grupoMano(page).getByRole('button', { name: 'Derecha' })).toHaveAttribute('aria-pressed', 'true')
@@ -88,16 +89,16 @@ test.describe('preparar la sesión', () => {
     const menos = page.getByRole('button', { name: 'Menos un minuto' })
     const mas = page.getByRole('button', { name: 'Más un minuto' })
     const slider = page.getByRole('slider', { name: 'Duración en minutos' })
-    await slider.fill('2')
-    await expect(page.getByTestId('duracion')).toHaveText('2 minutos')
+    await slider.fill('1')
+    await expect(page.getByTestId('duracion')).toHaveText('1 minuto')
     await expect(menos).toBeDisabled()
     await mas.click()
-    await expect(page.getByTestId('duracion')).toHaveText('3 minutos')
-    await slider.fill('10')
-    await expect(page.getByTestId('duracion')).toHaveText('10 minutos')
+    await expect(page.getByTestId('duracion')).toHaveText('2 minutos')
+    await slider.fill('5')
+    await expect(page.getByTestId('duracion')).toHaveText('5 minutos')
     await expect(mas).toBeDisabled()
     await menos.click()
-    await expect(slider).toHaveValue('9')
+    await expect(slider).toHaveValue('4')
   })
 
   test("'Comenzar' crea la Sesion preparada S-AAAAMMDD-NN con parámetros congelados y versión del plan", async ({ page }) => {
@@ -111,8 +112,9 @@ test.describe('preparar la sesión', () => {
       await revisarDefectos(page, caja, d.autor)
       await grupoMano(page).getByRole('button', { name: 'Derecha' }).click()
       await page.getByRole('button', { name: 'Nivel 3' }).click()
-      const duracion = caja.duracionMin < 10 ? caja.duracionMin + 1 : caja.duracionMin - 1
-      await page.getByRole('button', { name: caja.duracionMin < 10 ? 'Más un minuto' : 'Menos un minuto' }).click()
+      const dur = Math.min(5, Math.max(1, caja.duracionMin))
+      const duracion = dur < 5 ? dur + 1 : dur - 1
+      await page.getByRole('button', { name: dur < 5 ? 'Más un minuto' : 'Menos un minuto' }).click()
       await comenzar(page).click()
 
       await expect(page).toHaveURL(/\/sesion\/S-\d{8}-\d{2,}\/calibrar\?fuente=sintetica$/)

@@ -27,7 +27,7 @@ export interface ParametrosNivelBase {
 export type ParametrosNivel = ParametrosNivelBase & Record<string, string | number | boolean>
 
 /** Lo que la meta puede leer: un ítem del plan o los parámetros congelados de la sesión (mismos campos). */
-export type ParametrosMeta = Pick<PlanItem, 'nivel' | 'duracionMin' | 'metaAgarres' | 'metaPinzaCm'>
+export type ParametrosMeta = Pick<PlanItem, 'nivel' | 'duracionMin' | 'metaAgarres' | 'metaPinzaCm'> & Partial<Pick<PlanItem, 'mano'>>
 
 export interface MetaJuego {
   /** Rótulo del contador en la barra superior: "Agarres", "Burbujas", "Toques". */
@@ -78,6 +78,12 @@ export interface HudJuego {
   manos?: Partial<Record<LadoMano, EstadoManoHud>>
   /** Pista dinámica (reemplaza a `pista` del módulo mientras exista). */
   pista?: string
+  /**
+   * Opcional: el juego ya no tiene nada más que ofrecer SIN haber cumplido la meta (p. ej. el Piano resolvió todas sus
+   * notas y no todas fueron aciertos). La base termina la sesión como cuando se acaba el tiempo (motivoFin 'tiempo',
+   * metaCumplida según el contador). Si no se entrega, la sesión termina solo por tiempo, por meta o a mano.
+   */
+  terminado?: boolean
 }
 
 /** Medidas de una mano en el cuadro actual (las calcula la base para la mano de la sesión y las demás). */

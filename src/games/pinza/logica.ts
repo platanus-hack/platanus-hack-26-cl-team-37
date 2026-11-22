@@ -5,6 +5,8 @@
 //   ambos umbrales son proporcionales al largo de mano calibrado. Hay que mantenerlo HOLD_MS (0,3 s) y separar.
 // - Dedo equivocado = `error` (una vez por contacto, sin bloquear nada). Sin tiempo → nada se queda esperando:
 //   al vencer el límite del nivel se registra `no_alcanzado` con la distancia mínima y el juego pasa al dedo siguiente.
+//   Tampoco la espera de "separar" tras un toque: dura a lo más BLOQUEO_MAX_MS (hay manos que no logran separar tanto).
+// - Sin la mano a la vista el reloj del juego no corre (relojPinza): la pérdida de seguimiento no vence el límite.
 // - Secuencias: fija (índice, medio, anular, meñique) o al azar; el nivel 5 se muestra primero y hay que repetirla.
 // - Agregados: tiempo por toque y distancia mínima pulgar–dedo por dedo (la métrica clave cuando aún no alcanza).
 import type { P3 } from '../../metrics/geometria'
@@ -22,6 +24,17 @@ export const HOLD_MS = 300
 export const ERROR_MS = 200
 /** Toques por secuencia (una luz por toque). */
 export const LARGO_SECUENCIA = 4
+/**
+ * Tiempo máximo esperando que el pulgar se separe tras un toque (ms). Un paciente que no logra separar los dedos más
+ * que `sueltaCm` no se queda atascado: pasado este tiempo el juego sigue con el dedo siguiente.
+ */
+export const BLOQUEO_MAX_MS = 4000
+
+/**
+ * Reloj del juego (ms): solo corre con la mano que juega a la vista. Mientras no se ve (hasta que la base pausa, ~2 s)
+ * no vence el límite por toque: al volver la mano no se anota un `no_alcanzado` que el paciente no tuvo cómo evitar.
+ */
+export const relojPinza = (relojMs: number, dtMs: number, hayMano: boolean): number => (hayMano ? relojMs + Math.max(0, dtMs) : relojMs)
 
 export interface NivelPinza {
   nombre: string
@@ -59,6 +72,35 @@ export interface Umbrales {
 export const FRACCION_TOQUE = 0.1
 export const FRACCION_SUELTA = 0.17
 export const LARGO_MANO_POR_DEFECTO_CM = 18
+
+/**
+ * Margen por dedo sobre los umbrales de toque y suelta. Medio y anular llevan 1,5× (≈ 2,7 cm para entrar y 4,6 cm
+ * para soltar con una mano de 18 cm): con la mano de frente el pulgar tapa sus puntas y la cámara estima esa distancia
+ * más larga de lo que es, así que el toque no se reconocía.
+ */
+export const TOLERANCIA_DEDO: Record<DedoPinza, number> = { indice: 1, medio: 1.5, anular: 1.5, menique: 1 }
+
+/** Secuencias completas por mano tras las que termina la sesión, si el plan no fija otra cantidad (metaAgarres). */
+export const SECUENCIAS_POR_MANO = 3
+
+/**
+ * Meta de la sesión en secuencias completas (cada una cuenta al terminar, con o sin todos los toques logrados):
+ * `metaPlan` (o SECUENCIAS_POR_MANO si es 0) por cada mano que juega.
+ */
+export function metaSecuencias(metaPlan: number, mano: string | undefined): number {
+  const porMano = metaPlan > 0 ? Math.round(metaPlan) : SECUENCIAS_POR_MANO
+  return porMano * (mano === 'ambas' ? 2 : 1)
+}
+
+/** Distancias divididas por el margen de cada dedo: comparables directo con los umbrales comunes. */
+export function distanciasEfectivas(d: Distancias): Distancias {
+  return {
+    indice: d.indice / TOLERANCIA_DEDO.indice,
+    medio: d.medio / TOLERANCIA_DEDO.medio,
+    anular: d.anular / TOLERANCIA_DEDO.anular,
+    menique: d.menique / TOLERANCIA_DEDO.menique,
+  }
+}
 
 /** Umbrales proporcionales al largo de mano calibrado (≈ 1,8 y 3,1 cm para una mano de 18 cm). */
 export function umbralesToque(largoManoCm: number | null | undefined): Umbrales {
@@ -125,6 +167,8 @@ export interface EstadoPinza {
   errorContado: boolean
   /** Tras un toque hay que separar antes de contar otro. */
   bloqueado: boolean
+  /** ms de juego en que empezó el bloqueo (para soltarlo a los BLOQUEO_MAX_MS). */
+  bloqueadoDesdeMs: number
 }
 
 export type EventoPinza =
@@ -133,7 +177,7 @@ export type EventoPinza =
   | { tipo: 'no_alcanzado'; dedo: DedoPinza; distMinCm: number; tiempoMs: number }
 
 export function estadoPinzaInicial(): EstadoPinza {
-  return { objetivo: null, tObjetivoMs: 0, distMinCm: Infinity, contacto: null, contactoDesdeMs: 0, errorContado: false, bloqueado: false }
+  return { objetivo: null, tObjetivoMs: 0, distMinCm: Infinity, contacto: null, contactoDesdeMs: 0, errorContado: false, bloqueado: false, bloqueadoDesdeMs: 0 }
 }
 
 /** Pide un dedo nuevo (o ninguno). Conserva el contacto y el bloqueo: si el pulgar sigue pegado, hay que separar primero. */
@@ -150,9 +194,11 @@ export interface ConfigPinza extends Umbrales {
  * Un cuadro. `dist` = distancias del pulgar a cada dedo (null = sin mano: no avanza nada, el tiempo se congela
  * porque la base pausa el juego). Devuelve el estado nuevo y los eventos de este cuadro (a lo más uno).
  */
-export function pasoPinza(e: EstadoPinza, dist: Distancias | null, tMs: number, cfg: ConfigPinza): { estado: EstadoPinza; eventos: EventoPinza[] } {
-  if (!dist) return { estado: e.contacto ? { ...e, contacto: null, errorContado: false } : e, eventos: [] }
+export function pasoPinza(e: EstadoPinza, distReal: Distancias | null, tMs: number, cfg: ConfigPinza): { estado: EstadoPinza; eventos: EventoPinza[] } {
+  if (!distReal) return { estado: e.contacto ? { ...e, contacto: null, errorContado: false } : e, eventos: [] }
   const s = { ...e }
+  // Contacto con las distancias divididas por el margen de cada dedo (TOLERANCIA_DEDO); las métricas, con las reales.
+  const dist = distanciasEfectivas(distReal)
   const cercano = masCercano(dist)
 
   // Contacto con histéresis: entra bajo toqueCm, sale sobre sueltaCm; si otro dedo queda claramente más cerca, cambia.
@@ -168,8 +214,20 @@ export function pasoPinza(e: EstadoPinza, dist: Distancias | null, tMs: number, 
     s.errorContado = false
   }
   if (!s.contacto) s.errorContado = false
-  if (s.bloqueado && cercano.cm > cfg.sueltaCm) s.bloqueado = false
-  if (s.objetivo) s.distMinCm = Math.min(s.distMinCm, dist[s.objetivo])
+  if (s.bloqueado) {
+    if (cercano.cm > cfg.sueltaCm) s.bloqueado = false
+    else if (tMs - s.bloqueadoDesdeMs >= BLOQUEO_MAX_MS) {
+      // No logró separar los dedos: no se queda esperando. Lo que sigue pegado no se cobra como error ni vale como toque
+      // sin mantenerlo de nuevo, y el tiempo del dedo pedido corre desde ahora (bloqueado no se podía tocar).
+      s.bloqueado = false
+      if (s.contacto) {
+        s.contactoDesdeMs = tMs
+        s.errorContado = true
+      }
+      if (s.objetivo) s.tObjetivoMs = tMs
+    }
+  }
+  if (s.objetivo) s.distMinCm = Math.min(s.distMinCm, distReal[s.objetivo])
 
   const eventos: EventoPinza[] = []
   if (s.objetivo && !s.bloqueado) {
@@ -177,6 +235,7 @@ export function pasoPinza(e: EstadoPinza, dist: Distancias | null, tMs: number, 
     if (tocando && tMs - s.contactoDesdeMs >= HOLD_MS) {
       eventos.push({ tipo: 'toque', dedo: s.objetivo, tiempoMs: tMs - s.tObjetivoMs, distMinCm: s.distMinCm })
       s.bloqueado = true
+      s.bloqueadoDesdeMs = tMs
     } else if (s.contacto && !tocando && !s.errorContado && tMs - s.contactoDesdeMs >= ERROR_MS) {
       eventos.push({ tipo: 'error', dedo: s.contacto })
       s.errorContado = true

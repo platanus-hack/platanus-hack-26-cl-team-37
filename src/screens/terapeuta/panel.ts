@@ -1,6 +1,6 @@
 // F16 · Cálculos puros del panel del terapeuta (pacientes, alertas, indicadores). Sin acceso a datos.
 import type { Alerta, Paciente, Plan, Sesion } from '../../domain/types'
-import { adherencia, claveDia, semanaTratamiento } from '../../metrics/sesion'
+import { adherencia, claveDia, esSimulada, semanaTratamiento } from '../../metrics/sesion'
 
 /** Días sin sesiones a partir de los cuales se avisa (configurable en la pestaña Alertas). */
 export const DIAS_SIN_SESION_DEFECTO = 3
@@ -53,10 +53,10 @@ export function diasSinSesion(sesiones: Sesion[], fechaInicio: string, hoy: Date
   return diasCalendario(ultima ? ultima.inicio! : fechaInicio, hoy)
 }
 
-/** Apertura máxima de pinza por sesión cerrada (las últimas `max`), en orden cronológico. */
+/** Apertura máxima de pinza por sesión cerrada (las últimas `max`), en orden cronológico. Sin las de mano simulada (pruebas). */
 export function serieApertura(sesiones: Sesion[], max = PUNTOS_MINIGRAFICO): number[] {
   return cerradas(sesiones)
-    .filter((s) => s.metricas && Number.isFinite(s.metricas.aperturaMaxCm))
+    .filter((s) => s.metricas && Number.isFinite(s.metricas.aperturaMaxCm) && !esSimulada(s))
     .slice(0, max)
     .reverse()
     .map((s) => s.metricas!.aperturaMaxCm)

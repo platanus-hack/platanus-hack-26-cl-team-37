@@ -9,6 +9,8 @@ const juego: Juego = {
   filtros: [],
   descripcionCorta: 'Giro del antebrazo',
   disponible: true,
+  // Oculto del catálogo por ahora (pedido del equipo, 2026-11-21): no se borra.
+  oculto: true,
   usaCamara: true,
   ruta: null,
   miniatura: 'memoria',

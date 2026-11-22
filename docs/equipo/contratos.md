@@ -68,11 +68,12 @@ juegos y sus pruebas en el mismo PR, y avisar a P3 antes. P3 puede proponer camb
 ## 3. Contrato de datos · mantiene P1 (`src/data/`), consumen todos
 
 1. **Las pantallas y juegos usan `repos`** (`src/data/repos.ts`), nunca `supabase` directo. Agregar un método = interfaz en `repos.ts` + implementación en `supabaseRepos.ts`. `repos` está envuelto por `sinConexion.ts` con `...base`, así que un método nuevo pasa solo (y no tiene respaldo sin conexión salvo que se lo agregues).
-2. **Hay UNA sola base de datos y es la de producción.** Lo que apliques en una migración lo ve el sitio publicado al instante.
+2. **Hay dos bases: desarrollo y producción** ([`ambientes.md`](ambientes.md)). Una migración se aplica primero a desarrollo y llega a producción cuando el cambio va a `main`. Producción es lo que se entrega, así que las reglas de abajo siguen valiendo igual.
 3. Reglas de migración:
    - Archivo nuevo en `supabase/migrations/`. **Nunca editar una migración ya aplicada.**
    - Solo **aditivas y compatibles**: tablas, columnas con valor por defecto, funciones nuevas. Nada de `drop`, `rename`, `alter … not null` sobre datos existentes ni cambios de políticas que den más acceso.
-   - Numeración (para no chocar): **P1** `20261122100NNN_…`, **P2** `20261122200NNN_…`, **P3** `20261122300NNN_…`. Aplicar con `supabase db push --include-all`.
+   - Numeración (para no chocar): **P1** `20261122100NNN_…`, **P2** `20261122200NNN_…`, **P3** `20261122300NNN_…`, **coordinación** `20261122400NNN_…`. Aplicar con `supabase db push --include-all` (cómo elegir el ambiente: `ambientes.md` §3).
+   - El PR dice en qué ambientes ya está aplicada.
    - Toda migración se menciona en el PR y la revisa otra persona.
    - Si abandonas un PR con una migración ya aplicada, avisa: la migración se queda igual en `main`.
 4. **Seguridad por filas (RLS):** no se relaja. Una tabla nueva trae sus políticas y su caso en `scripts/verificar-rls.ts`. `npm run verify:db` debe seguir en verde.
@@ -90,12 +91,12 @@ juegos y sus pruebas en el mismo PR, y avisar a P3 antes. P3 puede proponer camb
 
 **Para abrir un PR:** `npm run verify` (tipos, lint, unitarias, build) y los e2e de tu área. La CI corre además todo e2e.
 
-**Estado compartido (importante porque la base es una sola):**
+**Estado compartido (importante porque todo el equipo usa la misma base de desarrollo):**
 - Los e2e que **cierran sesiones o cambian ajustes** usan el paciente de prueba `prueba.demo@example.com`, oculto al terapeuta. Hoy: `csp`, `flujo-paciente`, `historial`, `offline`, `privacidad`, `sensacion` (revisa con `grep -l "prueba" e2e/*.ts`).
   **Dos personas no pueden correrlos a la vez.** Aplica el candado de `flujo-git-ci.md` §6, o deja que corra en la CI (que está serializada).
 - Los e2e de juegos y pantallas crean sesiones reales de pacientes demo que terminan en `/sensacion` sin cerrarse. **Se limpian siempre por id explícito**, nunca por rango de fechas (una limpieza por fecha ya borró la sesión de otra prueba).
 - **Nunca crear versiones de plan, alertas ni auditoría** en Carmen, Luis, Marta ni Jorge desde una prueba. Si necesitas datos de terapeuta, usa un ayudante de `scripts/` que luego los deje como estaban.
-- `npm run db:seed` está prohibido (§ reglas de oro).
+- `npm run db:seed`: solo en desarrollo, y avisando en el chat (reinicia los datos que los demás están usando). En producción, solo coordinación. Antes: `node scripts/entorno.mjs --actual`.
 
 **Pruebas inestables:** con el computador cargado, los e2e de juegos con física o varios workers fallan a veces. Antes de dar un fallo por real:
 rerun solo ese archivo con `--workers=1`. Si pasa, anótalo; no lo marques como `skip`. Un `test.skip` o `fixme` necesita un issue y el visto bueno de P1.

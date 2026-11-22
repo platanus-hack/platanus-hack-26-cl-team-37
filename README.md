@@ -10,11 +10,11 @@
 ## Qué hace
 
 - **La mano es el control.** MediaPipe sigue 21 puntos de la mano con la cámara frontal, en el navegador. Sin guantes ni sensores.
-- **Ocho juegos 3D**, uno por gesto: pinza y agarre, abrir y cerrar, precisión, oposición del pulgar, alcance, cierre de puño, giro del antebrazo e independencia de dedos.
+- **Diez juegos 3D**: pinza y agarre, abrir y cerrar, precisión, oposición del pulgar, alcance, cierre de puño, giro del antebrazo, independencia de dedos, estirar una banda con ambas manos y movilidad de la muñeca.
 - **Cada sesión deja medidas** (repeticiones, precisión, apertura, rango por dedo, suavidad), siempre como estimaciones de cámara.
-- **Vista del terapeuta:** pacientes, alertas e historial de cada uno.
+- **Vista del terapeuta:** pacientes, alertas, historial de cada uno y prescripción del plan (cada cambio crea una versión nueva).
 - **Privacidad:** el video no se guarda ni se envía; solo puntos, eventos y métricas.
-- **Registro verificable:** una sesión cerrada es inmutable y lleva un hash.
+- **Registro verificable:** una sesión cerrada es inmutable en la base de datos y lleva un hash SHA-256 de su contenido, que permite detectar si cambió después.
 
 La cuenta demo trae datos ficticios (la app lo indica). Kuwü no entrega diagnósticos ni reemplaza al terapeuta.
 
@@ -44,6 +44,22 @@ La cámara solo funciona con HTTPS o en `localhost`; para probar en un teléfono
 | `supabase/migrations/` | Esquema, permisos por fila e inmutabilidad |
 | `e2e/` | Pruebas de punta a punta |
 | `docs/` | Especificación (`manoviva-spec.md`) y acuerdos del equipo (`equipo/`) |
+
+## Documentación
+
+La [wiki](https://github.com/platanus-hack/platanus-hack-26-cl-team-37/wiki) es la entrada rápida: qué es, cómo está hecho y por dónde empezar.
+El detalle vive en el repositorio, junto al código:
+
+| Documento | Para qué |
+|---|---|
+| [`docs/manoviva-spec.md`](docs/manoviva-spec.md) | Especificación técnica: stack, rutas, modelo de datos, contrato de juegos, distancia |
+| [`docs/equipo/ambientes.md`](docs/equipo/ambientes.md) | Desarrollo y producción: qué base usa cada cosa y cómo cambiar de ambiente |
+| [`docs/equipo/README.md`](docs/equipo/README.md) | Cómo trabaja el equipo; de ahí salen contratos, flujo de Git y CI, y decisiones |
+| [`docs/validacion.md`](docs/validacion.md) | Qué tan confiables son las medidas y cómo validarlas con regla y goniómetro |
+| [`docs/privacidad-red.md`](docs/privacidad-red.md) | Qué sale del dispositivo y la política de seguridad del sitio |
+| [`docs/telefono.md`](docs/telefono.md) | Probar en un teléfono real |
+| [`brandbook/README.md`](brandbook/README.md) | Colores, tipografía y controles de la interfaz |
+| [`src/games/assets/README.md`](src/games/assets/README.md) | Modelos 3D compartidos de los juegos |
 
 ## Equipo
 

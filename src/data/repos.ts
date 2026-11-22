@@ -28,6 +28,8 @@ export interface PacientesRepo {
   porId(id: string): Promise<Paciente | null>
   deTerapeuta(): Promise<Paciente[]>
   actualizarPrivacidad(compartir: boolean, investigacion: boolean): Promise<void>
+  /** F19: el paciente corrige su largo de mano (cm, medido con regla). Rango 10 a 30; deja auditoría con antes/después. */
+  actualizarLargoMano(cm: number): Promise<void>
   marcarMensajeVisto(version: number): Promise<void>
   eliminarMisDatos(): Promise<void>
 }
@@ -82,6 +84,8 @@ export interface CitasRepo {
 
 export interface PerfilesRepo {
   nombre(id: string): Promise<string | null>
+  /** Nombre de una clínica (F19; los permisos por fila solo dejan ver la propia). */
+  clinica(id: string): Promise<string | null>
 }
 
 export interface Repos {

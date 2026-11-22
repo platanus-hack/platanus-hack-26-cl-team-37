@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { GRACIA_SIN_MANO_MS, pasoAgarreTolerante, type EstadoAgarre } from '../../metrics/agarre'
 import { JUEGOS } from '../registry'
 import { crearTorre } from './modulo'
 import {
+  TORRES_POR_SESION,
   BASE,
   MAX_PISOS,
   NIVELES_TORRE,
@@ -11,6 +13,7 @@ import {
   alturaMinimaSostenido,
   alturaSilueta,
   aperturaAlTomar,
+  colocacionSinMano,
   desvioCm,
   distanciaToma,
   estaQuieto,
@@ -58,12 +61,14 @@ describe('niveles', () => {
     }
     expect(NIVELES_TORRE[4].detalle).not.toContain('pequeños')
   })
-  it('la meta del plan: con metaAgarres 0 es práctica libre (sin meta); con meta, los cubos del nivel', () => {
-    const { desdePlan } = crearTorre().meta
-    const p = { nivel: 3, duracionMin: 5, metaPinzaCm: 0 }
-    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(0)
-    expect(desdePlan({ ...p, metaAgarres: 5 })).toBe(5)
-    expect(desdePlan({ ...p, nivel: 5, metaAgarres: 1 })).toBe(6)
+  it('la meta son torres completas: las del plan, o 2 si el plan no fija (metaAgarres 0)', () => {
+    const { desdePlan, etiqueta } = crearTorre().meta
+    expect(etiqueta).toBe('Torres')
+    const p = { nivel: 3, duracionMin: 5, metaPinzaCm: 0, mano: 'derecha' as const }
+    expect(TORRES_POR_SESION).toBe(2)
+    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(2)
+    expect(desdePlan({ ...p, metaAgarres: 3 })).toBe(3)
+    expect(desdePlan({ ...p, nivel: 5, metaAgarres: 1 })).toBe(1)
   })
   it('los textos no usan las palabras prohibidas', () => {
     const texto = JSON.stringify(NIVELES_TORRE).toLowerCase()
@@ -230,5 +235,36 @@ describe('piso del cubo sostenido (no empujar la torre)', () => {
     const ev = evaluarColocacion({ x: BASE.x, y, z: BASE.z }, k, lado, NIVELES_TORRE[1].toleranciaCm, mesa)
     expect(y).toBeGreaterThanOrEqual(alturaSilueta(k, lado, mesa))
     expect(ev.valida).toBe(true)
+  })
+})
+
+describe('perder la mano no cuenta como colocar', () => {
+  const lado = ladoUnidades(NIVELES_TORRE[1])
+  const tol = NIVELES_TORRE[1].toleranciaCm
+
+  it('un cubo soltado por pérdida de seguimiento sobre la silueta NO queda colocado y vuelve a la mesa', () => {
+    const sobreSilueta = evaluarColocacion({ x: BASE.x, y: alturaSilueta(0, lado), z: BASE.z }, 0, lado, tol)
+    expect(sobreSilueta.valida).toBe(true) // si lo suelta el paciente, cuenta
+    const perdido = colocacionSinMano(sobreSilueta)
+    expect(perdido.valida).toBe(false)
+    expect(perdido.enHuella).toBe(true) // estorba al piso siguiente: vuelve a su lugar
+    expect(perdido.desvioCm).toBe(sobreSilueta.desvioCm) // la medida no se altera
+  })
+  it('si cayó lejos de la torre queda en la mesa donde cayó, sin contar', () => {
+    const lejos = evaluarColocacion({ x: BASE.x + 1.5, y: lado / 2, z: BASE.z }, 0, lado, tol)
+    expect(colocacionSinMano(lejos)).toMatchObject({ valida: false, enHuella: false })
+  })
+  it('un hueco corto sin ver la mano no suelta el cubo; pasada la gracia termina como pérdida', () => {
+    let e: EstadoAgarre = pasoAgarreTolerante({ agarrando: false }, 2.0, true, 16).estado
+    const cambios: boolean[] = []
+    for (let t = 16; t < GRACIA_SIN_MANO_MS; t += 16) {
+      const r = pasoAgarreTolerante(e, null, false, 16)
+      e = r.estado
+      if (r.cambio) cambios.push(r.perdida)
+    }
+    expect(cambios).toEqual([])
+    expect(e.agarrando).toBe(true)
+    const fin = pasoAgarreTolerante({ agarrando: true, sinManoMs: GRACIA_SIN_MANO_MS - 1 }, null, false, 16)
+    expect(fin).toMatchObject({ cambio: 'fin', perdida: true, estado: { agarrando: false } })
   })
 })

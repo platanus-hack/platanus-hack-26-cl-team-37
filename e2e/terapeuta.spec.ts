@@ -6,8 +6,15 @@
 import { execSync } from 'node:child_process'
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
+import { soltarBloqueo, tomarBloqueo } from '../scripts/bloqueo-prueba.ts'
 
 test.describe.configure({ mode: 'serial' })
+// Candado: prescripcion.spec.ts (F17) hace visible un momento al paciente de prueba, y aquí se cuentan 4 pacientes.
+test.beforeAll(async () => {
+  test.setTimeout(300_000)
+  await tomarBloqueo()
+})
+test.afterAll(() => soltarBloqueo())
 
 const fila = (page: Page, nombre: string) => page.getByTestId('fila-paciente').filter({ hasText: nombre })
 const diaSantiago = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' })
@@ -64,9 +71,11 @@ test.describe('Pacientes del terapeuta', () => {
     const mostrada = parseInt((await page.getByTestId('ind-adherencia').textContent())!, 10)
     expect(Math.abs(mostrada - media)).toBeLessThanOrEqual(1)
 
-    // Barra inferior del terapeuta.
+    // Barra del terapeuta: solo Pacientes (Alertas, Planes e Informes están ocultas; sus pantallas siguen por URL).
     const barra = page.getByRole('navigation', { name: 'Navegación del terapeuta' })
-    for (const t of ['Pacientes', 'Alertas', 'Planes', 'Informes']) await expect(barra.getByText(t, { exact: true })).toBeVisible()
+    await expect(barra.getByRole('link')).toHaveCount(1)
+    await expect(barra.getByText('Pacientes', { exact: true })).toBeVisible()
+    for (const t of ['Alertas', 'Planes', 'Informes']) await expect(barra.getByText(t, { exact: true })).toHaveCount(0)
     v.sinErrores()
   })
 
@@ -84,16 +93,18 @@ test.describe('Pacientes del terapeuta', () => {
 
     await fila(page, 'Luis A.').click()
     await expect(page).toHaveURL(/\/terapeuta\/pacientes\/[0-9a-f-]{36}\/plan$/)
-    await expect(page.getByRole('heading', { name: 'Plan del paciente' })).toBeVisible()
+    // F17: la prescripción del plan de ese paciente (su detalle se prueba en prescripcion.spec.ts).
+    await expect(page.getByRole('heading', { level: 1, name: 'Luis A.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Plan semanal' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enviar plan' })).toBeDisabled()
   })
 
-  test('pestañas Alertas, Planes e Informes; días sin sesiones configurables', async ({ page }) => {
+  test('pantallas Alertas, Planes e Informes (sin pestaña, por URL); días sin sesiones configurables', async ({ page }) => {
     const v = vigilarErrores(page)
     await page.goto('/terapeuta/pacientes')
     const barra = page.getByRole('navigation', { name: 'Navegación del terapeuta' })
 
-    await barra.getByText('Alertas', { exact: true }).click()
-    await expect(page).toHaveURL(/\/terapeuta\/alertas$/)
+    await page.goto('/terapeuta/alertas')
     const dolor = page.getByTestId('alerta-dolor')
     await expect(dolor).toHaveCount(1)
     await expect(dolor).toContainText('Luis A.')
@@ -109,13 +120,15 @@ test.describe('Pacientes del terapeuta', () => {
     await expect(page.getByTestId('aviso-inactividad')).toHaveCount(0)
     await expect(page.getByTestId('ind-alertas')).toHaveText('1')
 
-    await barra.getByText('Planes', { exact: true }).click()
+    await page.goto('/terapeuta/planes')
     await expect(page.getByTestId('fila-plan')).toHaveCount(4)
     await expect(page.getByTestId('fila-plan').filter({ hasText: 'Carmen R.' })).toContainText(/Versión \d+ · \d+ días por semana/)
     await expect(page.getByText('Paciente de prueba')).toHaveCount(0)
 
-    await barra.getByText('Informes', { exact: true }).click()
-    await expect(page.getByTestId('aviso-informes')).toContainText('Aún no se pueden exportar informes')
+    await page.goto('/terapeuta/informes')
+    // F17: exportar el período de un paciente (el detalle y la descarga se prueban en informes.spec.ts).
+    await expect(page.getByRole('heading', { name: 'Exportar informe' })).toBeVisible()
+    await expect(page.getByLabel('Paciente', { exact: true })).toHaveValue(/[0-9a-f-]{36}/)
     await expect(page.getByRole('list', { name: 'Pacientes' }).getByRole('listitem')).toHaveCount(4)
     v.sinErrores()
   })

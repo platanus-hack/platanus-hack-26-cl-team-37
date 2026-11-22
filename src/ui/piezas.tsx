@@ -1,5 +1,6 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { mensajeDeError, mensajeLegible } from '../lib/errores'
 import { Icono } from './Icono'
 import { useVista } from './vista'
 import logoHorizontal from '../../brandbook/logos/kuwu-horizontal.svg'
@@ -29,7 +30,7 @@ export function Vacio({ titulo, texto, icono = 'objetivo', accion }: { titulo: s
 }
 
 export function ErrorEstado({ error, reintentar }: { error: unknown; reintentar?: () => void }) {
-  const msg = error instanceof Error ? error.message : String(error)
+  const msg = mensajeDeError(error)
   return (
     <div className="estado" role="alert">
       <div className="icono-estado malo">
@@ -109,13 +110,15 @@ export function BarraPaciente() {
   )
 }
 
-export function BarraTerapeuta({ alertas = 0 }: { alertas?: number }) {
-  const items = [
-    { a: '/terapeuta/pacientes', n: 'Pacientes', i: 'pacientes' },
-    { a: '/terapeuta/alertas', n: 'Alertas', i: 'alerta', punto: alertas > 0 },
-    { a: '/terapeuta/planes', n: 'Planes', i: 'planes' },
-    { a: '/terapeuta/informes', n: 'Informes', i: 'informes' },
-  ]
+/**
+ * Pestañas del terapeuta. Alertas, Planes e Informes están ocultas (2026-11-22, decisión del dueño): sus pantallas siguen en
+ * /terapeuta/alertas, /terapeuta/planes y /terapeuta/informes, pero ninguna pestaña lleva a ellas. Para volver a mostrarlas,
+ * se agregan aquí (Alertas llevaba un punto cuando había alertas abiertas).
+ */
+const PESTANAS_TERAPEUTA = [{ a: '/terapeuta/pacientes', n: 'Pacientes', i: 'pacientes' }]
+
+export function BarraTerapeuta() {
+  const items = PESTANAS_TERAPEUTA
   return (
     <div className="barra-inferior">
       <LogoBarra />
@@ -124,7 +127,6 @@ export function BarraTerapeuta({ alertas = 0 }: { alertas?: number }) {
           <NavLink key={x.a} to={x.a} end={x.a === '/terapeuta/pacientes'}>
             <Icono nombre={x.i} />
             {x.n}
-            {x.punto && <span className="punto" aria-label="hay alertas" />}
           </NavLink>
         ))}
       </nav>
@@ -235,17 +237,63 @@ export function Sparkline({ valores, ancho = 90, alto = 28, color = 'var(--exito
 }
 
 // ---------------------------------------------------------- hoja inferior y diálogo
-export function Hoja({ abierta, onCerrar, children, titulo }: { abierta: boolean; onCerrar: () => void; children: ReactNode; titulo: string }) {
+const ENFOCABLES = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Comportamiento de teclado de una ventana modal (Hoja y Dialogo): al abrir, el foco entra a la ventana (si no lo tomó ya
+ * un campo con autoFocus); Tab y Mayús+Tab no salen de ella; Escape la cierra; al cerrar, el foco vuelve a lo que lo tenía.
+ * Sin esto, quien usa teclado o lector de pantalla seguía navegando por la pantalla de atrás.
+ */
+function useModal(abierta: boolean, onCerrar: () => void, caja: RefObject<HTMLDivElement | null>) {
+  const cerrar = useRef(onCerrar)
+  useEffect(() => {
+    cerrar.current = onCerrar
+  })
   useEffect(() => {
     if (!abierta) return
-    const f = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar()
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [abierta, onCerrar])
+    const antes = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const el = caja.current
+    if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
+    const tecla = (e: KeyboardEvent) => {
+      const dentro = caja.current
+      if (!dentro) return
+      if (e.key === 'Escape') {
+        cerrar.current()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const lista = Array.from(dentro.querySelectorAll<HTMLElement>(ENFOCABLES)).filter((x) => x.getClientRects().length > 0)
+      if (!lista.length) {
+        e.preventDefault()
+        dentro.focus({ preventScroll: true })
+        return
+      }
+      const primero = lista[0]
+      const ultimo = lista[lista.length - 1]
+      const actual = document.activeElement
+      if (e.shiftKey && (actual === primero || actual === dentro || !dentro.contains(actual))) {
+        e.preventDefault()
+        ultimo.focus()
+      } else if (!e.shiftKey && (actual === ultimo || !dentro.contains(actual))) {
+        e.preventDefault()
+        primero.focus()
+      }
+    }
+    window.addEventListener('keydown', tecla)
+    return () => {
+      window.removeEventListener('keydown', tecla)
+      if (antes && document.contains(antes)) antes.focus({ preventScroll: true })
+    }
+  }, [abierta, caja])
+}
+
+export function Hoja({ abierta, onCerrar, children, titulo }: { abierta: boolean; onCerrar: () => void; children: ReactNode; titulo: string }) {
+  const caja = useRef<HTMLDivElement>(null)
+  useModal(abierta, onCerrar, caja)
   if (!abierta) return null
   return (
     <div className="velo" onClick={onCerrar}>
-      <div className="hoja" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
+      <div ref={caja} tabIndex={-1} className="hoja" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
         <div className="asa" />
         {children}
       </div>
@@ -254,10 +302,12 @@ export function Hoja({ abierta, onCerrar, children, titulo }: { abierta: boolean
 }
 
 export function Dialogo({ abierto, onCerrar, children, titulo }: { abierto: boolean; onCerrar: () => void; children: ReactNode; titulo: string }) {
+  const caja = useRef<HTMLDivElement>(null)
+  useModal(abierto, onCerrar, caja)
   if (!abierto) return null
   return (
     <div className="velo centrado" onClick={onCerrar}>
-      <div className="dialogo col" role="alertdialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
+      <div ref={caja} tabIndex={-1} className="dialogo col" role="alertdialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -266,9 +316,13 @@ export function Dialogo({ abierto, onCerrar, children, titulo }: { abierto: bool
 
 // ---------------------------------------------------------- aviso temporal
 let emitir: ((t: { texto: string; error?: boolean }) => void) | null = null
+/** Aviso breve arriba de la pantalla. Con `error`, el texto técnico se cambia por uno legible y el aviso dura más. */
 export function avisar(texto: string, error = false) {
-  emitir?.({ texto, error })
+  emitir?.({ texto: error ? mensajeLegible(texto) : texto, error })
 }
+/** Un aviso normal se va solo en MS_AVISO; uno de error dura más (hay que alcanzar a leerlo). Cualquiera se cierra al tocarlo. */
+const MS_AVISO = 3200
+const MS_AVISO_ERROR = 7000
 export function Avisos() {
   const [aviso, setAviso] = useState<{ texto: string; error?: boolean } | null>(null)
   useEffect(() => {
@@ -279,12 +333,12 @@ export function Avisos() {
   }, [])
   useEffect(() => {
     if (!aviso) return
-    const t = setTimeout(() => setAviso(null), 3200)
+    const t = setTimeout(() => setAviso(null), aviso.error ? MS_AVISO_ERROR : MS_AVISO)
     return () => clearTimeout(t)
   }, [aviso])
   if (!aviso) return null
   return (
-    <div className={`aviso ${aviso.error ? 'error' : ''}`} role="status" aria-live="assertive">
+    <div className={`aviso ${aviso.error ? 'error' : ''}`} role="status" aria-live="assertive" onClick={() => setAviso(null)}>
       {aviso.texto}
     </div>
   )

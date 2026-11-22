@@ -63,6 +63,12 @@ export const QUIETO_ANG = 0.5
 /** Por debajo de esta altura un cubo cayó de la mesa y vuelve a su lugar. */
 export const Y_CAIDA = -1
 
+/** Torres completas tras las que termina la sesión, si el plan no fija otra cantidad (metaAgarres). */
+export const TORRES_POR_SESION = 2
+
+/** Meta de la sesión en torres completas: la del plan, o TORRES_POR_SESION si el plan no fija. */
+export const metaTorres = (metaPlan: number) => (metaPlan > 0 ? Math.round(metaPlan) : TORRES_POR_SESION)
+
 /** Colores de los cubos: los pastel del brandbook. */
 export const COLORES = (['rojo', 'amarillo', 'azul', 'menta'] as const).map(kuwuNum)
 
@@ -114,6 +120,14 @@ export function evaluarColocacion(p: V3, piso: number, lado: number, toleranciaC
   const valida = d <= toleranciaCm && Math.abs(dy) <= 0.4
   const enHuella = cm(Math.hypot(p.x - base.x, p.z - base.z)) <= lado / U_POR_CM * 1.15 && p.y > alturaMesa + BASE.grosor - 0.05
   return { desvioCm: d, dy: +dy.toFixed(2), valida, enHuella }
+}
+
+/**
+ * Colocación de un cubo que NO soltó el paciente: el agarre terminó porque se dejó de ver la mano (pérdida de
+ * seguimiento). Nunca cuenta como colocado; si quedó sobre la torre estorba al piso siguiente, así que vuelve a la mesa.
+ */
+export function colocacionSinMano(ev: Colocacion): Colocacion {
+  return { ...ev, valida: false, enHuella: ev.enHuella || ev.valida }
 }
 
 export interface CuboColocado {

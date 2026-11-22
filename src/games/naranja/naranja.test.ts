@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { JUEGOS } from '../registry'
 import {
   AgregadoNaranja,
+  ESPERA_PASO_MS,
   HISTERESIS_PCT,
   INICIO_CIERRE_PCT,
   NARANJA_MS,
   NIVELES_NARANJA,
+  REPETICIONES_VASO,
   cierreDeApertura,
   cortarRepeticion,
   estadoNaranjaInicial,
@@ -13,6 +15,7 @@ import {
   pasoNaranja,
   progresoSostener,
   ritmoRepeticiones,
+  type DondeMano,
   type EstadoNaranja,
   type EventoNaranja,
 } from './logica'
@@ -38,6 +41,41 @@ function correr(n = N1, tramos: [number | null, number][], inicio: EstadoNaranja
   }
   return { estado, eventos, tipos: eventos.map((e) => e.tipo) }
 }
+
+describe('dónde está la mano', () => {
+  /** Como correr(), pero con la posición de la palma en cada tramo. */
+  function correrEn(tramos: [number, number, DondeMano][]) {
+    let estado = estadoNaranjaInicial()
+    const eventos: EventoNaranja[] = []
+    for (const [c, ms, donde] of tramos)
+      for (let t = 0; t < ms; t += 50) {
+        const r = pasoNaranja(estado, c, 50, N1, donde)
+        estado = r.estado
+        eventos.push(...r.eventos)
+      }
+    return { estado, tipos: eventos.map((e) => e.tipo) }
+  }
+
+  it('la naranja se toma solo con la mano abierta sobre la fuente', () => {
+    expect(correrEn([[0, NARANJA_MS + 200, 'vaso']]).tipos).toEqual([])
+    expect(correrEn([[0, NARANJA_MS + 200, 'otro']]).tipos).toEqual([])
+    expect(correrEn([[0, NARANJA_MS + 200, 'fuente']]).tipos).toEqual(['naranja'])
+  })
+
+  it('con la naranja, exprimir solo avanza sobre el vaso: lejos del vaso queda en pausa', () => {
+    // Toma la naranja, cierra el puño camino al vaso (no cuenta) y recién sobre el vaso pasa el umbral y sostiene.
+    let r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 2000, 'otro']])
+    expect(r.estado.paso).toBe(2)
+    expect(r.tipos).toEqual(['naranja'])
+    r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 500, 'otro'], [90, N1.sostenerMs + 300, 'vaso'], [0, 200, 'vaso']])
+    expect(r.tipos).toEqual(['naranja', 'cierre_inicio', 'umbral_alcanzado', 'sostenido_completo', 'apertura_completa'])
+  })
+
+  it('abrir la mano lejos del vaso no la deja incompleta (sigue en pausa)', () => {
+    const r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 300, 'vaso'], [0, 500, 'otro']])
+    expect(r.tipos).not.toContain('repeticion_incompleta')
+  })
+})
 
 describe('niveles', () => {
   it('1, 3 y 5 siguen el prompt J4 (60 %/1 s, 75 %/3 s, 90 %/5 s) y el 2 y el 4 quedan entre medio', () => {
@@ -206,6 +244,59 @@ describe('repetición de cuatro pasos', () => {
     expect((r.eventos.at(-1) as { sostenidoMs: number }).sostenidoMs).toBe(N1.sostenerMs)
   })
 
+  it('paso 2: empezó a cerrar y no llega al umbral ni vuelve a abrir → a los ESPERA_PASO_MS queda incompleta y sigue', () => {
+    // 50 %: sobre el inicio (30 %), bajo el umbral (75 %) y sin poder volver a ≤ 15 %.
+    const casi = correr(N3, [[0, 400], [50, ESPERA_PASO_MS - 50]])
+    expect(casi.tipos).toEqual(['naranja', 'cierre_inicio'])
+    expect(casi.estado.paso).toBe(2)
+    const r = correr(N3, [[50, 100]], casi.estado)
+    expect(r.eventos).toEqual([{ tipo: 'repeticion_incompleta', paso: 2, cierreMaxPct: 50, sostenidoMs: 0 }])
+    expect(r.estado).toEqual(estadoNaranjaInicial()) // empieza la siguiente
+    // Con la naranja en la mano y SIN haber empezado a cerrar no hay repetición abierta: descansar no se cobra.
+    const descansa = correr(N3, [[0, 400], [20, ESPERA_PASO_MS * 3]])
+    expect(descansa.tipos).toEqual(['naranja'])
+    expect(descansa.estado.paso).toBe(2)
+  })
+
+  it('paso 4: no logra abrir por completo → a los ESPERA_PASO_MS queda incompleta en el paso 4, con lo que alcanzó', () => {
+    const hasta4: [number, number][] = [[0, 400], [100, 100], [100, 1200]]
+    // Abre hasta el 40 % de cierre (nivel 1 pide ≤ 25 %) y no puede más.
+    const casi = correr(N1, [...hasta4, [40, ESPERA_PASO_MS - 500]])
+    expect(casi.estado.paso).toBe(4)
+    expect(casi.tipos.at(-1)).toBe('sostenido_completo')
+    const r = correr(N1, [[40, 600]], casi.estado)
+    expect(r.eventos).toEqual([{ tipo: 'repeticion_incompleta', paso: 4, cierreMaxPct: 100, sostenidoMs: N1.sostenerMs }])
+    expect(r.estado.paso).toBe(1)
+    // Tampoco se queda para siempre con el puño cerrado sin abrir.
+    const puno = correr(N1, [...hasta4, [100, ESPERA_PASO_MS + 500]])
+    expect(puno.tipos.at(-1)).toBe('repeticion_incompleta')
+    expect((puno.eventos.at(-1) as { paso: number }).paso).toBe(4)
+    // La incompleta entra en las métricas (cierre máximo y fallo en el paso 4).
+    const ag = new AgregadoNaranja()
+    for (const ev of r.eventos) ag.evento(ev, 0)
+    expect(ag.resumen()).toMatchObject({ incompletas: 1, falloPaso4: 1, cierreMax: 100 })
+  })
+
+  it('la espera máxima no corre sin mano y no cambia nada para quien completa el movimiento a su ritmo', () => {
+    const hasta4: [number, number][] = [[0, 400], [100, 100], [100, 1200]]
+    // Paso 4, casi al límite, y se pierde la mano un buen rato: al volver sigue en el paso 4 y puede terminar.
+    const casi = correr(N1, [...hasta4, [40, ESPERA_PASO_MS - 1000]])
+    const sinMano = correr(N1, [[null, 60_000]], casi.estado)
+    expect(sinMano.eventos).toEqual([])
+    expect(sinMano.estado.paso).toBe(4)
+    expect(correr(N1, [[0, 300]], sinMano.estado).tipos).toEqual(['apertura_completa'])
+    // Lento pero completo (10 s para llegar al umbral, 10 s para abrir): repetición válida, sin incompletas.
+    const lento = correr(N1, [[0, 400], [45, 10_000], [100, 1200], [100, 4000], [40, 6000], [0, 300]])
+    expect(lento.tipos).toEqual(['naranja', 'cierre_inicio', 'umbral_alcanzado', 'sostenido_completo', 'apertura_completa'])
+  })
+
+  it('una repetición abierta al terminar la sesión se cierra como incompleta (cortarRepeticion) y no se pierde', () => {
+    const en3 = correr(N3, [[0, 400], [90, 1000]])
+    const ag = new AgregadoNaranja()
+    for (const ev of cortarRepeticion(en3.estado)) ag.evento(ev, 0)
+    expect(ag.resumen()).toMatchObject({ repeticiones: 0, incompletas: 1, falloPaso3: 1, cierreMax: 90, tiempoSostenido: 1 })
+  })
+
   it('varias repeticiones seguidas: solo cuentan las válidas', () => {
     const buena: [number, number][] = [[0, 400], [100, 100], [100, 1200], [0, 300]]
     const mala: [number, number][] = [[0, 400], [100, 100], [100, 300], [0, 300]] // suelta a los 0,3 s
@@ -258,8 +349,14 @@ describe('registro', () => {
     const m = crearNaranja()
     const f = m.metricasVivo.find((x) => x.id === 'sostenido')!.formula
     expect(f).toContain('umbral − 10')
-    expect(m.meta.etiqueta).toBe('Cierres')
-    expect(m.meta.unidad).toBe('cierres')
+    expect(m.meta.etiqueta).toBe('Naranjas')
+    expect(m.meta.unidad).toBe('naranjas')
+  })
+  it('la meta es llenar el vaso: las repeticiones del plan, o REPETICIONES_VASO si el plan no fija', () => {
+    const { desdePlan } = crearNaranja().meta
+    const p = { nivel: 1, duracionMin: 5, metaPinzaCm: 0 }
+    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(REPETICIONES_VASO)
+    expect(desdePlan({ ...p, metaAgarres: 6 })).toBe(6)
   })
   it('Exprime la naranja declara sus 5 niveles con el texto del módulo', () => {
     const j = JUEGOS.find((x) => x.id === 'exprime-naranja')!

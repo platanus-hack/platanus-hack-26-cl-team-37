@@ -1,12 +1,16 @@
 // Exprime la naranja (F25, J4): reglas puras, con pruebas en naranja.test.ts.
 //
 // Cada repetición tiene cuatro pasos guiados:
-//   1. Mano abierta sobre el vaso → aparece la naranja en la mano.
+//   1. Mano abierta sobre la fuente → se toma una naranja (aparece en la mano).
 //   2. Cerrar el puño hasta pasar el umbral del nivel.
 //   3. Sostener el puño N segundos (una barra muestra el avance y caen gotas).
 //   4. Abrir la mano por completo → sube el nivel del vaso.
+// Los pasos 2 a 4 solo avanzan con la mano sobre el vaso (en otro lado quedan en pausa: se lleva la naranja).
+// La sesión termina al llenar el vaso: REPETICIONES_VASO repeticiones válidas (o las del plan).
 // La repetición solo cuenta si se cumplen los cuatro pasos. Si se suelta antes, queda anotada como incompleta con el
-// paso en que falló (repeticion_incompleta { paso }).
+// paso en que falló (repeticion_incompleta { paso }). Ningún paso espera para siempre: si tras empezar a cerrar no se
+// llega al umbral (paso 2), o tras sostener no se logra abrir por completo (paso 4), a los ESPERA_PASO_MS la repetición
+// se cierra como incompleta en ese paso y empieza la siguiente.
 //
 // Cierre de puño en % (0..100): 0 % = mano abierta de la calibración, 100 % = su puño (1 − apertura calibrada, donde la
 // apertura es la distancia de las yemas al centro de la palma normalizada por el largo de la mano). La cámara no mide
@@ -15,7 +19,7 @@
 export type PasoNaranja = 1 | 2 | 3 | 4
 
 export const NOMBRE_PASO: Record<PasoNaranja, string> = {
-  1: 'abrir sobre el vaso',
+  1: 'tomar una naranja de la fuente',
   2: 'cerrar el puño',
   3: 'sostener el puño',
   4: 'abrir por completo',
@@ -49,12 +53,27 @@ export function nivelNaranja(n: number): NivelNaranja {
   return NIVELES_NARANJA[k]
 }
 
+/** Repeticiones válidas que llenan el vaso (y terminan la sesión) si el plan no fija otra cantidad (metaAgarres). */
+export const REPETICIONES_VASO = 4
+
+/** Meta de la sesión: repeticiones para llenar el vaso (las del plan, o REPETICIONES_VASO). */
+export const metaVaso = (metaPlan: number) => (metaPlan > 0 ? Math.round(metaPlan) : REPETICIONES_VASO)
+
+/** Dónde está la palma: sobre la fuente de naranjas, sobre el vaso o en otro lado. */
+export type DondeMano = 'fuente' | 'vaso' | 'otro'
+
 /** Tiempo con la mano abierta para que aparezca la naranja (evita parpadeos). */
 export const NARANJA_MS = 350
 /** Cierre (%) a partir del cual se considera que empezó a cerrar el puño (evento cierre_inicio). */
 export const INICIO_CIERRE_PCT = 30
 /** Margen bajo el umbral con el que se sigue "sosteniendo" (temblor de la mano y del seguimiento). */
 export const HISTERESIS_PCT = 10
+
+/**
+ * Tiempo máximo (ms, con la mano a la vista) en el paso 2 desde que empezó a cerrar, y en el paso 4 desde que completó
+ * el sostén. Holgado para una mano con poca movilidad; quien completa el movimiento nunca lo alcanza.
+ */
+export const ESPERA_PASO_MS = 15_000
 
 export const soltarPct = (n: Pick<NivelNaranja, 'umbral'>) => n.umbral - HISTERESIS_PCT
 
@@ -75,9 +94,11 @@ export interface EstadoNaranja {
   abriendo: boolean
   /** Paso 4: mejor apertura (%) vista al abrir. */
   aperturaMax: number
+  /** Ms (con la mano a la vista) esperando en el paso 2 desde cierre_inicio, o en el paso 4 (ver ESPERA_PASO_MS). */
+  esperaMs: number
 }
 
-export const estadoNaranjaInicial = (): EstadoNaranja => ({ paso: 1, abiertaMs: 0, iniciada: false, cierreMax: 0, sostenidoMs: 0, abriendo: false, aperturaMax: 0 })
+export const estadoNaranjaInicial = (): EstadoNaranja => ({ paso: 1, abiertaMs: 0, iniciada: false, cierreMax: 0, sostenidoMs: 0, abriendo: false, aperturaMax: 0, esperaMs: 0 })
 
 export type EventoNaranja =
   | { tipo: 'naranja' }
@@ -91,10 +112,14 @@ const r1 = (x: number) => Math.round(x * 10) / 10
 
 /**
  * Un cuadro. `cierre` = cierre de puño en % (null = no se ve la mano: el paso queda como está) y `dtMs` = ms de
- * juego desde el cuadro anterior. Devuelve el estado nuevo y los eventos de este cuadro (a lo más unos pocos).
+ * juego desde el cuadro anterior. `donde`: el paso 1 solo avanza sobre la fuente y los pasos 2 a 4 solo sobre el vaso
+ * (en otro lado quedan en pausa); sin `donde` no se mira la posición. Devuelve el estado nuevo y los eventos de este
+ * cuadro (a lo más unos pocos).
  */
-export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: number, n: Pick<NivelNaranja, 'umbral' | 'sostenerMs' | 'abiertaPct'>): { estado: EstadoNaranja; eventos: EventoNaranja[] } {
+export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: number, n: Pick<NivelNaranja, 'umbral' | 'sostenerMs' | 'abiertaPct'>, donde?: DondeMano): { estado: EstadoNaranja; eventos: EventoNaranja[] } {
   if (cierre == null) return { estado: s, eventos: [] }
+  if (donde && s.paso === 1 && donde !== 'fuente') return { estado: s.abiertaMs ? { ...s, abiertaMs: 0 } : s, eventos: [] }
+  if (donde && s.paso > 1 && donde !== 'vaso') return { estado: s, eventos: [] }
   const e: EstadoNaranja = { ...s }
   const eventos: EventoNaranja[] = []
   const suelta = soltarPct(n)
@@ -122,10 +147,16 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
       eventos.push({ tipo: 'umbral_alcanzado', cierrePct: r1(cierre), umbralPct: n.umbral })
       e.paso = 3
       e.sostenidoMs = 0
+      e.esperaMs = 0
       return { estado: e, eventos }
     }
     // Empezó a cerrar y volvió a abrir sin pasar el umbral: falla el paso 2.
     if (e.iniciada && cierre <= n.abiertaPct) return { estado: fallo(2), eventos }
+    // Empezó a cerrar y no llega al umbral ni logra volver a abrir: no se queda esperando para siempre.
+    if (e.iniciada) {
+      e.esperaMs += dtMs
+      if (e.esperaMs >= ESPERA_PASO_MS) return { estado: fallo(2), eventos }
+    }
     return { estado: e, eventos }
   }
 
@@ -140,30 +171,35 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
       e.paso = 4
       e.abriendo = false
       e.aperturaMax = 0
+      e.esperaMs = 0
     }
     return { estado: e, eventos }
   }
 
   // Paso 4: abrir por completo.
   e.cierreMax = Math.max(e.cierreMax, cierre)
+  e.esperaMs += dtMs
   if (cierre >= suelta) {
     // Sigue con el puño: el tiempo sostenido ya no suma (quedó fijo al completar el paso 3). Si ya había empezado a
     // abrir y vuelve a cerrar, falla.
     if (e.abriendo && cierre >= n.umbral) return { estado: fallo(4), eventos }
-    return { estado: e, eventos }
+  } else {
+    e.abriendo = true
+    e.aperturaMax = Math.max(e.aperturaMax, 100 - cierre)
+    if (cierre <= n.abiertaPct) {
+      eventos.push({ tipo: 'apertura_completa', aperturaPct: r1(e.aperturaMax), cierreMaxPct: r1(e.cierreMax), sostenidoMs: Math.round(e.sostenidoMs) })
+      return { estado: { ...estadoNaranjaInicial() }, eventos }
+    }
   }
-  e.abriendo = true
-  e.aperturaMax = Math.max(e.aperturaMax, 100 - cierre)
-  if (cierre <= n.abiertaPct) {
-    eventos.push({ tipo: 'apertura_completa', aperturaPct: r1(e.aperturaMax), cierreMaxPct: r1(e.cierreMax), sostenidoMs: Math.round(e.sostenidoMs) })
-    return { estado: { ...estadoNaranjaInicial() }, eventos }
-  }
+  // No logra abrir por completo: la repetición se cierra como incompleta en el paso 4 y empieza la siguiente.
+  if (e.esperaMs >= ESPERA_PASO_MS) return { estado: fallo(4), eventos }
   return { estado: e, eventos }
 }
 
 /**
- * "Reiniciar" a mitad de una repetición: la deja anotada como incompleta con el paso en que estaba, para que no queden
- * cierre_inicio / umbral_alcanzado sin cerrar. En el paso 1 (o en el 2 sin haber empezado a cerrar) no hay nada abierto.
+ * "Reiniciar" a mitad de una repetición, o el fin de la sesión: la deja anotada como incompleta con el paso en que
+ * estaba, para que no queden cierre_inicio / umbral_alcanzado sin cerrar ni se pierda lo que alcanzó (cierre máximo,
+ * tiempo sostenido). En el paso 1 (o en el 2 sin haber empezado a cerrar) no hay nada abierto.
  */
 export function cortarRepeticion(s: EstadoNaranja): EventoNaranja[] {
   if (s.paso === 1 || (s.paso === 2 && !s.iniciada)) return []
@@ -178,7 +214,7 @@ export function progresoSostener(s: EstadoNaranja, n: Pick<NivelNaranja, 'sosten
 }
 
 export const PISTAS_PASO: Record<PasoNaranja, string> = {
-  1: 'Abre la mano sobre el vaso',
+  1: 'Lleva la mano abierta a la fuente para tomar una naranja',
   2: 'Cierra el puño hasta pasar la marca',
   3: 'Sostén el puño',
   4: 'Abre la mano por completo',

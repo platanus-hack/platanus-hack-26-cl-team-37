@@ -6,7 +6,7 @@
 //   2/2, "¡Meta cumplida!", /sensacion; eventos, métricas y muestras guardados. Mide el fps.
 //   Con CAPTURA_NARANJA=1 guarda docs/capturas/exprime-naranja.png (sosteniendo, con gotas) y exprime-naranja-meta.png.
 // - Sesión REAL, mano IZQUIERDA, nivel 2 (68 %, 2 s), meta 1: repetición válida con la mano izquierda.
-// - Sesión falsa, sin meta, nivel 5 (90 %, 5 s): llegar a 80 % no pasa el umbral; soltar a la mitad = incompleta con el
+// - Sesión falsa, sin meta en el plan (vaso de 4 naranjas), nivel 5 (90 %, 5 s): llegar a 80 % no pasa el umbral; soltar a la mitad = incompleta con el
 //   paso, y Terminar guarda esas métricas.
 // - Ningún texto del juego (código ni pantalla) dice lo que la cámara no mide.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -31,6 +31,8 @@ type Estado = {
   ultimoFallo: number | null
   nivelVaso: number
   gotas: number
+  donde: 'fuente' | 'vaso' | 'otro'
+  xImagen: { fuente: number; vaso: number }
 }
 const SIN_FPS = '[data-testid=fps] { display: none !important }'
 // Las palabras que la cámara no puede respaldar (fuerza, presión, apretar/apretones/apretando): se arman por partes
@@ -43,11 +45,15 @@ const esperarPaso = (p: Page, paso: number, timeout = 5_000) => expect.poll(asyn
 const ABIERTA = { apertura: 1 }
 const PUNO = { apertura: 0 }
 
-/** Mano abierta hasta que aparece la naranja (paso 2). */
+/** Mano abierta sobre la fuente hasta tomar una naranja (paso 2); después vuelve sobre el vaso (pose de reposo). */
 async function abrirYEsperarNaranja(p: Page, lado = 'derecha') {
-  await poner(p, ABIERTA, lado)
+  const { xImagen } = await estado(p)
+  await poner(p, { ...ABIERTA, x: xImagen.fuente }, lado)
+  await expect.poll(async () => (await estado(p)).donde, { timeout: 3_000 }).toBe('fuente')
   await esperarPaso(p, 2)
   expect((await estado(p)).naranja).toBe(true)
+  await poner(p, ABIERTA, lado)
+  await expect.poll(async () => (await estado(p)).donde, { timeout: 3_000 }).toBe('vaso')
 }
 /** Repetición válida: naranja → puño → sostener hasta el paso 4 → abrir por completo. */
 async function repeticionValida(p: Page, lado = 'derecha') {
@@ -83,14 +89,14 @@ test.describe('Exprime la naranja', () => {
       await expect(page.getByText('Cierre de puño')).toBeVisible()
       await expect(page.getByText('Tiempo sostenido')).toBeVisible()
       await expect(page.getByText('Apertura completa')).toBeVisible()
-      await expect(page.getByText('Cierres')).toBeVisible()
+      await expect(page.getByText('Naranjas')).toBeVisible()
       await expect(page.getByTestId('contador')).toHaveText('0/2')
       await expect(page.getByTestId('mano-derecha')).toContainText('Abierta')
       await expect(page.getByTestId('vivo-cierre')).toContainText('%')
 
       const e0 = await estado(page)
       expect(e0).toMatchObject({ meta: 2, lado: 'derecha', umbral: 75, sostenerMs: 3000, contador: 0 })
-      // Paso 1: mano abierta → aparece la naranja (la mano sintética parte abierta).
+      // Paso 1: mano abierta sobre la fuente → se toma una naranja; después se vuelve sobre el vaso.
       await abrirYEsperarNaranja(page)
       await expect(page.getByTestId('pista')).toContainText('Cierra el puño hasta el 75 %')
 
@@ -238,14 +244,14 @@ test.describe('Exprime la naranja', () => {
     }
   })
 
-  test('nivel 5 (90 %, 5 s) sin meta: a 80 % no se pasa el umbral; soltar a medias es incompleta con el paso; Terminar guarda', async ({ page }) => {
+  test('nivel 5 (90 %, 5 s) sin meta en el plan (vaso de 4): a 80 % no se pasa el umbral; soltar a medias es incompleta con el paso; Terminar guarda', async ({ page }) => {
     test.setTimeout(90_000)
     const escrituras = await sesionFalsa(page, 'exprime-naranja', 5, 0, 5)
     await page.setViewportSize(HORIZONTAL)
     await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
     await expect(page.getByRole('heading', { level: 1, name: 'Exprime la naranja' })).toBeVisible({ timeout: 15_000 })
     await esperarFase(page, 'jugando', 15_000)
-    expect(await estado(page)).toMatchObject({ umbral: 90, sostenerMs: 5000, meta: 0 })
+    expect(await estado(page)).toMatchObject({ umbral: 90, sostenerMs: 5000, meta: 4 }) // REPETICIONES_VASO
     await abrirYEsperarNaranja(page)
     await poner(page, { apertura: 0.35 }) // ≈ 80 % de cierre: no llega al 90 %
     await expect.poll(async () => (await estado(page)).cierre, { timeout: 3_000 }).toBeGreaterThan(70)
@@ -257,7 +263,7 @@ test.describe('Exprime la naranja', () => {
     await expect(page.getByTestId('pista')).toContainText('Sostén el puño: faltan')
     await poner(page, ABIERTA)
     await expect.poll(async () => (await estado(page)).ultimoFallo, { timeout: 4_000 }).toBe(3)
-    await expect(page.getByTestId('contador')).toHaveText('0')
+    await expect(page.getByTestId('contador')).toHaveText('0/4')
 
     // "Reiniciar" a mitad de una repetición la deja anotada como incompleta (con su paso), sin eventos sin cerrar.
     await abrirYEsperarNaranja(page)
@@ -272,7 +278,7 @@ test.describe('Exprime la naranja', () => {
     await page.getByRole('button', { name: 'Terminar sesión' }).click()
     await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion`), { timeout: 10_000 })
     const final = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: Record<string, unknown> & { juego: Record<string, unknown> } }
-    expect(final.metricas).toMatchObject({ contador: 0, meta: 0, motivoFin: 'manual' })
+    expect(final.metricas).toMatchObject({ contador: 0, meta: 4, motivoFin: 'manual' })
     expect(final.metricas.juego).toMatchObject({ repeticiones: 0, incompletas: 2, falloPaso3: 2, completadas: 0, aperturaCompleta: null })
     const todos = escrituras.filter((e) => e.tabla === 'eventos_sesion').flatMap((e) => e.cuerpo as { tipo: string; datos: Record<string, unknown> | null }[])
     const evs = todos.filter((x) => !['pausa', 'reanudar', 'perdida_seguimiento'].includes(x.tipo))
