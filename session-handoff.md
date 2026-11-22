@@ -4,22 +4,20 @@ Se reescribe completo al final de cada sesión. Es lo primero que lee la sesión
 
 ## Dónde quedó (Current Objective)
 
-- Last Updated: 2026-11-22 · coordinación · rama `coord/arreglos-evaluacion` (copia de trabajo `../lineas/V`, creada desde `dev` e105f44). **Sin subir al remoto y sin Pull Request**: falta que el dueño lo autorice.
-- Qué trae la rama: arreglos tras una evaluación independiente de `dev`. Resumen en `progress.md` (entrada del 2026-11-22) y cada decisión en `docs/equipo/decisiones.md`.
-  - F19 Perfil: **done**. F17 Prescripción: **in-progress** (la pantalla funciona; falta exportar informes y agregar o quitar juegos del plan).
-  - Juegos: meta de Piano por aciertos, pérdida de seguimiento sin castigo, estados con tiempo límite.
-  - Medidas: máximos sostenidos, sesiones simuladas fuera de las tendencias.
-  - Datos: cola sin conexión que no se frena ni mezcla cuentas.
-  - Interfaz: límite de errores, foco en ventanas modales, errores legibles.
+- Last Updated: 2026-11-22 · coordinación · rama `coord/f17-informes-docs` (copia de trabajo `../lineas/V`, desde `dev` eb52196, después de unir el PR #57).
+- Qué trae: F17 terminada (agregar/quitar juegos del plan, exportar informes), documentación de los dos ambientes y de validación, especificación al día. Detalle en `progress.md` (entradas del 2026-11-22) y `docs/equipo/decisiones.md`.
 - Recommended Next Step:
-  1. El dueño revisa la rama y autoriza `git push -u origin coord/arreglos-evaluacion` y el PR a `dev` (antes: `git fetch origin && git merge origin/dev` y `npm run verify`).
-  2. Revisar y aplicar la migración `supabase/migrations/20261122400001_auditoria_acotada.sql` en desarrollo y en producción (`supabase db push --include-all`); después sumar su caso a `scripts/verificar-rls.ts`.
-  3. Avisar a P1 (datos, `src/ui/piezas.tsx`), P2 (shell de juegos, métricas, terapeuta, F17 y F19) y P3 (Piano, Torre, Burbujas, Naranja) de lo que cambió en su área.
+  1. Unir el PR de esta rama a `dev` (con `verificar` en verde).
+  2. Wiki: alguien con acceso abre https://github.com/platanus-hack/platanus-hack-26-cl-team-37/wiki, toca «Create the first page» y guarda; después se suben las 5 páginas por git (están escritas).
+  3. Revisar y aplicar `supabase/migrations/20261122400001_auditoria_acotada.sql` en desarrollo y producción (`docs/equipo/ambientes.md` §3).
+  4. Decidir qué hacer con los datos de Carmen en desarrollo (ver «Estado de las verificaciones»).
+  5. Pedir a un administrador de la organización que complete la descripción, el enlace (https://manoviva-sigma.vercel.app) y los temas del repositorio.
 
 ## Estado de las verificaciones
 
 - `bash init.sh` → INIT OK: 556 unitarias, lint (solo el aviso conocido de `src/ui/piezas.tsx`), build y `verify:db` contra la base de desarrollo.
 - e2e corridos con `--workers=1` y en verde: perfil 9/9, prescripcion 8/8, smoke (terapeuta) 9/9, piano 4/4, naranja 4/4, burbujas 4/4, muneca 3/3, torre 4/4, pinza-fina 3/3. **La suite e2e completa no se corrió.**
+- 2026-11-22: e2e informes + prescripcion 13/13; `historial.spec.ts` falla porque Carmen tiene 23 sesiones cerradas en desarrollo (4 jugadas a mano por el equipo) y la prueba espera las 19 del seed.
 - `e2e/terapeuta.spec.ts` falla hoy en el orden de la lista por una alerta de dolor abierta de Carmen en la base de desarrollo (sesión `S-20261121-60`, anterior a este trabajo). Revisarla o marcarla y volver a correr.
 - `e2e/caja.spec.ts` «cuenta agarres exactos» es inestable desde antes: en una comparación alternada pasó 2 de 4 con el código nuevo y 2 de 4 con el anterior, con el mismo fallo en ambos («2/3» esperado, «1/3» recibido).
 

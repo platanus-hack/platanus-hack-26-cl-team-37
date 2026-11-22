@@ -1,4 +1,4 @@
-# Flujo de Git, CI/CD y reglas de la base compartida
+# Flujo de Git, CI/CD y reglas de la base de datos
 
 ## 1. Ramas y Pull Requests
 
@@ -16,109 +16,64 @@
 ### Configuración de GitHub (la hace quien es administrador)
 `Settings → Branches → Add rule` para `main`:
 - Require a pull request before merging (1 aprobación).
-- Require status checks to pass: `verificar` y `e2e` (los nombres de los jobs de §3), sin exigir "branch up to date" para no frenar el día.
+- Require status checks to pass: `verificar` (y `rama-base` en los PR a `main`). Las e2e no corren solas (§3), así que no se exigen como check.
 - Do not allow force pushes; allow administrators to bypass (para emergencias).
 - Automatically delete head branches.
 
-`Settings → Secrets and variables → Actions` (nombres exactos, valores solo del administrador):
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_PASSWORD`,
-`SUPABASE_ACCESS_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (los dos últimos están en `.vercel/project.json` del equipo del dueño).
+Secretos de GitHub Actions: la lista y para qué sirve cada uno está en [`ambientes.md`](ambientes.md) §4. Las claves de Supabase de producción
+no van a GitHub.
 
 ## 2. Claves y entornos locales
 
 | Archivo | Contiene | Se comparte |
 |---|---|---|
-| `.env.local` | URL y clave **anon** de Supabase (es pública: viaja en la app) | por el canal del equipo |
-| `.env.secrets` | clave **service_role** y contraseña de la base | **solo por canal privado**, solo a las 3 personas; rotar al terminar el hackatón |
+| `.env.dev` | todo lo de desarrollo (públicas y secretas) | **solo por canal privado**, a las personas del equipo |
+| `.env.prod` | lo mismo de producción | **solo coordinación** |
+| `.env.local` | URL y clave **anon** del ambiente activo (es pública: viaja en la app) | no: lo genera `node scripts/entorno.mjs dev` |
+| `.env.secrets` | clave **service_role** (y contraseña de la base) del ambiente activo | no: lo genera el mismo script |
 
-Ambos están en `.gitignore`. Plantilla con los nombres: `.env.example`. La CI los recrea desde los secretos de GitHub en cada ejecución.
-Quien no aplica migraciones no necesita `SUPABASE_DB_PASSWORD`.
+Todos están en `.gitignore`. Plantilla con los nombres: `.env.example`. La CI arma `.env.local` y `.env.secrets` de desarrollo desde los
+secretos de GitHub en cada ejecución. Quien no aplica migraciones no necesita `SUPABASE_DB_PASSWORD`. Rotar las claves al terminar el hackatón.
 
-## 3. CI (la construye P1)
+## 3. CI (`.github/workflows/ci.yml`, la mantiene P1)
 
-Archivo `.github/workflows/ci.yml`, en cada PR y en cada push a `main`. Node 22, `npm ci`, caché de npm. Esqueleto de referencia (verificar antes de confiar):
+El archivo es la fuente de verdad; su encabezado explica cada job. Resumen:
 
-```yaml
-name: ci
-on: { pull_request: {}, push: { branches: [main] } }
-jobs:
-  verificar:                         # rápido, sin base de datos
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-  e2e:                               # con la base compartida, UNO A LA VEZ en todo el repositorio
-    needs: verificar
-    runs-on: ubuntu-latest
-    concurrency: { group: e2e-supabase, cancel-in-progress: false }
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Crear archivos de entorno desde secretos
-        run: |
-          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "${{ secrets.VITE_SUPABASE_URL }}" "${{ secrets.VITE_SUPABASE_ANON_KEY }}" > .env.local
-          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "${{ secrets.SUPABASE_URL }}" "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" > .env.secrets
-      - run: npm run verify:db
-      - run: npx playwright test --workers=2
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with: { name: playwright-report, path: "test-results/" }
-```
+| Job | Cuándo corre | Qué hace |
+|---|---|---|
+| `verificar` | siempre (PR y push a `dev`/`main`) | tipos, lint, unitarias y build, en paralelo. Sin claves. |
+| `rama-base` | PR hacia `main` | rechaza el PR si no viene de `dev` (o de una rama `hotfix/…`). |
+| `vista-previa` | cada PR (sin esperar a `verificar`) | despliega el PR en el proyecto de Vercel de desarrollo, contra la base de desarrollo, y comenta la URL en el PR. |
+| `desplegar-dev` | push a `dev` (sin esperar a `verificar`) | despliega https://manoviva-dev.vercel.app y corre una prueba de humo. |
+| `desplegar` | push a `main`, después de `verificar` | despliega producción (https://manoviva-sigma.vercel.app) y corre una prueba de humo. |
+| `e2e`, `e2e-compartidas` | **solo a mano**: Actions → ci → Run workflow, o `gh workflow run ci --ref <rama>` | Playwright contra la base de **desarrollo**. `e2e-compartidas` agrupa las pruebas del paciente de prueba y la de uso sin conexión, una corrida a la vez. |
 
-Criterios de la CI:
+Criterios:
 - **Sin claves en logs.** No imprimir variables; no usar `set -x` con secretos.
-- El job `e2e` no se cancela a mitad (`cancel-in-progress: false`): una prueba cortada puede dejar datos de prueba sin limpiar.
-- Si un e2e falla por carga, la CI lo reintenta **una vez** (`--retries=1`); un fallo repetido es real.
+- Las e2e no se cancelan a mitad: una prueba cortada puede dejar datos de prueba sin limpiar.
+- La CI reintenta **una vez** cada e2e (`--retries=1`); un fallo repetido es real.
 - Hay una prueba lenta conocida (error de red con reintentos de `supabase-js`, hasta ~25 s); no bajes esos timeouts.
-- Si el job `e2e` deja datos de prueba sucios, límpialos con `npx tsx scripts/limpiar-prueba.ts` (ver comentarios del script) antes de reintentar.
+- Si una corrida deja datos de prueba sucios, límpialos con `npx tsx scripts/limpiar-prueba.ts` (ver comentarios del script) antes de reintentar.
+- **Corre las e2e a mano antes de un PR `dev` → `main`**: hoy nada las corre solo.
 
-## 4. CD: despliegue y base de datos (la construye P1)
+## 4. CD: despliegue y base de datos
 
-Vercel **no se puede conectar** a este repositorio de la organización, así que se despliega desde la CI con el CLI y un token.
-Job en `main`, después de `verificar` y `e2e`:
+Vercel **no se puede conectar** a este repositorio de la organización, así que se despliega desde la CI con el CLI y un token (jobs de §3).
+Producción usa las variables `VITE_*` guardadas en su proyecto de Vercel; desarrollo y las vistas previas reciben las de desarrollo en el build
+y la CI cambia en `vercel.json` la base permitida por la política de seguridad. `.vercelignore` impide subir `.env*`, `docs/` y `scripts/`.
 
-```yaml
-  desplegar:
-    needs: [verificar, e2e]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    env: { VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}, VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }} }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: npx vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
-      - name: Prueba de humo
-        run: |
-          curl -fsS -o /dev/null https://manoviva-sigma.vercel.app/
-          curl -fsS -o /dev/null https://manoviva-sigma.vercel.app/manifest.webmanifest
-          curl -fsSI https://manoviva-sigma.vercel.app/ | grep -i '^content-security-policy'
-```
+**Migraciones:** no hay job de la CI que las aplique. Se aplican a mano, primero a desarrollo y a producción cuando el cambio va a `main`, antes
+de que se despliegue el código que las necesita ([`ambientes.md`](ambientes.md) §3). El archivo va en su PR y el PR dice dónde ya está aplicada.
 
-Las variables `VITE_*` ya están guardadas en el proyecto de Vercel. `.vercelignore` impide subir `.env*`, `docs/` y `scripts/`.
+## 5. Reglas de la base de desarrollo (compartida por todo el equipo)
 
-**Migraciones:** un job aparte (solo si cambió algo en `supabase/migrations/`) corre `npx supabase link --project-ref iniposctftmzxkqasikh` y
-`npx supabase db push --include-all`, **antes** de desplegar la app que las necesita. Mientras ese job no exista, quien aplica una migración
-la aplica a mano (`supabase db push --include-all`) y lo avisa en el chat; el archivo va en su PR.
-
-## 5. Reglas de la base compartida
-
-Es **producción**. Resumen operativo (el detalle está en `contratos.md` §3 y §5):
-1. Migraciones aditivas y numeradas por persona.
-2. Nunca `db:seed`.
-3. Pruebas limpian **por id explícito**.
-4. No crear planes, alertas ni auditoría en pacientes demo desde pruebas.
-5. Una persona a la vez corre las pruebas del paciente de prueba (§6).
+Resumen operativo (el detalle está en `contratos.md` §3 y §5):
+1. Antes de correr pruebas o scripts: `node scripts/entorno.mjs --actual` debe decir `dev`.
+2. Migraciones aditivas y numeradas por persona; primero a desarrollo.
+3. `db:seed` solo en desarrollo y avisando en el chat (reinicia los datos que los demás usan).
+4. Pruebas limpian **por id explícito**.
+5. No crear planes, alertas ni auditoría en pacientes demo desde pruebas.
+6. Una persona a la vez corre las pruebas del paciente de prueba (§6).
 
 ## 6. Candado de las pruebas con estado compartido
 

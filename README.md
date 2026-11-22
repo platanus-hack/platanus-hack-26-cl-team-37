@@ -45,6 +45,22 @@ La cámara solo funciona con HTTPS o en `localhost`; para probar en un teléfono
 | `e2e/` | Pruebas de punta a punta |
 | `docs/` | Especificación (`manoviva-spec.md`) y acuerdos del equipo (`equipo/`) |
 
+## Documentación
+
+La [wiki](https://github.com/platanus-hack/platanus-hack-26-cl-team-37/wiki) es la entrada rápida: qué es, cómo está hecho y por dónde empezar.
+El detalle vive en el repositorio, junto al código:
+
+| Documento | Para qué |
+|---|---|
+| [`docs/manoviva-spec.md`](docs/manoviva-spec.md) | Especificación técnica: stack, rutas, modelo de datos, contrato de juegos, distancia |
+| [`docs/equipo/ambientes.md`](docs/equipo/ambientes.md) | Desarrollo y producción: qué base usa cada cosa y cómo cambiar de ambiente |
+| [`docs/equipo/README.md`](docs/equipo/README.md) | Cómo trabaja el equipo; de ahí salen contratos, flujo de Git y CI, y decisiones |
+| [`docs/validacion.md`](docs/validacion.md) | Qué tan confiables son las medidas y cómo validarlas con regla y goniómetro |
+| [`docs/privacidad-red.md`](docs/privacidad-red.md) | Qué sale del dispositivo y la política de seguridad del sitio |
+| [`docs/telefono.md`](docs/telefono.md) | Probar en un teléfono real |
+| [`brandbook/README.md`](brandbook/README.md) | Colores, tipografía y controles de la interfaz |
+| [`src/games/assets/README.md`](src/games/assets/README.md) | Modelos 3D compartidos de los juegos |
+
 ## Equipo
 
 - Andrés Cabezas ([@ElTioAndresCabezas](https://github.com/ElTioAndresCabezas))
