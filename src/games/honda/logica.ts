@@ -33,6 +33,8 @@ export interface NivelHonda {
 
 /** Ancho de la zona verde, en puntos de estiramiento: de `estirar` a `estirar + ANCHO_ZONA`. */
 export const ANCHO_ZONA = 0.35
+/** El tope de la zona es al menos esta vez su piso, aunque la curva sea plana ahí. */
+const ZONA_MIN = 1.1
 
 export const NIVELES_HONDA: Record<1 | 2 | 3 | 4 | 5, NivelHonda> = {
   1: { nombre: 'Suave', detalle: 'Estirar la banda un 30 % y sostener medio segundo', estirar: 0.3, sostenerS: 0.5 },
@@ -52,7 +54,16 @@ export interface ZonaCarga {
   maxKg: number
 }
 export function zonaDe(nivel: Pick<NivelHonda, 'estirar'>, curva: Pick<CurvaBanda, 'puntos'>): ZonaCarga {
-  return { minKg: cargaEn(curva, nivel.estirar).kg, maxKg: cargaEn(curva, nivel.estirar + ANCHO_ZONA).kg }
+  let minKg = cargaEn(curva, nivel.estirar).kg
+  let maxKg = cargaEn(curva, nivel.estirar + ANCHO_ZONA).kg
+  // Una curva calibrada con medidas malas puede venir vacía o plana al final: sin zona no hay juego, así que se usa la
+  // de la etiqueta para el piso y se asegura un ancho mínimo.
+  if (!(minKg > 0)) {
+    minKg = cargaEn(CORENGTH_5KG, nivel.estirar).kg
+    maxKg = cargaEn(CORENGTH_5KG, nivel.estirar + ANCHO_ZONA).kg
+  }
+  if (!(maxKg >= minKg * ZONA_MIN)) maxKg = minKg * ZONA_MIN
+  return { minKg, maxKg }
 }
 
 // ── La banda que se usa ─────────────────────────────────────────────────────────────────────────────────────────

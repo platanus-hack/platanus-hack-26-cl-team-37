@@ -37,6 +37,12 @@ describe('honda: la zona verde y el tiro', () => {
     // Con el doble de tiras, el mismo nivel carga el doble.
     expect(zonaDe(nivelHonda(3), conTiras(CORENGTH_5KG, 4)).minKg).toBeCloseTo(2 * z.minKg, 5)
     expect(ANCHO_ZONA).toBeGreaterThanOrEqual(0.3)
+    // Curvas malas (vacía, o plana desde antes de la zona): igual queda una zona jugable.
+    const vacia = zonaDe(nivelHonda(3), { puntos: [] })
+    expect(vacia.minKg).toBeGreaterThan(0)
+    expect(vacia.maxKg).toBeGreaterThan(vacia.minKg)
+    const plana = zonaDe(nivelHonda(3), { puntos: [{ estiramiento: 0.2, kg: 2 }, { estiramiento: 0.4, kg: 2 }] })
+    expect(plana.maxKg).toBeGreaterThan(plana.minKg)
   })
 
   it('marca el cero solo con la banda quieta y queda lista', () => {
