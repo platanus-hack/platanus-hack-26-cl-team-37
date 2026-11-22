@@ -96,6 +96,7 @@ async function correr(nombre, foto) {
     maxEstiramiento = Math.max(maxEstiramiento, parseInt(l.estiramiento) || 0)
   }
   const fin = await leer()
+  const picos = await page.evaluate(() => [...document.querySelectorAll('.lab-picos li .sr-only')].map((e) => (e.textContent ?? '').replace(/^Repetición \d+: /, '').replace(' kilos', '')))
   await navegador.close()
   rmSync(video, { force: true })
   const fallas = []
@@ -104,7 +105,7 @@ async function correr(nombre, foto) {
   if (fin.repeticiones < 3 || fin.repeticiones > 5) fallas.push(`repeticiones fuera de lo esperado (3–5): ${fin.repeticiones}`)
   const [min, max] = v.esperado ?? [25, 60]
   if (maxEstiramiento < min || maxEstiramiento > max) fallas.push(`estiramiento máximo fuera de lo esperado (${min}–${max} %): ${maxEstiramiento} %`)
-  return { nombre, ...fin, maxEstiramiento, fallas }
+  return { nombre, ...fin, maxEstiramiento, picos, fallas }
 }
 
 try {
@@ -116,6 +117,7 @@ try {
   let falla = false
   for (const n of nombres) {
     const r = await correr(n, foto)
+    if (r.fallas.length || process.env.PICOS) console.log(`         picos: ${r.picos.join(' · ')}`)
     console.log(`${r.nombre.padEnd(8)} reposo ${r.reposo.padEnd(6)} · ${String(r.repeticiones).padStart(2)} repeticiones · estiramiento máx. ${r.maxEstiramiento} % · constancia ${r.constancia} · seguimiento ${r.cuadros}${r.fallas.length ? `  ← FALLA: ${r.fallas.join('; ')}` : '  OK'}`)
     falla ||= r.fallas.length > 0
   }

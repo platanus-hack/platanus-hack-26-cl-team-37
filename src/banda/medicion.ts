@@ -13,17 +13,18 @@ import type { CuadroManos, ManoSeguida } from '../tracking/tipos'
 import { areaHasta, cargaEn, type CurvaBanda } from './curva'
 
 /**
- * Con qué parte de la mano se sostiene la banda. 'nudillo' (la banda en el puño, medida en el nudillo del índice, por
- * donde sale la banda) es el punto por defecto: en pruebas con MediaPipe sobre fotos (21-nov-2026) fue el más estable
- * entre distancias (4,6 puntos de estiramiento de variación media, contra 5,9 la palma y 9,2 la pinza) y el de menos
- * ruido. Las puntas de los dedos son los puntos más ruidosos de MediaPipe.
+ * Con qué punto de la mano se mide el largo de la banda. Por defecto 'palma' (centro de la palma, bajo el nombre
+ * «Puño»): queda casi en el eje de giro de la mano, así que girar el puño no cambia el largo. Con manos simuladas
+ * quietas, girarlas 60° cambia la distancia entre centros de palma 0,5 % (218 → 217 px), entre nudillos del índice 26 %
+ * (156 → 197 px) y entre pinzas 98 %. Ese giro natural al sostener la banda era lo que daba kilos sin fuerza en la prueba
+ * real del 21-nov-2026. (Sin giro, con fotos reales, el nudillo fue algo más estable entre distancias; el giro pesa más.)
  */
 export type Agarre = 'pinza' | 'nudillo' | 'palma'
-export const AGARRE_POR_DEFECTO: Agarre = 'nudillo'
+export const AGARRE_POR_DEFECTO: Agarre = 'palma'
 export const AGARRES: { v: Agarre; n: string }[] = [
-  { v: 'nudillo', n: 'Puño' },
+  { v: 'palma', n: 'Puño' },
+  { v: 'nudillo', n: 'Nudillo' },
   { v: 'pinza', n: 'Pinza' },
-  { v: 'palma', n: 'Palma' },
 ]
 
 /** Sobre esta diferencia de escala entre las manos (fracción) se avisa que no están a la misma distancia. */
@@ -77,12 +78,79 @@ export function manosAlBorde(manos: readonly Pick<ManoSeguida, 'landmarks'>[]): 
   return manos.some((mano) => mano.landmarks.some((p) => p.x < m || p.x > 1 - m || p.y < m || p.y > 1 - m))
 }
 
+/**
+ * Escala de una mano (px de la imagen por metro) que no cambia al girarla. Se ajusta una proyección ortográfica escalada
+ * en 3D: la matriz A (2×3) que mejor lleva los puntos del mundo (centrados) a los de la imagen (centrados) es s veces dos
+ * filas de una rotación, así que ‖A‖² = 2·s² sin importar hacia dónde mire la mano.
+ *
+ * La escala anterior (`escalaPerspectivaDebil`, solo x e y del mundo) baja cuando el puño gira hacia la cámara, porque
+ * la mano se ve más angosta: con las manos quietas, girarlas 40° daba 16 % de estiramiento aparente y 60°, 28 % (unos
+ * 2 kg con la Corength). Era la causa de los kilos sin fuerza de la prueba real del 21-nov-2026.
+ */
+export function escalaOrtografica(landmarks: readonly P3[], world: readonly P3[], ancho: number, alto: number): number | null {
+  const n = Math.min(landmarks.length, world.length)
+  if (n < 6) return null
+  let mu = 0, mv = 0, mX = 0, mY = 0, mZ = 0
+  for (let i = 0; i < n; i++) {
+    mu += landmarks[i].x * ancho
+    mv += landmarks[i].y * alto
+    mX += world[i].x
+    mY += world[i].y
+    mZ += world[i].z
+  }
+  mu /= n; mv /= n; mX /= n; mY /= n; mZ /= n
+  // M = Xᵀ X (3×3) y B = Uᵀ X (2×3), con U y X centrados.
+  const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+  const B = [[0, 0, 0], [0, 0, 0]]
+  for (let i = 0; i < n; i++) {
+    const x = [world[i].x - mX, world[i].y - mY, world[i].z - mZ]
+    const u = [landmarks[i].x * ancho - mu, landmarks[i].y * alto - mv]
+    for (let a = 0; a < 3; a++) {
+      for (let b = 0; b < 3; b++) M[a][b] += x[a] * x[b]
+      B[0][a] += u[0] * x[a]
+      B[1][a] += u[1] * x[a]
+    }
+  }
+  const inv = inversa3(M)
+  if (!inv) return null
+  // A = B · M⁻¹; ‖A‖² = 2 s².
+  let f2 = 0
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 3; c++) {
+      const v = B[r][0] * inv[0][c] + B[r][1] * inv[1][c] + B[r][2] * inv[2][c]
+      f2 += v * v
+    }
+  }
+  const sOrto = Math.sqrt(f2 / 2)
+  return sOrto > 0 && Number.isFinite(sOrto) ? sOrto : null
+}
+
+function inversa3(m: number[][]): number[][] | null {
+  const [[a, b, c], [d, e, f], [g, h, i]] = m
+  const A = e * i - f * h
+  const B = -(d * i - f * g)
+  const C = d * h - e * g
+  const det = a * A + b * B + c * C
+  // La mano casi plana (z del mundo sin variación) deja la matriz casi singular: ahí no sirve el ajuste en 3D.
+  if (!(Math.abs(det) > 1e-14)) return null
+  return [
+    [A / det, -(b * i - c * h) / det, (b * f - c * e) / det],
+    [B / det, (a * i - c * g) / det, -(a * f - c * d) / det],
+    [C / det, -(a * h - b * g) / det, (a * e - b * d) / det],
+  ]
+}
+
+/** Escala de la mano: la ortográfica en 3D; si no se puede (mano plana), la de perspectiva débil. */
+function escalaMano(m: Pick<ManoSeguida, 'landmarks' | 'worldLandmarks'>, ancho: number, alto: number): number | null {
+  return escalaOrtografica(m.landmarks, m.worldLandmarks, ancho, alto) ?? escalaPerspectivaDebil(m.landmarks, m.worldLandmarks, ancho, alto)
+}
+
 /** Mide la banda en un cuadro. null si no hay dos manos o no se puede sacar la escala. */
 export function medirBanda(cuadro: CuadroManos, agarre: Agarre): MedidaBanda | null {
   if (cuadro.manos.length < 2) return null
   const [a, b] = cuadro.manos
-  const sa = escalaPerspectivaDebil(a.landmarks, a.worldLandmarks, cuadro.ancho, cuadro.alto)
-  const sb = escalaPerspectivaDebil(b.landmarks, b.worldLandmarks, cuadro.ancho, cuadro.alto)
+  const sa = escalaMano(a, cuadro.ancho, cuadro.alto)
+  const sb = escalaMano(b, cuadro.ancho, cuadro.alto)
   if (sa == null || sb == null) return null
   const pa = puntoAgarre(a, agarre, cuadro.ancho, cuadro.alto)
   const pb = puntoAgarre(b, agarre, cuadro.ancho, cuadro.alto)

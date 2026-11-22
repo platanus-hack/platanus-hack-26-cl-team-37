@@ -9,13 +9,13 @@ import { leerCamara, textoReporte, type ReporteCamara } from '../../banda/camara
 import { LectorMarcas } from '../../banda/lectorMarcas'
 import { MODOS, colorUtil, type Hsv, type ModoMedida } from '../../banda/marcas'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, cargaEn, conTiras, curvaPropia, type CurvaBanda } from '../../banda/curva'
-import { AGARRE_POR_DEFECTO, AGARRES, CapturaReposo, ContadorReps, DESNIVEL_MAX, MS_REPOSO_AUTO, MS_SOSPECHA_REPOSO, PALMA_MIN, REPOSO_CORTO_CM, ToleranciaPerdida, reposoMalMarcado, TOLERANCIA_META, estiramiento, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, AGARRES, DESNIVEL_MAX, PALMA_MIN, REPOSO_CORTO_CM, TOLERANCIA_META, medirBanda, textoResumen, totales, type Agarre, type MedidaBanda, type Repeticion } from '../../banda/medicion'
+import { SeguidorBanda } from '../../banda/seguidor'
 import { num } from '../../lib/formato'
 import { aVista } from '../../metrics/calibracion'
 import { CONEXIONES, clasificarLuz } from '../../metrics/geometria'
 import { descargarJson } from '../../tracking/fuentes'
 import { GrabadorLandmarks } from '../../tracking/grabacion'
-import { FiltroOneEuro } from '../../tracking/oneEuro'
 import type { CuadroManos, EstadoSeguimiento, TipoFuente } from '../../tracking/tipos'
 import { useFuenteManos } from '../../tracking/useFuenteManos'
 import { Segmentos, Stepper, avisar } from '../../ui/piezas'
@@ -30,6 +30,8 @@ const MS_TRAZO = 12000
 
 interface Vista {
   manos: number
+  /** Estiramiento del cuadro, ya con la zona muerta (null sin reposo o mientras se marca). */
+  e: number | null
   medida: Pick<MedidaBanda, 'largoCm' | 'desnivel' | 'alBorde' | 'palma'> | null
   progresoReposo: number
   repeticiones: Repeticion[]
@@ -44,7 +46,7 @@ interface Vista {
   /** Estado de las marcas pintadas (solo en ese modo). */
   marcas: 'sin-camara' | 'sin-color' | 'no-vistas' | 'sin-escala' | 'ok' | null
 }
-const VISTA_INICIAL: Vista = { manos: 0, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false, sospechaReposo: false, marcas: null }
+const VISTA_INICIAL: Vista = { manos: 0, e: null, medida: null, progresoReposo: 0, repeticiones: [], estirando: false, trazo: [], grabandoMs: null, sinManos: false, sospechaReposo: false, marcas: null }
 /**
  * Se dice qué revisar tras este tiempo sin ver las dos manos y con al menos estos cuadros procesados. Se piden los dos:
  * al iniciar, MediaPipe puede congelar la página varios segundos (Chromium sin GPU: unos 5 s) y ese tiempo no cuenta.
@@ -111,7 +113,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const lienzo = useRef<HTMLCanvasElement>(null)
   const archivo = useRef<HTMLInputElement>(null)
 
-  const [agarre, setAgarre] = useGuardado<Agarre>('agarre', AGARRE_POR_DEFECTO)
+  const [agarre, setAgarre] = useGuardado<Agarre>('agarre-v2', AGARRE_POR_DEFECTO)
   const [modo, setModo] = useGuardado<ModoMedida>('modo', 'manos')
   const [colorMarca, setColorMarca] = useGuardado<Hsv | null>('colorMarca', null)
   const [curvaId, setCurvaId] = useGuardado('curva', CORENGTH_5KG.id)
@@ -132,12 +134,12 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   const metaKg = meta > 0 ? meta : null
 
   // Lo que el bucle de cuadros necesita leer sin volver a suscribirse.
-  const config = useRef({ agarre, curva, reposoCm, capturando, modo, colorMarca })
+  const config = useRef({ agarre, curva, modo, colorMarca })
   useEffect(() => {
-    config.current = { agarre, curva, reposoCm, capturando, modo, colorMarca }
-  }, [agarre, curva, reposoCm, capturando, modo, colorMarca])
+    config.current = { agarre, curva, modo, colorMarca }
+  }, [agarre, curva, modo, colorMarca])
   const lector = useRef<LectorMarcas | null>(null)
-  const contador = useRef(new ContadorReps())
+  const seguidor = useRef(new SeguidorBanda())
   const grabador = useRef<GrabadorLandmarks | null>(null)
 
   // El <video> lo crea la fuente de cámara (nunca se guarda ni se envía): se monta de fondo, en espejo (CSS).
@@ -149,38 +151,19 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     return () => f.replaceChildren()
   }, [fuente, estado])
 
-  // Cada cuadro: medir la banda, dibujarla y contar. La vista de React se refresca cada MS_REFRESCO.
+  // Cada cuadro: medir la banda y pasar el largo al seguidor (src/banda/seguidor.ts: suavizado, huecos breves, reposo y
+  // repeticiones, con pruebas y validado con una grabación real). Aquí solo se dibuja y se muestra; la vista de React se
+  // refresca cada MS_REFRESCO.
   useEffect(() => {
     if (!fuente) return
-    // `captura` marca el reposo: sola, la primera vez que la banda queda quieta (con las dos manos ocupadas no se puede
-    // tocar un botón), o al pedirlo con el botón. `vigia` lo corrige si después aparece un largo estable más corto.
-    const captura = new CapturaReposo(MS_REPOSO_AUTO)
-    const capturaPedida = new CapturaReposo()
-    const vigia = new CapturaReposo(MS_REPOSO_AUTO)
-    const filtro = new FiltroOneEuro(1.2, 0.05)
-    const perdida = new ToleranciaPerdida()
+    const s = seguidor.current
     let ultimaMedida: MedidaBanda | null = null
     let escalaUltima: number | null = null
     let trazo: PuntoTrazo[] = []
     let ultimo = -Infinity
     let t0Grabacion: number | null = null
-    let estabaCapturando = false
     let sinManosDesde: number | null = null
-    // Para sospechar un cero mal puesto: la banda «estirada» y quieta (dentro de ±4 %) por mucho rato.
-    const quietaEstirada = new CapturaReposo(MS_SOSPECHA_REPOSO)
-    let sospecha = false
     let cuadrosSinManos = 0
-    const fijarReposo = (cm: number, cfg: typeof config.current) => {
-      quietaEstirada.cortar()
-      sospecha = false
-      // Se actualiza al tiro para los cuadros que lleguen antes del próximo render.
-      config.current = { ...cfg, reposoCm: cm, capturando: false }
-      captura.cortar()
-      capturaPedida.cortar()
-      vigia.cortar()
-      setReposoCm(cm)
-      setCapturando(false)
-    }
     return fuente.alCuadro((c) => {
       const g = grabador.current
       if (g) {
@@ -195,9 +178,6 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         cuadrosSinManos++
       }
       const cfg = config.current
-      // Cada pedido con el botón parte con la ventana vacía (si se canceló antes, no quedan muestras viejas).
-      if (cfg.capturando && !estabaCapturando) capturaPedida.cortar()
-      estabaCapturando = cfg.capturando
       const deManos = medirBanda(c, cfg.agarre)
       if (deManos) escalaUltima = deManos.escalaPxPorM
       let cruda: MedidaBanda | null = deManos
@@ -226,60 +206,36 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
         }
         if (marcas !== 'ok') cruda = null
       }
-      const estado = perdida.cuadro(c.t, cruda != null)
+
+      const p = s.paso(c.t, cruda?.largoCm ?? null, cfg.curva)
       // Un hueco breve (una mano no detectada unos cuadros) no corta nada: se sigue con la última medida en pantalla.
-      if (estado === 'hueco') {
+      if (p.estado === 'hueco') {
         if (lienzo.current) dibujar(lienzo.current, c, ultimaMedida, null, fuente.tipo !== 'camara')
         return
       }
-      const medida = cruda && { ...cruda, largoCm: filtro.filtrar(cruda.largoCm, c.t) }
+      const medida = cruda && p.largoCm != null ? { ...cruda, largoCm: p.largoCm } : null
       ultimaMedida = medida
-      let e: number | null = null
-      let progreso = 0
-      if (!medida) {
-        filtro.reiniciar()
-        captura.cortar()
-        capturaPedida.cortar()
-        vigia.cortar()
-        contador.current.cortar()
-      } else if (cfg.capturando || cfg.reposoCm == null) {
-        const c2 = cfg.capturando ? capturaPedida : captura
-        const reposo = c2.agregar(c.t, medida.largoCm)
-        progreso = c2.progreso(c.t)
-        if (reposo != null) {
-          contador.current.reiniciar()
-          trazo = []
-          fijarReposo(reposo, cfg)
-        }
-      } else {
-        const estable = vigia.agregar(c.t, medida.largoCm)
-        if (estable != null && reposoMalMarcado(cfg.reposoCm, estable) && !contador.current.estirando) {
-          fijarReposo(estable, cfg)
-          avisar('Reposo corregido: la banda estaba estirada al marcarlo.')
-        } else {
-          contador.current.agregar(c.t, medida.largoCm, cfg.reposoCm, cfg.curva)
-          e = estiramiento(medida.largoCm, cfg.reposoCm)
-          trazo.push({ t: c.t, kg: cargaEn(cfg.curva, e).kg })
-          if (e > 0) sospecha = quietaEstirada.agregar(c.t, medida.largoCm) != null
-          else {
-            quietaEstirada.cortar()
-            sospecha = false
-          }
-        }
+      if (p.evento) {
+        setReposoCm(p.reposoCm)
+        if (p.evento === 'marcado') trazo = []
+        if (p.evento === 'marcado' || p.evento === 'pedido') setCapturando(false)
+        if (p.evento === 'bajado') avisar('Reposo corregido: la banda estaba estirada al marcarlo.')
       }
-      trazo = trazo.filter((p) => c.t - p.t <= MS_TRAZO)
-      if (lienzo.current) dibujar(lienzo.current, c, medida, e, fuente.tipo !== 'camara')
-      if (c.t - ultimo < MS_REFRESCO) return
+      if (p.kg != null) trazo.push({ t: c.t, kg: p.kg })
+      trazo = trazo.filter((q) => c.t - q.t <= MS_TRAZO)
+      if (lienzo.current) dibujar(lienzo.current, c, medida, p.e, fuente.tipo !== 'camara')
+      if (c.t - ultimo < MS_REFRESCO && !p.evento) return
       ultimo = c.t
       setVista({
         manos: c.manos.length,
         medida,
-        progresoReposo: progreso,
-        repeticiones: [...contador.current.repeticiones],
-        estirando: contador.current.estirando,
+        e: p.e,
+        progresoReposo: p.progresoReposo,
+        repeticiones: [...s.contador.repeticiones],
+        estirando: s.contador.estirando,
         trazo: [...trazo],
         grabandoMs: g && t0Grabacion != null ? c.t - t0Grabacion : null,
-        sospechaReposo: sospecha,
+        sospechaReposo: p.sospecha,
         marcas,
         sinManos: sinManosDesde != null && c.t - sinManosDesde > MS_AYUDA_SIN_MANOS && cuadrosSinManos >= CUADROS_AYUDA_SIN_MANOS,
       })
@@ -295,7 +251,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
     return () => clearInterval(id)
   }, [fuente])
 
-  const e = vista.medida && reposoCm != null && !capturando ? estiramiento(vista.medida.largoCm, reposoCm) : null
+  const e = capturando ? null : vista.e
   const carga = e == null ? null : cargaEn(curva, e)
   const t = totales(vista.repeticiones, metaKg)
   const fuenteNombre = fuente ? NOMBRE_FUENTE[fuente.tipo] : null
@@ -311,7 +267,7 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
   ]
 
   const borrarReps = () => {
-    contador.current.reiniciar()
+    seguidor.current.contador.reiniciar()
     setVista((v) => ({ ...v, repeticiones: [], estirando: false }))
   }
   const copiarResumen = async () => {
@@ -483,11 +439,23 @@ function Prueba({ search, ultimaGrabacion, onGrabacion }: { search: string; ulti
           {reposoCm != null && reposoCm < (modo === 'marcas' ? REPOSO_CORTO_CM / 2 : REPOSO_CORTO_CM) && <p className="lab-aviso">{modo === 'marcas' ? 'Marcas muy juntas: sepáralas unos 15 cm para medir mejor.' : 'Reposo corto: con las manos más separadas el estiramiento se mide mejor.'}</p>}
           {reposoCm != null && <Trazo puntos={vista.trazo} ventanaMs={MS_TRAZO} tope={tope} meta={metaKg} />}
           {capturando ? (
-            <button type="button" className="boton secundario" onClick={() => setCapturando(false)}>
+            <button
+              type="button"
+              className="boton secundario"
+              onClick={() => {
+                seguidor.current.cancelarCero()
+                setCapturando(false)
+              }}
+            >
               Cancelar
             </button>
           ) : (
-            <button type="button" className={`boton ${vista.sospechaReposo ? 'primario' : reposoCm == null ? 'primario' : 'secundario'}`} disabled={vista.manos < 2} onClick={() => setCapturando(true)}>
+            <button type="button" className={`boton ${vista.sospechaReposo ? 'primario' : reposoCm == null ? 'primario' : 'secundario'}`} disabled={vista.manos < 2 && vista.marcas !== 'ok'}
+              onClick={() => {
+                seguidor.current.pedirCero()
+                setCapturando(true)
+              }}
+            >
               Poner en cero
             </button>
           )}

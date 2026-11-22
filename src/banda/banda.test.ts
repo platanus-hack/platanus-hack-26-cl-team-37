@@ -3,7 +3,7 @@ import { guionPreset, manosEnGuion, type GuionSintetico } from '../tracking/sint
 import type { CuadroManos } from '../tracking/tipos'
 import { resumirPista, textoReporte } from './camara'
 import { CORENGTH_5KG, CURVAS_PUBLICADAS, FORMA_LATEX, areaHasta, cargaEn, conTiras, curvaDesdePesos, curvaDesdeUnPunto, curvaPropia } from './curva'
-import { CapturaReposo, ContadorReps, MS_REPOSO, MS_REPOSO_AUTO, ToleranciaPerdida, PALMA_MIN, alcanzaMeta, reposoMalMarcado, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
+import { CapturaReposo, ContadorReps, MS_REPOSO, MS_REPOSO_AUTO, ToleranciaPerdida, PALMA_MIN, AGARRE_POR_DEFECTO, escalaOrtografica, alcanzaMeta, reposoMalMarcado, textoResumen, estiramiento, manosAlBorde, medirBanda, puntoAgarre, tamanoPalma, totales } from './medicion'
 
 const amarilla = CURVAS_PUBLICADAS.find((c) => c.id === 'thera-amarilla')!
 
@@ -182,6 +182,25 @@ describe('medición entre las dos manos', () => {
     const mano = cuadro(banda, 0).manos[0]
     const px = tamanoPalma(mano, 640, 480) * 480
     expect(px).toBeGreaterThan(60)
+  })
+
+  it('girar los puños sin moverlos no cambia el largo con el agarre por defecto', () => {
+    // La causa de los kilos sin fuerza en la prueba real: al sostener la banda, los puños giran hacia la cámara.
+    const conGiro = (pronacionDeg: number): GuionSintetico => ({ manos: banda.manos.map((m) => ({ ...m, poses: m.poses.map((p) => ({ ...p, pronacionDeg })) })) })
+    expect(AGARRE_POR_DEFECTO).toBe('palma')
+    const sinGiro = medirBanda(cuadro(banda, T_REPOSO), AGARRE_POR_DEFECTO)!.largoCm
+    for (const g of [20, 40, 60]) {
+      const largo = medirBanda(cuadro(conGiro(g), T_REPOSO), AGARRE_POR_DEFECTO)!.largoCm
+      expect(Math.abs(largo / sinGiro - 1)).toBeLessThan(0.02)
+      // Con el nudillo el mismo giro sí se lee como estiramiento.
+      if (g === 60) expect(medirBanda(cuadro(conGiro(g), T_REPOSO), 'nudillo')!.largoCm / medirBanda(cuadro(banda, T_REPOSO), 'nudillo')!.largoCm).toBeGreaterThan(1.15)
+    }
+  })
+
+  it('la escala de la mano no cambia al girarla', () => {
+    const mano = (pronacionDeg: number) => manosEnGuion({ manos: [{ ...banda.manos[0], poses: banda.manos[0].poses.map((p) => ({ ...p, pronacionDeg })) }] }, T_REPOSO).manos[0]
+    const s0 = escalaOrtografica(mano(0).landmarks, mano(0).worldLandmarks, 640, 480)!
+    for (const g of [30, 60]) expect(Math.abs(escalaOrtografica(mano(g).landmarks, mano(g).worldLandmarks, 640, 480)! / s0 - 1)).toBeLessThan(0.01)
   })
 
   it('con una sola mano no mide', () => {
