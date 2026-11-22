@@ -1,6 +1,7 @@
 // F39 · Honda con la CÁMARA (MediaPipe real, no manos simuladas): un video hace de cámara de Chromium. Dos manos reales
 // (foto de prueba de MediaPipe, la segunda en espejo) se separan y vuelven en ciclos de 20 s: un tiro a la zona verde
-// sostenido 2,5 s y un tiro corto. Comprueba que con el modelo real, sus huecos y su ruido, la honda marca el cero sola,
+// sostenido 1,2 s y un tiro corto. El sostén dura menos que la quietud que marca el cero (1,5 s), así el cero solo cae en
+// los tramos de reposo aunque el video ya vaya andando cuando MediaPipe termina de arrancar. Comprueba que con el modelo real, sus huecos y su ruido, la honda marca el cero sola,
 // acierta los tiros buenos y marca cortos los cortos, sin tiros partidos ni tirones falsos.
 // Necesita ffmpeg (si no está, se salta). Sesión falsa: no toca la BD. El video vive en una carpeta temporal.
 import { execFileSync } from 'node:child_process'
@@ -29,13 +30,13 @@ const estado = (p: Page) => p.evaluate(() => (globalThis as unknown as Ventana).
 /**
  * Separación entre las manos (px) en el ciclo de 20 s. Con la foto de prueba el largo entre palmas es ≈ separación +
  * 183 px (medido con el banco del laboratorio: 110 → 230 px da 41 %), así que 242 px ≈ 45 % de estiramiento (dentro de
- * la zona verde del nivel 1: 30 a 65 %) y 150 px ≈ 14 % (corto).
+ * la zona verde del nivel 1: 30 a 65 %) y 160 px ≈ 17 % (corto, pero claro sobre el 10 % desde el que cuenta un tiro).
  */
 function separacion(): string {
   const u = 'mod(t\\,20)'
   const tramo = (t0: number, pico: number) =>
-    `if(lt(${u}\\,${t0 + 3})\\,110\\,if(lt(${u}\\,${t0 + 4.2})\\,110+${pico - 110}*(${u}-${t0 + 3})/1.2\\,if(lt(${u}\\,${t0 + 6.7})\\,${pico}\\,if(lt(${u}\\,${t0 + 7.9})\\,${pico}-${pico - 110}*(${u}-${t0 + 6.7})/1.2\\,110))))`
-  return `if(lt(${u}\\,10)\\,${tramo(0, 242)}\\,${tramo(10, 150)})`
+    `if(lt(${u}\\,${t0 + 3})\\,110\\,if(lt(${u}\\,${t0 + 4.2})\\,110+${pico - 110}*(${u}-${t0 + 3})/1.2\\,if(lt(${u}\\,${t0 + 5.4})\\,${pico}\\,if(lt(${u}\\,${t0 + 6.6})\\,${pico}-${pico - 110}*(${u}-${t0 + 5.4})/1.2\\,110))))`
+  return `if(lt(${u}\\,10)\\,${tramo(0, 242)}\\,${tramo(10, 160)})`
 }
 
 test.use({ launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${VIDEO}`] }, permissions: ['camera'] })
@@ -75,7 +76,21 @@ test.describe('Honda con cámara (MediaPipe real)', () => {
     // Cada ciclo de 20 s trae un tiro bueno y uno corto.
     // El video ya corre cuando MediaPipe termina de arrancar: el cero puede caer a mitad de un ciclo y el primer tiro sale
     // parcial. Se juzga desde el segundo.
-    await expect.poll(async () => (await estado(page))?.tiros.length ?? 0, { timeout: 90_000, intervals: [1_000] }).toBeGreaterThanOrEqual(5)
+    const traza: string[] = []
+    await expect
+      .poll(
+        async () => {
+          const x = (await estado(page))!
+          traza.push(`${x.fase} ${x.kg} r${x.reposoCm} n${x.tiros.length}`)
+          return x.tiros.length
+        },
+        { timeout: 90_000, intervals: [1_000] },
+      )
+      .toBeGreaterThanOrEqual(5)
+      .catch((err) => {
+        console.log('HONDA-TRAZA ' + traza.join(' | '))
+        throw err
+      })
     const e = (await estado(page))!
     const resultados = e.tiros.slice(1).map((t) => t.resultado)
     console.log(`HONDA-CAMARA reposo ${e.reposoCm} cm · tiros ${e.tiros.map((t) => `${t.resultado} ${t.picoKg} kg ${t.sostenidoS} s`).join(' · ')}`)

@@ -67,6 +67,13 @@ export interface OpcionesSeguidor {
    * pide SOSTENER un estiramiento lo baja, para que el sostén no se tome por reposo nuevo.
    */
   seguirMax?: number
+  /**
+   * Quietud que marca el primer reposo: tiempo (por defecto MS_REPOSO_AUTO) y variación tolerada (por defecto
+   * VARIACION_REPOSO). Con la banda real en las manos el largo «quieto» oscila cerca de ±5 % (grabación del
+   * 21-nov-2026: con 6 % de tolerancia el cero tardó 7 s con las manos ya quietas).
+   */
+  msCero?: number
+  variacionCero?: number
 }
 
 export class SeguidorBanda {
@@ -77,7 +84,7 @@ export class SeguidorBanda {
   private pedido = false
   private readonly filtro = new FiltroOneEuro(1.2, 0.05)
   private readonly perdida = new ToleranciaPerdida()
-  private readonly captura = new CapturaReposo(MS_REPOSO_AUTO)
+  private readonly captura: CapturaReposo
   private readonly capturaPedida = new CapturaReposo(MS_REPOSO)
   private readonly vigia = new CapturaReposo(MS_REPOSO_AUTO)
   private readonly vigiaCaida = new CapturaReposo(MS_SEGUIR_REPOSO)
@@ -89,6 +96,7 @@ export class SeguidorBanda {
   constructor(o: OpcionesSeguidor = {}) {
     this.bajarSolo = o.bajarSolo ?? true
     this.seguirMax = Math.min(SEGUIR_REPOSO_MAX, o.seguirMax ?? SEGUIR_REPOSO_MAX)
+    this.captura = new CapturaReposo(o.msCero ?? MS_REPOSO_AUTO, o.variacionCero)
   }
 
   /** «Poner en cero»: el próximo tramo quieto (0,4 s) pasa a ser el reposo. */

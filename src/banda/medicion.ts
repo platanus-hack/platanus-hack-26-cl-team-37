@@ -214,15 +214,17 @@ export const VARIACION_REPOSO = 0.06
 export const AJUSTE_REPOSO = 0.08
 
 /**
- * Junta largos durante `ms` y devuelve su promedio. Si en la ventana el largo varía más de VARIACION_REPOSO
- * (la persona se movió), la ventana se reinicia desde esa muestra. Tras completarse sigue devolviendo el promedio
+ * Junta largos durante `ms` y devuelve su promedio. Si en la ventana el largo varía más de `variacion` (por defecto
+ * VARIACION_REPOSO: la persona se movió), la ventana se reinicia desde esa muestra. Tras completarse sigue devolviendo el promedio
  * de la ventana mientras la banda siga quieta.
  */
 export class CapturaReposo {
   private muestras: { t: number; cm: number }[] = []
   private readonly ms: number
-  constructor(ms = MS_REPOSO) {
+  private readonly variacion: number
+  constructor(ms = MS_REPOSO, variacion = VARIACION_REPOSO) {
     this.ms = ms
+    this.variacion = variacion
   }
 
   /** Agrega una muestra; devuelve el largo estable en cm cuando la ventana se completa, si no null. */
@@ -231,7 +233,7 @@ export class CapturaReposo {
     const valores = this.muestras.map((m) => m.cm)
     const min = Math.min(...valores)
     const max = Math.max(...valores)
-    if (min > 0 && (max - min) / min > VARIACION_REPOSO) {
+    if (min > 0 && (max - min) / min > this.variacion) {
       this.muestras = [{ t, cm }]
       return null
     }

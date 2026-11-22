@@ -139,6 +139,13 @@ export const SALTO_MAX = 0.35
 const MS_SALTO = 120
 /** Un salto que dura más que esto se acepta: el largo cambió de verdad (ms). */
 const MS_SALTO_TOPE = 250
+/** Quietud que marca el cero al empezar: tiempo y variación tolerada. */
+export const MS_CERO = 1500
+export const VARIACION_CERO = 0.1
+/** Salir de la zona verde menos que esto no corta el sostén: es temblor en el borde, no soltar (ms). */
+export const MS_GRACIA_ZONA = 200
+/** La medida imposible debe durar esto para avisar que el cero quedó mal (ms): un cuadro suelto no basta. */
+const MS_DUDOSO = 300
 /** Sobre este estiramiento la medida no es creíble: casi siempre el cero quedó con la banda suelta. */
 export const ESTIRAMIENTO_CREIBLE = 2.2
 const G = 9.80665
@@ -165,6 +172,8 @@ interface TiroEnCurso {
   picoE: number
   picoT: number
   enZonaDesde: number | null
+  /** Desde cuándo está fuera de la zona durante un sostén (para la gracia). */
+  fueraDesde: number | null
   sostenidoMs: number
   mejorSostenidoMs: number
   avisoZona: boolean
@@ -190,13 +199,15 @@ export class SesionHonda {
   private largoPrevio: { cm: number; t: number } | null = null
   private saltoDesde: number | null = null
   private dudoso = false
+  private dudosoDesde: number | null = null
 
   constructor(curva: CurvaBanda, nivel: Pick<NivelHonda, 'estirar' | 'sostenerS'>) {
     this.curva = curva
     this.zona = zonaDe(nivel, curva)
     this.sostenerS = nivel.sostenerS
     // El reposo solo baja con el botón, y un largo quieto dentro de la zona (un sostén) nunca se toma por reposo.
-    this.seguidor = new SeguidorBanda({ bajarSolo: false, seguirMax: 0.6 * nivel.estirar })
+    // El primer cero pide 1,5 s dentro de 10 %: sostener una banda oscila ±5 % y con el criterio del laboratorio tardaba.
+    this.seguidor = new SeguidorBanda({ bajarSolo: false, seguirMax: 0.6 * nivel.estirar, msCero: MS_CERO, variacionCero: VARIACION_CERO })
   }
 
   /** Carga que pide el nivel con esta banda (borde inferior de la zona), kg aprox. */
@@ -246,6 +257,7 @@ export class SesionHonda {
   pedirCero() {
     this.seguidor.pedirCero()
     this.dudoso = false
+    this.dudosoDesde = null
     this.tiro = null
     this.suelto = false
   }
@@ -285,7 +297,10 @@ export class SesionHonda {
       this.suelto = false
       return eventos
     }
-    if (p.e > ESTIRAMIENTO_CREIBLE) this.dudoso = true
+    if (p.e > ESTIRAMIENTO_CREIBLE) {
+      this.dudosoDesde ??= t
+      if (t - this.dudosoDesde >= MS_DUDOSO) this.dudoso = true
+    } else this.dudosoDesde = null
     const { minKg, maxKg } = this.zona
     const estirando = this.seguidor.contador.estirando
 
@@ -294,7 +309,7 @@ export class SesionHonda {
       if (!estirando || p.kg >= this.minTrasSoltar + REARME * minKg) this.suelto = false
     }
     if (!this.tiro && !this.suelto && estirando) {
-      this.tiro = { t0: t, picoKg: 0, picoE: 0, picoT: t, enZonaDesde: null, sostenidoMs: 0, mejorSostenidoMs: 0, avisoZona: false, sostuvo: false, sePaso: false }
+      this.tiro = { t0: t, picoKg: 0, picoE: 0, picoT: t, enZonaDesde: null, fueraDesde: null, sostenidoMs: 0, mejorSostenidoMs: 0, avisoZona: false, sostuvo: false, sePaso: false }
     }
     const tr = this.tiro
     if (!tr) return eventos
@@ -307,6 +322,7 @@ export class SesionHonda {
     if (p.kg > maxKg) tr.sePaso = true
     if (p.kg >= minKg && p.kg <= maxKg) {
       tr.enZonaDesde ??= t
+      tr.fueraDesde = null
       tr.sostenidoMs = t - tr.enZonaDesde
       tr.mejorSostenidoMs = Math.max(tr.mejorSostenidoMs, tr.sostenidoMs)
       if (!tr.avisoZona) {
@@ -317,9 +333,14 @@ export class SesionHonda {
         tr.sostuvo = true
         eventos.push({ tipo: 'sostenido', kg: p.kg })
       }
-    } else {
-      tr.enZonaDesde = null
-      tr.sostenidoMs = 0
+    } else if (tr.enZonaDesde != null) {
+      // Un instante fuera de la zona (temblor en el borde) no corta el sostén; más que eso, sí.
+      tr.fueraDesde ??= t
+      if (t - tr.fueraDesde > MS_GRACIA_ZONA) {
+        tr.enZonaDesde = null
+        tr.fueraDesde = null
+        tr.sostenidoMs = 0
+      }
     }
 
     // Soltar: la carga cayó a la mitad del pico (o la banda ya volvió al reposo). Ahí sale el tiro.

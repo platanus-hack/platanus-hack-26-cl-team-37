@@ -117,8 +117,8 @@ describe('honda: la zona verde y el tiro', () => {
   it('sostener en el borde bajo de la zona no se toma por reposo nuevo (nivel 1)', () => {
     const { s, r } = nueva(1)
     tramo(s, r, 1000, 0)
-    tramo(s, r, 700, 0, 0.75)
-    tramo(s, r, 400, 0.75, 0.33)
+    tramo(s, r, 700, 0, 0.95)
+    tramo(s, r, 600, 0.95, 0.33)
     const sosten = tramo(s, r, 2500, 0.33)
     expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO, 0)
     expect(sosten.some((e) => e.tipo === 'sostenido')).toBe(true)
@@ -155,6 +155,64 @@ describe('honda: la zona verde y el tiro', () => {
     expect(s.ceroDudoso).toBe(false)
     tramo(s, r, 1200, 0)
     expect(s.fase).toBe('listo')
+  })
+
+  it('con el ruido de una cámara real (temblor, cuadros perdidos) cuenta bien 12 tiros sostenidos cerca del borde', () => {
+    // Generador con semilla, para que la prueba sea siempre la misma.
+    let semilla = 12345
+    const azar = () => ((semilla = (semilla * 1664525 + 1013904223) >>> 0) / 2 ** 32)
+    const gauss = () => Math.sqrt(-2 * Math.log(azar() + 1e-9)) * Math.cos(2 * Math.PI * azar())
+    const s = new SesionHonda(curva, nivelHonda(3))
+    const r = { t: 0 }
+    const ruidoso = (ms: number, desde: number, hasta = desde) => {
+      const n = Math.round((ms / 1000) * CPS)
+      for (let i = 0; i < n; i++) {
+        r.t += 1000 / CPS
+        const e = desde + ((hasta - desde) * (i + 1)) / n
+        // 1,2 % de ruido por cuadro (medido: 0,7–0,8 %), y 3 % de los cuadros sin una mano.
+        s.paso(r.t, azar() < 0.03 ? null : REPOSO * (1 + e) * (1 + 0.012 * gauss()))
+      }
+    }
+    ruidoso(3000, 0)
+    expect(s.seguidor.reposoCm).not.toBeNull()
+    for (let i = 0; i < 12; i++) {
+      ruidoso(900, 0, 0.74)
+      ruidoso(1600, 0.74)
+      ruidoso(300, 0.74, 0.03)
+      ruidoso(1400, 0.03)
+    }
+    expect(s.tiros).toHaveLength(12)
+    expect(s.aciertos).toBeGreaterThanOrEqual(11)
+    expect(s.ceroDudoso).toBe(false)
+  })
+
+  it('un temblor de un instante fuera de la zona no corta el sostén, pero salir de verdad sí', () => {
+    const { s, r } = nueva(3)
+    tramo(s, r, 800, 0, 0.8)
+    tramo(s, r, 500, 0.8)
+    // 100 ms bajo la zona y vuelve: el sostén sigue.
+    tramo(s, r, 100, 0.6)
+    const sigue = tramo(s, r, 700, 0.8)
+    expect(sigue.some((e) => e.tipo === 'sostenido')).toBe(true)
+    tramo(s, r, 300, 0.8, 0)
+    tramo(s, r, 1200, 0)
+    // Medio segundo fuera: el sostén parte de nuevo y no alcanza.
+    tramo(s, r, 800, 0, 0.8)
+    tramo(s, r, 500, 0.8)
+    tramo(s, r, 600, 0.55)
+    tramo(s, r, 500, 0.8)
+    tramo(s, r, 300, 0.8, 0)
+    expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'sin-sostener'])
+  })
+
+  it('el cero se marca en 1,5 s aunque la banda oscile como en la mano (grabación real: tardaba 7 s)', () => {
+    const s = new SesionHonda(curva, nivelHonda(3))
+    const r = { t: 0 }
+    // Oscila ±4 % (pico a pico 8 %) con período de 1,2 s.
+    for (let i = 0; i < 60; i++) s.paso((r.t += 1000 / CPS), REPOSO * (1 + 0.04 * Math.sin((i / CPS) * ((2 * Math.PI) / 1.2))))
+    expect(s.seguidor.reposoCm).not.toBeNull()
+    expect(s.seguidor.reposoCm!).toBeGreaterThan(REPOSO * 0.96)
+    expect(s.seguidor.reposoCm!).toBeLessThan(REPOSO * 1.04)
   })
 
   it('el resumen cuenta aciertos, precisión, carga y tiempo bajo tensión', () => {
