@@ -413,10 +413,12 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
       ]
       const pasos: [number, number][] = [
         [3000, REPOSO],
-        ...tiro(1.45, 800, 1200, 600, 1400),
-        ...tiro(1.15, 700, 900, 500, 1400),
-        ...tiro(1.5, 800, 1200, 600, 1400),
-        ...tiro(1.95, 500, 250, 500, 1600),
+        // Entre tiros 2 s quietas: más que la quietud que marca el cero (1,5 s), así la demo arranca rápido aunque se abra
+        // a mitad de una vuelta.
+        ...tiro(1.45, 800, 1200, 600, 2000),
+        ...tiro(1.15, 700, 900, 500, 2000),
+        ...tiro(1.5, 800, 1200, 600, 2000),
+        ...tiro(1.95, 500, 250, 500, 2000),
       ]
       const manos = (['derecha', 'izquierda'] as LadoMano[]).map((l) => ({
         lado: l,
