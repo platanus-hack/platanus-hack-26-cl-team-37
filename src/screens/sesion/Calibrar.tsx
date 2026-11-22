@@ -118,7 +118,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
   const nav = useNavigate()
   const { search } = useLocation()
   // calibración: solo la mano más cercana a la cámara (una mano del fondo no se cuela)
-  const { fuente, estado } = useFuenteManos(search, CONFIG_FUENTE_CALIBRACION)
+  const { fuente, estado, error: errorFuente, reintentar: recrearFuente } = useFuenteManos(search, CONFIG_FUENTE_CALIBRACION)
   const debug = new URLSearchParams(search).has('debug')
   const raiz = useRef<HTMLDivElement>(null)
   const fondo = useRef<HTMLDivElement>(null)
@@ -276,7 +276,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       </header>
 
       {problema ? (
-        <Problema estado={estado} detalle={fuente?.detalleError ?? null} reintentar={() => void fuente?.iniciar()} />
+        <Problema estado={estado} detalle={fuente?.detalleError ?? errorFuente} reintentar={() => (fuente ? void fuente.iniciar() : recrearFuente())} />
       ) : (
         <>
           <div className="calibrar-indicacion">
