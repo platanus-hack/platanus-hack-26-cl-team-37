@@ -71,9 +71,11 @@ test.describe('Pacientes del terapeuta', () => {
     const mostrada = parseInt((await page.getByTestId('ind-adherencia').textContent())!, 10)
     expect(Math.abs(mostrada - media)).toBeLessThanOrEqual(1)
 
-    // Barra inferior del terapeuta.
+    // Barra del terapeuta: solo Pacientes (Alertas, Planes e Informes están ocultas; sus pantallas siguen por URL).
     const barra = page.getByRole('navigation', { name: 'Navegación del terapeuta' })
-    for (const t of ['Pacientes', 'Alertas', 'Planes', 'Informes']) await expect(barra.getByText(t, { exact: true })).toBeVisible()
+    await expect(barra.getByRole('link')).toHaveCount(1)
+    await expect(barra.getByText('Pacientes', { exact: true })).toBeVisible()
+    for (const t of ['Alertas', 'Planes', 'Informes']) await expect(barra.getByText(t, { exact: true })).toHaveCount(0)
     v.sinErrores()
   })
 
@@ -97,13 +99,12 @@ test.describe('Pacientes del terapeuta', () => {
     await expect(page.getByRole('button', { name: 'Enviar plan' })).toBeDisabled()
   })
 
-  test('pestañas Alertas, Planes e Informes; días sin sesiones configurables', async ({ page }) => {
+  test('pantallas Alertas, Planes e Informes (sin pestaña, por URL); días sin sesiones configurables', async ({ page }) => {
     const v = vigilarErrores(page)
     await page.goto('/terapeuta/pacientes')
     const barra = page.getByRole('navigation', { name: 'Navegación del terapeuta' })
 
-    await barra.getByText('Alertas', { exact: true }).click()
-    await expect(page).toHaveURL(/\/terapeuta\/alertas$/)
+    await page.goto('/terapeuta/alertas')
     const dolor = page.getByTestId('alerta-dolor')
     await expect(dolor).toHaveCount(1)
     await expect(dolor).toContainText('Luis A.')
@@ -119,12 +120,12 @@ test.describe('Pacientes del terapeuta', () => {
     await expect(page.getByTestId('aviso-inactividad')).toHaveCount(0)
     await expect(page.getByTestId('ind-alertas')).toHaveText('1')
 
-    await barra.getByText('Planes', { exact: true }).click()
+    await page.goto('/terapeuta/planes')
     await expect(page.getByTestId('fila-plan')).toHaveCount(4)
     await expect(page.getByTestId('fila-plan').filter({ hasText: 'Carmen R.' })).toContainText(/Versión \d+ · \d+ días por semana/)
     await expect(page.getByText('Paciente de prueba')).toHaveCount(0)
 
-    await barra.getByText('Informes', { exact: true }).click()
+    await page.goto('/terapeuta/informes')
     // F17: exportar el período de un paciente (el detalle y la descarga se prueban en informes.spec.ts).
     await expect(page.getByRole('heading', { name: 'Exportar informe' })).toBeVisible()
     await expect(page.getByLabel('Paciente', { exact: true })).toHaveValue(/[0-9a-f-]{36}/)

@@ -1,8 +1,7 @@
 // Marco común de las pantallas con sesión: contenido y barra de navegación según el rol.
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/contexto'
-import { repos } from '../data/repos'
 import { BarraPaciente, BarraTerapeuta, Cargando } from './piezas'
 
 export function Marco({ barra = false }: { barra?: boolean }) {
@@ -12,7 +11,7 @@ export function Marco({ barra = false }: { barra?: boolean }) {
       <Suspense fallback={<PantallaCargando />}>
         <Outlet />
       </Suspense>
-      {barra && (usuario?.rol === 'terapeuta' ? <BarraTerapeutaConAlertas /> : <BarraPaciente />)}
+      {barra && (usuario?.rol === 'terapeuta' ? <BarraTerapeuta /> : <BarraPaciente />)}
     </div>
   )
 }
@@ -23,20 +22,4 @@ export function PantallaCargando({ texto }: { texto?: string }) {
       <Cargando texto={texto} />
     </main>
   )
-}
-
-/** La pestaña Alertas muestra un punto cuando hay alertas abiertas. Si la consulta falla, no se muestra. */
-function BarraTerapeutaConAlertas() {
-  const [n, setN] = useState(0)
-  useEffect(() => {
-    let vivo = true
-    repos.alertas
-      .abiertas()
-      .then((a) => vivo && setN(a.length))
-      .catch(() => undefined)
-    return () => {
-      vivo = false
-    }
-  }, [])
-  return <BarraTerapeuta alertas={n} />
 }
