@@ -11,7 +11,9 @@
 // Dedo abajo = flexión MCP − reposo del dedo > umbral (logica.ts: DetectorMano). Aciertos, equivocados e independencia: Juez.
 //
 // Eventos: nota_mostrada {dedo, posicion}, acierto {dedo, desfase, independencia}, dedo_equivocado {dedo, pedido, simultaneo},
-// nota_perdida {dedo}. El contador es notas resueltas / total (la meta del plan); sin meta, práctica libre.
+// nota_perdida {dedo}. El contador es notas ACERTADAS / total (la meta del plan): una nota perdida no cuenta para la meta.
+// La partitura trae tantas notas como la meta; al resolverse todas (acertadas o perdidas) el juego termina, y la meta
+// queda cumplida solo si todas fueron aciertos. Sin meta, práctica libre.
 import * as THREE from 'three'
 import { crearGeoTecla, crearNotas, crearTeclado } from '../assets/piano/tecla'
 import type { Recursos } from '../assets/recursos'
@@ -25,6 +27,7 @@ import {
   COLOR_DEDO,
   DEDOS_PIANO,
   DetectorMano,
+  ESPERA_FIN_MS,
   Juez,
   NIVELES_PIANO,
   NOMBRE_DEDO,
@@ -34,6 +37,7 @@ import {
   inicioPausa,
   ladosDelNivel,
   nivelPiano,
+  relojPartitura,
   separarTeclas,
   type Dedo,
   type EventoPiano,
@@ -125,6 +129,8 @@ export const crearPiano: CrearJuego = () => {
   let fase: Fase = 'calibrando'
   let reloj = 0
   let pausaDesde: number | null = null
+  /** ms desde que se resolvió la última nota (fase 'fin'). */
+  let finMs = 0
   let ultimasManos: ManoSeguida[] | null = null
 
   const detectores: Record<LadoMano, DetectorMano> = { derecha: new DetectorMano(), izquierda: new DetectorMano() }
@@ -182,8 +188,10 @@ export const crearPiano: CrearJuego = () => {
     }
   }
 
-  const contador = () => juez?.resueltas ?? 0
-  const metaAlcanzada = () => !!ctx && total > 0 && contador() >= total
+  /** Contra la meta cuentan solo los aciertos (las notas perdidas resuelven la partitura, no la meta). */
+  const contador = () => juez?.aciertos ?? 0
+  /** Ya no quedan notas por resolver: el juego terminó, se haya cumplido la meta o no. */
+  const partituraCompleta = () => !!ctx && !!juez?.completa
 
   // ── Reposo ──
   function empezarReposo(desde: number) {
@@ -502,7 +510,9 @@ export const crearPiano: CrearJuego = () => {
     actualizar(manos: ManoSeguida[], dt) {
       const c = ctx
       if (!c) return
-      reloj += dt * 1000
+      // Sin ninguna mano del juego a la vista la partitura no corre (no se pierden notas por el seguimiento).
+      reloj = relojPartitura(reloj, dt * 1000, lados.some((l) => manos.some((x) => x.lado === l)))
+      if (fase === 'fin') finMs += dt * 1000
       const nuevo = manos !== ultimasManos
       ultimasManos = manos
 
@@ -540,7 +550,7 @@ export const crearPiano: CrearJuego = () => {
           if (p) for (const ev of juez.pulsacion(l, p)) aplicar(ev)
         }
         for (const ev of juez.avanzar(reloj, (l) => detectores[l].fase === 'episodio')) aplicar(ev)
-        if (metaAlcanzada()) fase = 'fin'
+        if (partituraCompleta()) fase = 'fin'
       }
       ponerBoton()
       dibujar(dt)
@@ -564,7 +574,7 @@ export const crearPiano: CrearJuego = () => {
         }
       }
       let pista: string | undefined
-      if (metaAlcanzada()) pista = agregado.aciertos > 0 ? '¡Muy bien! Terminaste las notas' : 'Terminaste las notas'
+      if (partituraCompleta()) pista = agregado.aciertos > 0 ? '¡Muy bien! Terminaste las notas' : 'Terminaste las notas'
       else if (fase === 'calibrando') pista = lados.length > 1 ? 'Deja las dos manos quietas sobre las teclas' : 'Deja la mano quieta sobre las teclas'
       const ind = agregado.independenciaReciente()
       const des = agregado.desfaseMedio()
@@ -572,6 +582,8 @@ export const crearPiano: CrearJuego = () => {
         contador: contador(),
         manos,
         pista,
+        // Se resolvieron todas las notas sin cumplir la meta: la base termina la sesión (con la meta cumplida termina sola).
+        terminado: fase === 'fin' && contador() < total && finMs >= ESPERA_FIN_MS,
         vivo: {
           independencia: ind == null ? null : Math.round(ind),
           aciertos: agregado.aciertos,

@@ -7,6 +7,7 @@ import {
   DEDOS_PIANO,
   DetectorMano,
   EPISODIO_MS,
+  ESPERA_FIN_MS,
   Juez,
   NIVELES_PIANO,
   REPOSO_MS,
@@ -16,6 +17,7 @@ import {
   frecuenciaNota,
   ladosDelNivel,
   nivelPiano,
+  relojPartitura,
   separarTeclas,
   type Dedo,
   type EventoPiano,
@@ -388,6 +390,87 @@ describe('Juez: pulsaciones', () => {
     expect(j.pendientes()).toHaveLength(1)
     j.pulsacion('derecha', pul(j.notas[0].tMs, [j.notas[0].dedo], { [j.notas[0].dedo]: 40 }))
     expect(j.resueltas).toBe(1)
+  })
+})
+
+describe('Juez: la meta cuenta aciertos, no notas resueltas', () => {
+  const N = NIVELES_PIANO[1]
+  /** Corre la partitura completa de `total` notas; `acertar(i)` decide si la nota i se toca bien. */
+  function partitura(total: number, acertar: (i: number) => boolean) {
+    const j = new Juez(N, ['derecha'], rng, total, 0)
+    for (let t = 0; t <= N.caidaMs + total * N.intervaloMs + N.ventanaMs + 1000; t += 50) {
+      j.avanzar(t)
+      const n = j.activa('derecha', t)
+      if (n && t >= n.tMs && acertar(n.i)) j.pulsacion('derecha', pul(t, [n.dedo], { [n.dedo]: 40 }))
+    }
+    return j
+  }
+  it('sin ningún acierto la partitura termina (todas perdidas) pero la meta NO se cumple', () => {
+    const j = partitura(4, () => false)
+    expect(j.resueltas).toBe(4)
+    expect(j.completa).toBe(true) // el juego termina igual
+    expect(j.aciertos).toBe(0) // contador que ve la base: 0/4 → metaCumplida false
+    expect(j.aciertos >= j.total).toBe(false)
+  })
+  it('con algunas perdidas el contador son solo los aciertos y la meta sigue sin cumplirse', () => {
+    const j = partitura(4, (i) => i % 2 === 0)
+    expect(j.completa).toBe(true)
+    expect(j.notas.map((n) => n.estado)).toEqual(['acierto', 'perdida', 'acierto', 'perdida'])
+    expect(j.aciertos).toBe(2)
+    expect(j.aciertos >= j.total).toBe(false)
+  })
+  it('acertando todas se cumple la meta; a medio camino ni termina ni la cumple', () => {
+    const j = partitura(3, () => true)
+    expect(j.aciertos).toBe(3)
+    expect(j.completa).toBe(true)
+    expect(j.aciertos >= j.total).toBe(true)
+    const medio = new Juez(N, ['derecha'], rng, 3, 0)
+    medio.avanzar(100)
+    medio.pulsacion('derecha', pul(medio.notas[0].tMs, [medio.notas[0].dedo], { [medio.notas[0].dedo]: 40 }))
+    expect([medio.aciertos, medio.completa]).toEqual([1, false])
+  })
+  it('sin tope (práctica libre) nunca está completa', () => {
+    const j = new Juez(N, ['derecha'], rng, 0, 0)
+    j.avanzar(60_000)
+    expect(j.resueltas).toBeGreaterThan(5)
+    expect(j.completa).toBe(false)
+    expect(ESPERA_FIN_MS).toBeGreaterThan(0)
+  })
+})
+
+describe('sin mano la partitura no corre', () => {
+  it('relojPartitura solo avanza con alguna mano del juego a la vista', () => {
+    expect(relojPartitura(1000, 16, true)).toBe(1016)
+    expect(relojPartitura(1000, 16, false)).toBe(1000)
+    expect(relojPartitura(1000, -5, true)).toBe(1000)
+  })
+  it('la mano se pierde con una nota abierta: no hay nota_perdida mientras no se ve ni al volver, y se puede acertar', () => {
+    const N = NIVELES_PIANO[1]
+    const j = new Juez(N, ['derecha'], rng, 4, 0)
+    const evs: EventoPiano[] = []
+    let reloj = 0
+    const cuadro = (hayMano: boolean) => {
+      reloj = relojPartitura(reloj, 16, hayMano)
+      evs.push(...j.avanzar(reloj))
+    }
+    // Con la mano: corre hasta que la primera nota llega a la línea.
+    while (reloj < N.caidaMs) cuadro(true)
+    const nota = j.notas[0]
+    expect(j.activa('derecha', reloj)).toBe(nota)
+    // 2 s sin mano (lo que tarda la base en pausar), mucho más que la ventana que quedaba: el reloj queda quieto.
+    const antes = reloj
+    for (let i = 0; i < 125; i++) cuadro(false)
+    expect(reloj).toBe(antes)
+    expect(evs.filter((e) => e.tipo === 'nota_perdida')).toEqual([])
+    expect(j.notas).toHaveLength(1) // tampoco cayeron notas nuevas
+    // Vuelve la mano: la nota sigue abierta y se puede acertar.
+    cuadro(true)
+    expect(nota.estado).toBe('pendiente')
+    expect(j.pulsacion('derecha', pul(reloj, [nota.dedo], { [nota.dedo]: 40 })).map((e) => e.tipo)).toEqual(['acierto'])
+    // Con el reloj corriendo sin congelar (lo que pasaba antes) esa misma nota se habría perdido.
+    const sinCongelar = new Juez(N, ['derecha'], rng, 4, 0)
+    sinCongelar.avanzar(N.caidaMs)
+    expect(sinCongelar.avanzar(N.caidaMs + 2000).map((e) => e.tipo)).toContain('nota_perdida')
   })
 })
 

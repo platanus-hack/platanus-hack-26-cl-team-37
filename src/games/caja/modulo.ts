@@ -22,7 +22,7 @@ import { crearCajaMadera } from '../assets/caja/cajaMadera'
 import { crearPiezaFisica } from '../assets/piezas'
 import type { Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
-import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
+import { configDesdeCalibracion, pasoAgarreTolerante, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import { contarAgarres } from '../../metrics/sesion'
 import { suavidadSesion, type PuntoTrayectoria } from '../../metrics/suavidad'
 import { juegoPorId } from '../registry'
@@ -41,6 +41,7 @@ import {
   estaQuieto,
   medioAlto,
   posicionesJuguetes,
+  resultadoSoltar,
   type Forma,
 } from './logica'
 
@@ -66,6 +67,8 @@ interface Juguete {
   quietoDesde: number | null
   /** Posición sostenida (suavizada). */
   sostenido: THREE.Vector3
+  /** El último agarre terminó porque se dejó de ver la mano (no lo soltó el paciente): no cuenta como guardado. */
+  perdido: boolean
 }
 
 interface Traslado {
@@ -147,6 +150,7 @@ export const crearCaja: CrearJuego = () => {
       soltadoT: 0,
       quietoDesde: null,
       sostenido: new THREE.Vector3(),
+      perdido: false,
     }
     sincronizar(j)
     return j
@@ -185,6 +189,7 @@ export const crearCaja: CrearJuego = () => {
     j.estado = 'mesa'
     j.mano = null
     j.quietoDesde = null
+    j.perdido = false
     sincronizar(j)
   }
 
@@ -197,6 +202,7 @@ export const crearCaja: CrearJuego = () => {
     j.estado = 'tomado'
     j.mano = lado
     j.quietoDesde = null
+    j.perdido = false
     const p = j.cuerpo.translation()
     j.sostenido.set(p.x, p.y, p.z)
     j.cuerpo.setBodyType(R!.RigidBodyType.KinematicPositionBased, true)
@@ -205,7 +211,8 @@ export const crearCaja: CrearJuego = () => {
     c.registrar('agarre_inicio', { mano: lado, objeto: j.id, datos: { aperturaCm: m ? r1(m.aperturaPinzaCm) : null } })
   }
 
-  function soltarDeMano(lado: LadoMano) {
+  /** `perdida` = el agarre terminó porque se dejó de ver la mano (pasada la gracia), no porque el paciente abrió la pinza. */
+  function soltarDeMano(lado: LadoMano, perdida = false) {
     const c = ctx!
     const tr = traslados[lado]
     delete traslados[lado]
@@ -213,7 +220,9 @@ export const crearCaja: CrearJuego = () => {
     const j = tr.juguete
     if (tr.tray.length > 1) segmentos.push(tr.tray)
     suavidadViva = suavidadSesion(segmentos)
-    c.registrar('agarre_fin', { mano: lado, objeto: j.id, datos: { duracionMs: Math.round(c.ahora() - tr.inicioT) } })
+    const duracionMs = Math.round(c.ahora() - tr.inicioT)
+    c.registrar('agarre_fin', { mano: lado, objeto: j.id, datos: perdida ? { duracionMs, motivo: 'sin-mano' } : { duracionMs } })
+    j.perdido = perdida
     aDinamico(j)
     j.cuerpo.setTranslation({ x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z }, true)
     j.estado = 'soltado'
@@ -229,6 +238,7 @@ export const crearCaja: CrearJuego = () => {
     } else j.estado = 'mesa'
     j.mano = null
     j.quietoDesde = null
+    j.perdido = false
   }
 
   /** Juguete libre más cercano al punto de pinza de esa mano (null si ninguno está cerca). */
@@ -326,10 +336,11 @@ export const crearCaja: CrearJuego = () => {
       for (const lado of LADOS) {
         const m = c.medidas(lado)
         const candidato = m && !agarre[lado].agarrando ? cercano(lado) : null
-        const r = pasoAgarre(agarre[lado], m ? m.aperturaPinzaCm : null, !!candidato, cfg)
+        // Un hueco corto sin ver la mano no suelta el juguete; si se pierde de verdad, se suelta sin contar como guardado.
+        const r = pasoAgarreTolerante(agarre[lado], m ? m.aperturaPinzaCm : null, !!candidato, dt * 1000, cfg)
         agarre[lado] = r.estado
         if (r.cambio === 'inicio' && candidato) tomar(lado, candidato)
-        else if (r.cambio === 'fin') soltarDeMano(lado)
+        else if (r.cambio === 'fin') soltarDeMano(lado, r.perdida)
         const tr = traslados[lado]
         if (tr && m) {
           const ultimo = tr.tray[tr.tray.length - 1]
@@ -358,7 +369,13 @@ export const crearCaja: CrearJuego = () => {
         if (j.estado === 'soltado') {
           if (estaQuieto(j.cuerpo.linvel(), j.cuerpo.angvel())) j.quietoDesde ??= t
           else j.quietoDesde = null
-          if ((j.quietoDesde != null && t - j.quietoDesde >= MS_QUIETO) || t - j.soltadoT >= MS_MAX_ASENTAR) terminarSoltado(j, dentroDeCaja(p, CAJA, c.mesa.altura))
+          if ((j.quietoDesde != null && t - j.quietoDesde >= MS_QUIETO) || t - j.soltadoT >= MS_MAX_ASENTAR) {
+            // Soltado por pérdida de seguimiento: no cuenta como guardado y, si cayó en la caja, vuelve a su lugar.
+            const perdido = j.perdido
+            const res = resultadoSoltar(dentroDeCaja(p, CAJA, c.mesa.altura), perdido)
+            terminarSoltado(j, res.enCaja, perdido ? 'sin-mano' : undefined)
+            if (res.vuelve) volverAlInicio(j)
+          }
         }
         sincronizar(j)
       }

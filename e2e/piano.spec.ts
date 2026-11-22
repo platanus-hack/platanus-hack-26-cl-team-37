@@ -1,10 +1,13 @@
 // F27 · Piano de dedos sobre /sesion/:id/jugar con ?fuente=sintetica (horizontal 844×390).
 // La mano sintética baja dedos sueltos (`dedos: { medio: 0.6 }`) y se maneja leyendo el estado del juego
 // (window.__manoviva.juego.estado(): fase, reposo, dedos abajo, nota con la ventana abierta). Nada depende del audio.
+// El contador y la meta cuentan ACIERTOS (una nota perdida no acerca la meta). La partitura trae `meta` notas: al resolverse
+// todas el juego termina, con la meta cumplida solo si todas fueron aciertos.
 // - Sesión REAL, nivel 1, meta 4, mano derecha: reposo de 3 s → acierto limpísimo (independencia alta) → dos dedos a la vez
-//   (no es acierto limpio, la independencia de ese dedo baja) → nota perdida → acierto → "¡Meta cumplida! 4/4" y /sensacion.
-//   Con CAPTURA_PIANO=1 guarda docs/capturas/piano-dedos.png. Mide el fps.
-// - Sesión REAL, nivel 1, meta 2, mano IZQUIERDA: acierto con el dedo pedido y dedo equivocado (otro dedo) sin acierto.
+//   (no es acierto limpio, la independencia de ese dedo baja) → nota perdida → acierto → termina con 2/4, SIN "Meta cumplida",
+//   y /sensacion. Con CAPTURA_PIANO=1 guarda docs/capturas/piano-dedos.png. Mide el fps.
+// - Sesión REAL, nivel 1, meta 2, mano IZQUIERDA: acierto con el dedo pedido y dedo equivocado (otro dedo) sin acierto: 1/2.
+// - Sesión falsa, nivel 1, meta 2: las dos notas acertadas → "¡Meta cumplida! 2/2".
 // - Sesión falsa, nivel 5 (dos manos): cada mano recibe sus notas y sus aciertos se anotan con su lado.
 // Sesiones reales: terminan en /sensacion sin cerrarse; se limpian por id explícito.
 import { expect, test, type Page } from '@playwright/test'
@@ -63,7 +66,7 @@ async function pasarReposo(p: Page) {
 test.describe('Piano de dedos', () => {
   test.beforeEach(async ({ context }) => entrarComo(context, 'paciente'))
 
-  test('derecha, nivel 1, meta 4: acierto limpio, dos dedos a la vez (no limpio), nota perdida y acierto; meta 4/4, eventos y métricas guardados', async ({ page }, info) => {
+  test('derecha, nivel 1, meta 4: acierto limpio, dos dedos a la vez (no limpio), nota perdida y acierto; termina 2/4 sin meta cumplida, eventos y métricas guardados', async ({ page }, info) => {
     test.setTimeout(150_000)
     const desde = new Date(Date.now() - 5_000).toISOString()
     let id = ''
@@ -131,12 +134,12 @@ test.describe('Piano de dedos', () => {
       await esperarSoltado(page, 'derecha')
       // Sin repetirla, termina la ventana: nota perdida.
       await expect.poll(async () => (await estado(page)).perdidas, { timeout: 6_000 }).toBe(1)
-      await expect(page.getByTestId('contador')).toHaveText('2/4')
+      await expect(page.getByTestId('contador')).toHaveText('1/4') // una nota perdida no suma a la meta
 
       // Nota 3: no se hace nada → nota perdida.
       await notaAbierta(page, 'derecha', 15_000)
       await expect.poll(async () => (await estado(page)).perdidas, { timeout: 8_000 }).toBe(2)
-      await expect(page.getByTestId('contador')).toHaveText('3/4')
+      await expect(page.getByTestId('contador')).toHaveText('1/4')
 
       // Captura "en acción" (como la imagen de referencia): el dedo pedido de la nota 4 abajo.
       if (process.env.CAPTURA_PIANO) {
@@ -147,7 +150,10 @@ test.describe('Piano de dedos', () => {
       const d4 = await notaAbierta(page, 'derecha', 15_000)
       const j0 = (await juego(page))!
       await bajar(page, 'derecha', [d4])
-      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 4/4', { timeout: 6_000 })
+      // Se resolvieron las 4 notas con 2 aciertos: el juego termina, pero la meta (4 aciertos) NO se cumplió.
+      await expect(page.getByTestId('contador')).toHaveText('2/4', { timeout: 6_000 })
+      await expect(page.getByTestId('pista')).toContainText('Terminaste las notas')
+      await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
       if (process.env.CAPTURA_PIANO) await page.screenshot({ path: 'docs/capturas/piano-dedos-meta.png', style: SIN_FPS })
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion\\?fuente=sintetica&guion=quieta&depuracion=1$`), { timeout: 10_000 })
       expect(rapier, 'El piano no usa física').toEqual([])
@@ -157,7 +163,7 @@ test.describe('Piano de dedos', () => {
       const sb = await clienteComo('paciente')
       const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
       expect(s.estado).toBe('en curso')
-      expect(s.metricas).toMatchObject({ contador: 4, meta: 4, metaCumplida: true, motivoFin: 'meta' })
+      expect(s.metricas).toMatchObject({ contador: 2, meta: 4, metaCumplida: false, motivoFin: 'tiempo' })
       const m = s.metricas.juego as Record<string, number | null>
       expect(m).toMatchObject({ aciertos: 2, notasPerdidas: 2, dedosEquivocados: 1 })
       expect(m.independencia!).toBeLessThan(100) // la pulsación doble bajó el promedio
@@ -227,11 +233,15 @@ test.describe('Piano de dedos', () => {
       expect((await estado(page)).aciertos).toBe(1)
       await soltar(page, 'izquierda')
       await esperarSoltado(page, 'izquierda')
-      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 2/2', { timeout: 8_000 })
+      // La segunda nota se pierde: el juego termina con 1 acierto de 2 y la meta NO queda cumplida.
+      await expect(page.getByTestId('pista')).toContainText('Terminaste las notas', { timeout: 8_000 })
+      await expect(page.getByTestId('contador')).toHaveText('1/2')
+      await expect(page.getByTestId('meta-cumplida')).toHaveCount(0)
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion`), { timeout: 10_000 })
 
       const sb = await clienteComo('paciente')
       const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
+      expect(s.metricas).toMatchObject({ contador: 1, meta: 2, metaCumplida: false })
       expect(s.metricas.juego).toMatchObject({ aciertos: 1, notasPerdidas: 1, dedosEquivocados: 1 })
       const evs = (await sb.from('eventos_sesion').select('*').eq('sesion_id', id).order('seq')).data!
       expect(evs.filter((e) => e.tipo === 'acierto')).toMatchObject([{ mano: 'izquierda', objeto: d1 }])
@@ -241,6 +251,29 @@ test.describe('Piano de dedos', () => {
     } finally {
       limpiar(desde, id)
     }
+  })
+
+  test('nivel 1, meta 2: las dos notas acertadas cumplen la meta de verdad ("¡Meta cumplida! 2/2")', async ({ page }) => {
+    test.setTimeout(90_000)
+    const escrituras = await sesionFalsa(page, 'piano-dedos', 5, 2, 1)
+    await page.setViewportSize(HORIZONTAL)
+    const v = vigilarErrores(page)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Piano de dedos' })).toBeVisible({ timeout: 15_000 })
+    await pasarReposo(page)
+    for (const n of [1, 2]) {
+      const d = await notaAbierta(page, 'derecha', 15_000)
+      await bajar(page, 'derecha', [d])
+      await expect.poll(async () => (await estado(page)).aciertos, { timeout: 4_000 }).toBe(n)
+      await soltar(page, 'derecha')
+      if (n < 2) await esperarSoltado(page, 'derecha')
+    }
+    await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 2/2', { timeout: 6_000 })
+    await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion`), { timeout: 10_000 })
+    const final = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: Record<string, unknown> & { juego: Record<string, unknown> } }
+    expect(final.metricas).toMatchObject({ contador: 2, meta: 2, metaCumplida: true, motivoFin: 'meta' })
+    expect(final.metricas.juego).toMatchObject({ aciertos: 2, notasPerdidas: 0 })
+    v.sinErrores()
   })
 
   test('nivel 5 (dos manos): cada mano fija su reposo, recibe sus notas y sus aciertos se anotan con su lado', async ({ page }) => {

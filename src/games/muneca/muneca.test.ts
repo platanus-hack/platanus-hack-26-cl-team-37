@@ -8,6 +8,8 @@ import {
   IDENTIDAD,
   NIVELES_MUNECA,
   ORDEN_FASES,
+  RETORNO_MAX_MS,
+  RETORNO_MS,
   SuavizadorAngulos,
   angulos,
   avisoAntebrazo,
@@ -320,6 +322,38 @@ describe('fases guiadas', () => {
     r = correr(r.s, { flexExt: 18, desviacion: 0 }, 1_500)
     expect(r.evs).toEqual([{ tipo: 'no_alcanzado', fase: 'flexion', maxGrados: 18 }])
     expect(r.s.etapa).toBe('volver')
+  })
+
+  it("la etapa 'volver' tiene salida: sin lograr el neutro, a los RETORNO_MAX_MS sigue con la fase siguiente", () => {
+    // Acierta la flexión y la muñeca se queda a 14° (no baja de RETORNO_DEG = 10°).
+    let r = correr(estadoMunecaInicial(), { flexExt: 36, desviacion: 0 }, 1100)
+    expect(r.s.etapa).toBe('volver')
+    expect(r.s.esperaMs).toBe(100) // la espera de 'volver' parte de cero al acertar (1 s) y ya lleva dos cuadros
+    r = correr(r.s, { flexExt: 14, desviacion: 0 }, RETORNO_MAX_MS - 200)
+    expect(r.s).toMatchObject({ indice: 0, etapa: 'volver' })
+    expect(r.evs).toEqual([])
+    r = correr(r.s, { flexExt: 14, desviacion: 0 }, 200)
+    expect(r.s).toMatchObject({ indice: 1, etapa: 'ir' })
+    expect(r.evs).toEqual([{ tipo: 'objetivo_mostrado', fase: 'extension', objetivoGrados: 25 }])
+    // También después de un no_alcanzado, y la espera de la fase nueva parte de cero.
+    r = correr(estadoMunecaInicial(), { flexExt: 18, desviacion: 0 }, 12_100)
+    expect(r.s.etapa).toBe('volver')
+    r = correr(r.s, { flexExt: 18, desviacion: 0 }, RETORNO_MAX_MS + 100)
+    expect(r.s).toMatchObject({ indice: 1, etapa: 'ir' })
+    expect(r.s.esperaMs).toBeLessThanOrEqual(300) // no hereda los 8 s de la vuelta
+    expect(r.evs.map((e) => e.tipo)).toEqual(['objetivo_mostrado'])
+  })
+
+  it("la espera de 'volver' no corre sin mano y no cambia nada para quien vuelve al neutro", () => {
+    let r = correr(estadoMunecaInicial(), { flexExt: 36, desviacion: 0 }, 1100)
+    r = correr(r.s, { flexExt: 14, desviacion: 0 }, RETORNO_MAX_MS - 1000)
+    r = correr(r.s, null, 30_000) // se pierde la mano: sigue esperando la vuelta
+    expect(r.s).toMatchObject({ indice: 0, etapa: 'volver' })
+    // Vuelve al neutro: pasa a la fase siguiente a los RETORNO_MS, como siempre.
+    const antes = correr(r.s, cero, RETORNO_MS - 50)
+    expect(antes.s.etapa).toBe('volver')
+    expect(correr(antes.s, cero, 50).s).toMatchObject({ indice: 1, etapa: 'ir' })
+    expect(RETORNO_MAX_MS).toBeGreaterThanOrEqual(5000) // holgado para una muñeca con poca movilidad
   })
 
   it('con aviso de antebrazo no suma sostén ni cuenta el máximo', () => {

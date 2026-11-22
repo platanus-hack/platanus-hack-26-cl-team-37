@@ -7,7 +7,8 @@
 //   - 'oculta'      la pestaña/app pasó a segundo plano;
 //   - 'sin-mano'    no se ve ninguna mano hace más de 2 s (pausa automática). Se reanuda sola al volver la mano.
 // Termina por tiempo (tiempo de juego activo ≥ duración) o por meta (contador ≥ meta > 0; se deja ver el aviso
-// "Meta cumplida" ESPERA_META_MS antes de terminar), o a mano con terminarCiclo().
+// "Meta cumplida" ESPERA_META_MS antes de terminar), o a mano con terminarCiclo(). Un juego que se queda sin nada
+// que ofrecer sin cumplir la meta (entrada `agotado`) termina igual que por tiempo.
 
 export type FaseCiclo = 'esperando' | 'jugando' | 'pausa' | 'terminada'
 export type MotivoPausa = 'manual' | 'orientacion' | 'oculta' | 'sin-mano'
@@ -42,6 +43,8 @@ export interface EntradaCiclo {
   vertical: boolean
   oculta: boolean
   contador: number
+  /** Opcional: el juego avisó que no le queda nada por hacer (HudJuego.terminado). Termina como por tiempo. */
+  agotado?: boolean
 }
 
 export interface ConfigCiclo {
@@ -103,6 +106,8 @@ export function pasoCiclo(e: EstadoCiclo, x: EntradaCiclo, cfg: ConfigCiclo): { 
     cambios.push({ tipo: 'meta' })
   }
   if (s.metaT != null && x.t - s.metaT >= ESPERA_META_MS) return terminar(s, 'meta', cambios)
+  // El juego se agotó sin cumplir la meta (si la cumplió, manda el aviso de meta de arriba): no hay nada que esperar.
+  if (x.agotado && s.metaT == null && s.inicioT != null) return terminar(s, 'tiempo', cambios)
   if (s.jugadoMs >= cfg.duracionMs) {
     s.jugadoMs = cfg.duracionMs
     return terminar(s, 'tiempo', cambios)

@@ -595,6 +595,10 @@ export const crearNaranja: CrearJuego = () => {
     },
 
     resumen() {
+      // Fin de la sesión con una repetición a medias: se anota como incompleta con su paso (igual que "Reiniciar"),
+      // para que su cierre máximo y su tiempo sostenido entren en las métricas y no queden eventos sin cerrar.
+      if (ctx && !metaAlcanzada()) for (const ev of cortarRepeticion(estado)) aplicar(ev)
+      estado = estadoNaranjaInicial()
       return agregado.resumen()
     },
 
