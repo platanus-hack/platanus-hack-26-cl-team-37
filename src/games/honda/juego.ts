@@ -11,6 +11,7 @@ const juego: Juego = {
   disponible: true,
   usaCamara: true,
   dosManos: true,
+  tirasBanda: true,
   ruta: null,
   miniatura: 'honda',
   niveles: nivelesDesde(NIVELES_HONDA),

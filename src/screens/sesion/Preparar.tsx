@@ -3,6 +3,7 @@
 // Sin consentimiento firmado → /privacidad (con state.volver para regresar aquí).
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { OPCIONES_TIRAS, guardarTiras, leerTiras } from '../../banda/tiras'
 import { repos } from '../../data/repos'
 import type { Mano } from '../../domain/types'
 import { NIVEL_MAX } from '../../games/catalogo'
@@ -79,6 +80,7 @@ function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
   // Los juegos de dos manos (banda) no eligen mano: siempre 'ambas'.
   const [p, setP] = useState<Preparacion>(() => (juego.dosManos ? { ...datos.defecto, mano: 'ambas' } : datos.defecto))
   const [creando, setCreando] = useState(false)
+  const [tiras, setTiras] = useState(leerTiras)
   const escritorio = useVista() === 'escritorio'
 
   // Sin consentimiento firmado no se prepara ninguna sesión: primero /privacidad.
@@ -152,6 +154,26 @@ function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
             </p>
           </div>
         </section>
+
+        {juego.tirasBanda && (
+          <section className="col" aria-labelledby="t-tiras">
+            <h2 id="t-tiras" className="seccion">
+              Tiras de banda entre tus manos
+            </h2>
+            <Segmentos
+              opciones={OPCIONES_TIRAS}
+              valor={tiras}
+              onCambio={(n) => {
+                setTiras(n)
+                guardarTiras(n)
+              }}
+              etiqueta="Tiras de banda entre tus manos"
+            />
+            <p className="tenue chico" data-testid="detalle-tiras">
+              Cuenta las hebras tensas entre tus manos. Con más tiras, el mismo estirón carga más.
+            </p>
+          </section>
+        )}
 
         <section className="col" aria-labelledby="t-duracion">
           <h2 id="t-duracion" className="seccion">

@@ -167,6 +167,25 @@ test.describe('Honda', () => {
     }
   })
 
+  test('la preparación pregunta cuántas tiras hay entre las manos y el juego usa esa banda', async ({ page }) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/sesion/honda/preparar')
+    const grupo = page.getByRole('group', { name: 'Tiras de banda entre tus manos' })
+    await expect(grupo.getByRole('button', { pressed: true })).toHaveText('2 · lazo', { timeout: 10_000 })
+    await expect(page.getByTestId('dos-manos')).toBeVisible()
+    await grupo.getByRole('button', { name: '4 · doblado' }).click()
+    await expect(grupo.getByRole('button', { pressed: true })).toHaveText('4 · doblado')
+    // El juego toma las 4 tiras: el mismo nivel carga el doble que con el lazo simple.
+    await sesionFalsa(page, 'honda', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await esperarFase(page, 'jugando', 20_000)
+    const e = await estado(page)
+    expect(e.banda).toBe('Corength 5 kg × 4 tiras')
+    expect(e.metaKg).toBeGreaterThan(4.2)
+  })
+
   test('«Poner en cero» marca el reposo de nuevo y la pantalla no dice lo que la cámara no mide', async ({ page }) => {
     test.setTimeout(90_000)
     await sesionFalsa(page, 'honda', 5, 0, 1)

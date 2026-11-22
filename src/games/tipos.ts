@@ -46,6 +46,8 @@ export interface Juego {
   usaCamara: boolean
   /** true = se juega con las dos manos a la vez (banda): la preparación no pregunta qué mano trabajar y guarda 'ambas'. */
   dosManos?: boolean
+  /** true = la carga sale de la banda real: la preparación pregunta cuántas tiras hay entre las manos (src/banda/tiras.ts). */
+  tirasBanda?: boolean
   ruta: string | null
   miniatura: string
   categoria?: string
