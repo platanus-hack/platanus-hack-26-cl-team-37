@@ -32,15 +32,17 @@ export interface NivelBurbujas {
   vidaMs: number
   /** Hasta qué fracción de la zona completa puede crecer la zona de aparición. */
   zonaMax: number
+  /** Burbujas a la vez en la escena (todas se pueden reventar). */
+  simultaneas: number
   [k: string]: string | number | boolean
 }
 
 export const NIVELES_BURBUJAS: Record<1 | 2 | 3 | 4 | 5, NivelBurbujas> = {
-  1: { nombre: 'Burbujas grandes y quietas', detalle: 'Burbujas grandes, quietas y cerca · sin límite de tiempo', radio: 0.55, velocidad: 0, vidaMs: 0, zonaMax: 0.6 },
-  2: { nombre: 'Grandes, con tiempo', detalle: 'Burbujas grandes y quietas · 10 s de vida · zona más amplia', radio: 0.46, velocidad: 0, vidaMs: 10_000, zonaMax: 0.75 },
-  3: { nombre: 'Medianas en movimiento', detalle: 'Burbujas medianas que se mueven lento · 6 s de vida', radio: 0.38, velocidad: 0.18, vidaMs: 6000, zonaMax: 0.9 },
-  4: { nombre: 'Medianas, más rápidas', detalle: 'Burbujas medianas que se mueven · 4,5 s de vida · zona completa', radio: 0.32, velocidad: 0.3, vidaMs: 4500, zonaMax: 1 },
-  5: { nombre: 'Chicas en movimiento', detalle: 'Burbujas chicas que se mueven · 3 s de vida · zona completa', radio: 0.27, velocidad: 0.45, vidaMs: 3000, zonaMax: 1 },
+  1: { nombre: 'Burbujas grandes y quietas', detalle: 'Burbujas grandes, quietas y cerca · sin límite de tiempo · hasta 2 a la vez', radio: 0.55, velocidad: 0, vidaMs: 0, zonaMax: 0.6, simultaneas: 2 },
+  2: { nombre: 'Grandes, con tiempo', detalle: 'Burbujas grandes y quietas · 10 s de vida · zona más amplia · hasta 2 a la vez', radio: 0.46, velocidad: 0, vidaMs: 10_000, zonaMax: 0.75, simultaneas: 2 },
+  3: { nombre: 'Medianas en movimiento', detalle: 'Burbujas medianas que se mueven lento · 6 s de vida · hasta 3 a la vez', radio: 0.38, velocidad: 0.18, vidaMs: 6000, zonaMax: 0.9, simultaneas: 3 },
+  4: { nombre: 'Medianas, más rápidas', detalle: 'Burbujas medianas que se mueven · 4,5 s de vida · zona completa · hasta 3 a la vez', radio: 0.32, velocidad: 0.3, vidaMs: 4500, zonaMax: 1, simultaneas: 3 },
+  5: { nombre: 'Chicas en movimiento', detalle: 'Burbujas chicas que se mueven · 3 s de vida · zona completa · hasta 3 a la vez', radio: 0.27, velocidad: 0.45, vidaMs: 3000, zonaMax: 1, simultaneas: 3 },
 }
 
 export function nivelBurbujas(n: number): NivelBurbujas {
@@ -89,6 +91,11 @@ export function extensionPct(flexion: Pick<FlexionDedos, 'indice' | 'medio' | 'a
 export const PESO_Z = 0.5
 /** Holgura sobre el radio al tocar (unidades): la palma es ancha y la cámara es una sola. */
 export const HOLGURA_TOQUE = 0.12
+
+/** Tamaño de cada burbuja: entre TAMANO_MIN y TAMANO_MAX veces el radio del nivel (al azar). */
+export const TAMANO_MIN = 0.75
+export const TAMANO_MAX = 1.3
+export const radioBurbuja = (n: Pick<NivelBurbujas, 'radio'>, rng: () => number) => n.radio * (TAMANO_MIN + (TAMANO_MAX - TAMANO_MIN) * rng())
 /** Cuánto hay que mantener el toque con la mano bien abierta para reventar (ms). */
 export const HOLD_MS = 120
 /** Cuánto hay que estar dentro de la burbuja con la mano sin abrir para anotar un intento cerrado (ms). */

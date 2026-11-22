@@ -26,7 +26,7 @@ Modelos 3D, texturas y colores de las escenas, hechos con código three.js (no h
 | `torre/` | Base de madera y silueta del cubo siguiente. |
 | `naranja/` | Naranja, vaso con jugo, fuente, mitades y gotas. |
 | `memoria/` | Figuras, texturas de cara y reverso, y las cartas. |
-| `burbujas/` | Burbujas de adorno y objetivo, efecto de reventar. |
+| `burbujas/` | Burbuja (todas se pueden reventar), efecto de reventar y aviso de mano abierta. |
 | `piano/` | Teclas, línea de toque y notas. |
 | `movilidad/` | Cuentas del arco de progreso. |
 

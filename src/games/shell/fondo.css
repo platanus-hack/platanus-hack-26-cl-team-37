@@ -1,0 +1,8 @@
+/* Fondo de todos los juegos: ilustración de la oficina (public/bukbackground.webp, en marino) detrás de la escena 3D,
+   que es transparente. Debajo queda el degradé marino → noche de src/index.css por si la imagen aún no carga o no
+   hay conexión. `main.juego` gana a `.juego` de index.css sin tocar ese archivo (P1). */
+main.juego {
+  background:
+    url('/bukbackground.webp') center / cover no-repeat,
+    linear-gradient(180deg, var(--kuwu-marino) 0%, var(--kuwu-noche) 100%);
+}

@@ -214,8 +214,14 @@ for (const lado of ['derecha', 'izquierda'] as Lado[]) {
       // El alcance máximo del resumen sale SOLO de los eventos 'reventada'.
       expect(g.alcanceMax).toBeCloseTo(Math.max(...rev.map((r) => r.datos.alcanceCm as number)), 1)
       const mostradas = evs.filter((x) => x.tipo === 'objetivo_mostrado')
-      expect(mostradas).toHaveLength(3)
-      for (const m of mostradas) expect(m.datos).toMatchObject({ radio: 0.55, vidaMs: 0 })
+      // Nivel 1: hasta 2 burbujas a la vez → para reventar 3 se mostraron 3 o 4, cada una de su tamaño (0,75–1,3 × 0,55).
+      expect(mostradas.length).toBeGreaterThanOrEqual(3)
+      expect(mostradas.length).toBeLessThanOrEqual(4)
+      for (const m of mostradas) {
+        expect(m.datos).toMatchObject({ vidaMs: 0 })
+        expect(m.datos.radio as number).toBeGreaterThanOrEqual(0.41)
+        expect(m.datos.radio as number).toBeLessThanOrEqual(0.72)
+      }
       expect(typeof mostradas[0].datos.x).toBe('number')
       const ic = evs.filter((x) => x.tipo === 'intento_cerrado')
       expect(ic.length).toBeGreaterThanOrEqual(1)

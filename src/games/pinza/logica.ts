@@ -73,6 +73,35 @@ export const FRACCION_TOQUE = 0.1
 export const FRACCION_SUELTA = 0.17
 export const LARGO_MANO_POR_DEFECTO_CM = 18
 
+/**
+ * Margen por dedo sobre los umbrales de toque y suelta. Medio y anular llevan 1,5× (≈ 2,7 cm para entrar y 4,6 cm
+ * para soltar con una mano de 18 cm): con la mano de frente el pulgar tapa sus puntas y la cámara estima esa distancia
+ * más larga de lo que es, así que el toque no se reconocía.
+ */
+export const TOLERANCIA_DEDO: Record<DedoPinza, number> = { indice: 1, medio: 1.5, anular: 1.5, menique: 1 }
+
+/** Secuencias completas por mano tras las que termina la sesión, si el plan no fija otra cantidad (metaAgarres). */
+export const SECUENCIAS_POR_MANO = 3
+
+/**
+ * Meta de la sesión en secuencias completas (cada una cuenta al terminar, con o sin todos los toques logrados):
+ * `metaPlan` (o SECUENCIAS_POR_MANO si es 0) por cada mano que juega.
+ */
+export function metaSecuencias(metaPlan: number, mano: string | undefined): number {
+  const porMano = metaPlan > 0 ? Math.round(metaPlan) : SECUENCIAS_POR_MANO
+  return porMano * (mano === 'ambas' ? 2 : 1)
+}
+
+/** Distancias divididas por el margen de cada dedo: comparables directo con los umbrales comunes. */
+export function distanciasEfectivas(d: Distancias): Distancias {
+  return {
+    indice: d.indice / TOLERANCIA_DEDO.indice,
+    medio: d.medio / TOLERANCIA_DEDO.medio,
+    anular: d.anular / TOLERANCIA_DEDO.anular,
+    menique: d.menique / TOLERANCIA_DEDO.menique,
+  }
+}
+
 /** Umbrales proporcionales al largo de mano calibrado (≈ 1,8 y 3,1 cm para una mano de 18 cm). */
 export function umbralesToque(largoManoCm: number | null | undefined): Umbrales {
   const L = largoManoCm && largoManoCm > 5 ? largoManoCm : LARGO_MANO_POR_DEFECTO_CM
@@ -165,9 +194,11 @@ export interface ConfigPinza extends Umbrales {
  * Un cuadro. `dist` = distancias del pulgar a cada dedo (null = sin mano: no avanza nada, el tiempo se congela
  * porque la base pausa el juego). Devuelve el estado nuevo y los eventos de este cuadro (a lo más uno).
  */
-export function pasoPinza(e: EstadoPinza, dist: Distancias | null, tMs: number, cfg: ConfigPinza): { estado: EstadoPinza; eventos: EventoPinza[] } {
-  if (!dist) return { estado: e.contacto ? { ...e, contacto: null, errorContado: false } : e, eventos: [] }
+export function pasoPinza(e: EstadoPinza, distReal: Distancias | null, tMs: number, cfg: ConfigPinza): { estado: EstadoPinza; eventos: EventoPinza[] } {
+  if (!distReal) return { estado: e.contacto ? { ...e, contacto: null, errorContado: false } : e, eventos: [] }
   const s = { ...e }
+  // Contacto con las distancias divididas por el margen de cada dedo (TOLERANCIA_DEDO); las métricas, con las reales.
+  const dist = distanciasEfectivas(distReal)
   const cercano = masCercano(dist)
 
   // Contacto con histéresis: entra bajo toqueCm, sale sobre sueltaCm; si otro dedo queda claramente más cerca, cambia.
@@ -196,7 +227,7 @@ export function pasoPinza(e: EstadoPinza, dist: Distancias | null, tMs: number, 
       if (s.objetivo) s.tObjetivoMs = tMs
     }
   }
-  if (s.objetivo) s.distMinCm = Math.min(s.distMinCm, dist[s.objetivo])
+  if (s.objetivo) s.distMinCm = Math.min(s.distMinCm, distReal[s.objetivo])
 
   const eventos: EventoPinza[] = []
   if (s.objetivo && !s.bloqueado) {

@@ -1,17 +1,20 @@
 // F05 · Catálogo de ejercicios: filtros, "Asignado" según el plan vigente, nivel y "Próximamente" que no navega.
 // Sesión inyectada (entrarComo) y cliente con la misma sesión para leer la BD: sin ingresos extra.
 import { expect, test, type Page } from '@playwright/test'
-import { clienteComo, disponiblesDelRegistro, entrarComo, vigilarErrores } from './ayudas.ts'
+import { clienteComo, disponiblesDelRegistro, entrarComo, ocultosDelRegistro, vigilarErrores } from './ayudas.ts'
 
 // Oráculo independiente del registro de la app (spec §8 + Prompt 3).
-const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d']
+// Los juegos con `oculto: true` en su juego.ts no salen en el catálogo y se quitan de estas listas.
+const OCULTOS = ocultosDelRegistro()
+const visibles = (ids: string[]) => ids.filter((id) => !OCULTOS.includes(id))
+const TODOS = visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d'])
 // Cuáles ya se juegan sí sale de cada src/games/<juego>/juego.ts (`disponible`): así habilitar un juego no edita este
 // archivo compartido. La lista de juegos y los filtros siguen fijos por la spec.
 const DISPONIBLES = disponiblesDelRegistro()
 const POR_FILTRO: Record<string, string[]> = {
-  Pinza: ['caja-juguetes', 'torre-cubos', 'pinza-fina'],
-  Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica'],
-  Alcance: ['caja-juguetes', 'atrapa-burbujas'],
+  Pinza: visibles(['caja-juguetes', 'torre-cubos', 'pinza-fina']),
+  Agarre: visibles(['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica']),
+  Alcance: visibles(['caja-juguetes', 'atrapa-burbujas']),
 }
 
 interface Item {

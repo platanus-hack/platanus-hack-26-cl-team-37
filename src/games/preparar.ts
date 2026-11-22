@@ -3,12 +3,19 @@
 import type { Mano, ParametrosSesion, Plan, Sesion } from '../domain/types'
 import { nivelActual, NIVEL_MAX } from './catalogo'
 
-export const DURACION_MIN = 2
-export const DURACION_MAX = 10
+/** Duración de una sesión de juego: de 1 a 5 minutos (pedido del equipo, 2026-11-22). */
+export const DURACION_MIN = 1
+export const DURACION_MAX = 5
 /** Duración si el juego no está en el plan. */
-export const DURACION_POR_DEFECTO = 5
+export const DURACION_POR_DEFECTO = 3
 
 const acotar = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n) || min))
+
+/** Minutos de una sesión dentro de DURACION_MIN – DURACION_MAX (un plan antiguo puede traer más). */
+export const acotarDuracion = (min: number) => acotar(min, DURACION_MIN, DURACION_MAX)
+
+/** "1 minuto", "3 minutos". */
+export const textoMinutos = (n: number) => `${n} ${n === 1 ? 'minuto' : 'minutos'}`
 
 export interface Preparacion {
   mano: Mano
@@ -22,7 +29,7 @@ export interface Preparacion {
 
 /**
  * Valores por defecto: el ítem del plan vigente para ese juego (si aparece varias veces, el primero).
- * Sin ítem: mano afectada del paciente, nivel actual (última sesión cerrada o 1) y 5 minutos, sin meta.
+ * Sin ítem: mano afectada del paciente, nivel actual (última sesión cerrada o 1) y DURACION_POR_DEFECTO, sin meta.
  */
 export function valoresPorDefecto(
   juegoId: string,
@@ -35,7 +42,7 @@ export function valoresPorDefecto(
     return {
       mano: item.mano,
       nivel: acotar(item.nivel, 1, NIVEL_MAX),
-      duracionMin: acotar(item.duracionMin, DURACION_MIN, DURACION_MAX),
+      duracionMin: acotarDuracion(item.duracionMin),
       meta: { agarres: item.metaAgarres, pinzaCm: item.metaPinzaCm, autor: plan?.creadoPorNombre ?? null },
       planVersion: plan!.version,
     }
@@ -53,7 +60,7 @@ export function sesionPreparada(pacienteId: string, juegoId: string, p: Preparac
   const parametros: ParametrosSesion = {
     mano: p.mano,
     nivel: acotar(p.nivel, 1, NIVEL_MAX),
-    duracionMin: acotar(p.duracionMin, DURACION_MIN, DURACION_MAX),
+    duracionMin: acotarDuracion(p.duracionMin),
     metaAgarres: p.meta?.agarres ?? 0,
     metaPinzaCm: p.meta?.pinzaCm ?? 0,
     prescritoPor: p.meta?.autor ?? null,

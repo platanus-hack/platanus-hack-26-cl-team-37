@@ -63,6 +63,12 @@ export const QUIETO_ANG = 0.5
 /** Por debajo de esta altura un cubo cayó de la mesa y vuelve a su lugar. */
 export const Y_CAIDA = -1
 
+/** Torres completas tras las que termina la sesión, si el plan no fija otra cantidad (metaAgarres). */
+export const TORRES_POR_SESION = 2
+
+/** Meta de la sesión en torres completas: la del plan, o TORRES_POR_SESION si el plan no fija. */
+export const metaTorres = (metaPlan: number) => (metaPlan > 0 ? Math.round(metaPlan) : TORRES_POR_SESION)
+
 /** Colores de los cubos: los pastel del brandbook. */
 export const COLORES = (['rojo', 'amarillo', 'azul', 'menta'] as const).map(kuwuNum)
 

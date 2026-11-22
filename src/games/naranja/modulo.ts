@@ -2,7 +2,7 @@
 // Referencia: imagenes_juegos/04_exprime_la_naranja.png y docs/referencia/prompts_juegos/J4_exprime_la_naranja.md.
 //
 // Escena (mismo lenguaje visual que la base): un vaso de vidrio al centro de la mesa, una fuente con naranjas a la
-// izquierda y, a la derecha, las mitades ya exprimidas (una más por cada repetición válida, hasta 4). La mano virtual
+// izquierda (de ahí se toma cada naranja: mano abierta sobre la fuente) y, a la derecha, las mitades ya exprimidas (una más por cada repetición válida, hasta 4). La mano virtual
 // de la base (copia la mano del paciente) flota sobre el vaso; cuando la abres aparece una naranja en ella, se achica
 // y se oscurece al cerrar el puño, y al sostenerlo caen gotas al vaso. Al abrir la mano por completo sube el nivel del
 // jugo. Arriba, bajo la barra de tiempo, una tarjeta fija a la cámara muestra dos barras: cierre de puño (con la marca
@@ -24,6 +24,7 @@ import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
+import { ZONA_BASE } from '../shell/manos3d'
 import {
   AgregadoNaranja,
   INICIO_CIERRE_PCT,
@@ -37,6 +38,8 @@ import {
   pasoNaranja,
   pistaFallo,
   progresoSostener,
+  metaVaso,
+  type DondeMano,
   type EstadoNaranja,
   type EventoNaranja,
   type NivelNaranja,
@@ -53,6 +56,14 @@ const COLOR_OK = kuwuNum('menta')
 
 /** Posición del vaso en la mesa. */
 const VASO = { x: 0, z: -0.5 }
+/** Fuente con naranjas (izquierda): de aquí se toma cada naranja. */
+const FUENTE = { x: -1.5, z: -0.55 }
+/** Radio (en la mesa) en que la palma cuenta como "sobre la fuente" o "sobre el vaso". */
+const RADIO_FUENTE = 0.7
+const RADIO_VASO = 0.75
+/** Zona de las manos: de la fuente (izquierda) a la derecha del vaso, a media altura (la mano en reposo, con x de la
+ * imagen entre 0,4 y 0,6, queda sobre el vaso). */
+const ZONA_NARANJA = { x: [-1.95, 1.6] as [number, number], y: [0.6, 1.3] as [number, number], z: [-0.95, -0.15] as [number, number] }
 const VASO_ALTO = 0.95
 const JUGO_BASE = 0.06
 const JUGO_ALTO = 0.82
@@ -90,6 +101,10 @@ export interface EstadoNaranjaDepuracion {
   ultimoFallo: number | null
   nivelVaso: number
   gotas: number
+  /** Dónde está la palma de la mano activa. */
+  donde: DondeMano
+  /** x de la imagen (0..1, cruda) que deja la palma sobre la fuente y sobre el vaso (para las pruebas). */
+  xImagen: { fuente: number; vaso: number }
 }
 
 /**
@@ -133,6 +148,8 @@ export const crearNaranja: CrearJuego = () => {
   let jugo: THREE.Mesh | null = null
   let superficie: THREE.Mesh | null = null
   let anilloVaso: THREE.Mesh | null = null
+  let anilloFuente: THREE.Mesh | null = null
+  let donde: DondeMano = 'otro'
   let onda: THREE.Mesh | null = null
   let ondaT = -1
   let naranja: THREE.Group | null = null
@@ -163,6 +180,22 @@ export const crearNaranja: CrearJuego = () => {
   const metaAlcanzada = () => !!ctx && ctx.meta > 0 && contador >= ctx.meta
   const capacidad = () => (ctx && ctx.meta > 0 ? ctx.meta : 10)
 
+  /** ¿Sobre qué está la palma de la mano activa? (distancia en el plano de la mesa). */
+  function dondeEsta(c: ContextoJuego): DondeMano {
+    if (!c.manos.visible(ladoActivo)) return 'otro'
+    c.manos.palma(ladoActivo, tmp)
+    if (Math.hypot(tmp.x - FUENTE.x, tmp.z - FUENTE.z) < RADIO_FUENTE) return 'fuente'
+    if (Math.hypot(tmp.x - VASO.x, tmp.z - VASO.z) < RADIO_VASO) return 'vaso'
+    return 'otro'
+  }
+
+  /** Inverso de anclaEnEscena (shell/manos3d.ts) en x: la x de la imagen que deja la palma en `xEscena`. */
+  function xImagen(xEscena: number): number {
+    const u = (xEscena - ZONA_NARANJA.x[0]) / (ZONA_NARANJA.x[1] - ZONA_NARANJA.x[0])
+    const util = 1 - 2 * ZONA_BASE.margen
+    return Math.round((1 - ZONA_BASE.margen - u * util) * 1000) / 1000
+  }
+
   /** Cierre de puño en % de una mano (apertura calibrada; sin calibración, la apertura sin calibrar). null si no se ve. */
   const cierreDe = (lado: LadoMano): number | null => {
     const m = ctx?.medidas(lado)
@@ -187,7 +220,11 @@ export const crearNaranja: CrearJuego = () => {
     grupo.add(jugo, superficie, vaso.fondo, vaso.vidrio, vaso.borde, anilloVaso, onda)
 
     // Fuente con naranjas (izquierda).
-    grupo.add(crearFuente(recursos, -1.9, -0.6, y0))
+    grupo.add(crearFuente(recursos, FUENTE.x, FUENTE.z, y0))
+    // Anillo bajo la fuente: late amarillo en el paso 1 ("toma una naranja aquí").
+    anilloFuente = crearAnilloPlano(recursos, { interno: 0.8, externo: 0.88, segmentos: 56, color: COLOR_ACENTO, opacidad: 0.8 })
+    anilloFuente.position.set(FUENTE.x, y0 + 0.012, FUENTE.z)
+    grupo.add(anilloFuente)
 
     // Mitades exprimidas (derecha): aparecen de a una.
     crearMitades(recursos, MITADES.length).forEach((h, i) => {
@@ -400,17 +437,16 @@ export const crearNaranja: CrearJuego = () => {
     superficie.visible = jugo.visible
     superficie.position.set(VASO.x, c.mesa.altura + JUGO_BASE + alto + 0.002, VASO.z)
 
-    // Anillo de la mesa: pide la mano abierta en el paso 1; en los demás pasos queda tenue y verde.
-    const m = anilloVaso.material as THREE.MeshBasicMaterial
-    if (estado.paso === 1) {
-      m.color.setHex(COLOR_ACENTO)
-      m.opacity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(reloj * 5))
-      anilloVaso.scale.setScalar(1 + 0.04 * Math.sin(reloj * 5))
-    } else {
-      m.color.setHex(COLOR_OK)
-      m.opacity = 0.35
-      anilloVaso.scale.setScalar(1)
+    // Anillos de la mesa: late amarillo donde hay que llevar la mano (la fuente en el paso 1; el vaso después, hasta
+    // que la mano llega); si no, quedan tenues y verdes.
+    const latir = (anillo: THREE.Mesh, si: boolean) => {
+      const m = anillo.material as THREE.MeshBasicMaterial
+      m.color.setHex(si ? COLOR_ACENTO : COLOR_OK)
+      m.opacity = si ? 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(reloj * 5)) : 0.35
+      anillo.scale.setScalar(si ? 1 + 0.04 * Math.sin(reloj * 5) : 1)
     }
+    latir(anilloVaso, estado.paso > 1 && donde !== 'vaso')
+    if (anilloFuente) latir(anilloFuente, estado.paso === 1)
     if (ondaT >= 0) {
       ondaT += dt
       const u = ondaT / 0.9
@@ -491,6 +527,8 @@ export const crearNaranja: CrearJuego = () => {
       ultimoFallo,
       nivelVaso: Math.round(nivelVaso * 100) / 100,
       gotas: gotas.filter((g) => g.activa).length,
+      donde,
+      xImagen: { fuente: xImagen(FUENTE.x), vaso: xImagen(VASO.x) },
     }
   }
 
@@ -500,7 +538,8 @@ export const crearNaranja: CrearJuego = () => {
     gestos: ['Cierre de puño'],
     miniatura: 'naranja',
     niveles,
-    meta: { etiqueta: 'Cierres', unidad: 'cierres', desdePlan: (p) => p.metaAgarres },
+    // Éxito = vaso lleno: termina tras metaAgarres repeticiones válidas, o REPETICIONES_VASO si el plan no fija.
+    meta: { etiqueta: 'Naranjas', unidad: 'naranjas', desdePlan: (p) => metaVaso(p.metaAgarres) },
     tiposEvento: ['cierre_inicio', 'umbral_alcanzado', 'sostenido_completo', 'apertura_completa', 'repeticion_incompleta'],
     metricasVivo: [
       { id: 'cierre', nombre: 'Cierre de puño', unidad: '%', formula: '1 − apertura calibrada: 0 % = mano abierta de la calibración, 100 % = puño de la calibración (distancia de las yemas a la palma normalizada por el largo de la mano)', aprox: true, mejor: 'mayor' },
@@ -521,7 +560,7 @@ export const crearNaranja: CrearJuego = () => {
       { id: 'falloPaso4', nombre: 'Incompletas al abrir', unidad: '', formula: "'repeticion_incompleta' con paso 4 (no abrió por completo)", mejor: 'menor', tarjeta: false },
     ],
     usaFisica: false,
-    pista: 'Cierra el puño, sostén y abre por completo',
+    pista: 'Toma una naranja de la fuente y exprímela sobre el vaso',
     textoReiniciar: 'Reiniciar',
 
     montar(c) {
@@ -530,8 +569,8 @@ export const crearNaranja: CrearJuego = () => {
       const mano = c.parametros.mano
       lados = mano === 'ambas' ? [...LADOS] : [mano === 'izquierda' ? 'izquierda' : 'derecha']
       ladoActivo = lados[0]
-      // La mano flota sobre el vaso: zona acotada al centro de la mesa y a media altura.
-      c.configurarManos({ x: [-0.8, 0.8], y: [0.6, 1.3], z: [-0.95, -0.15] })
+      // La mano va de la fuente (izquierda) al vaso (centro), a media altura.
+      c.configurarManos(ZONA_NARANJA)
       construirEscena(c)
       estado = estadoNaranjaInicial()
       dibujar(0)
@@ -543,8 +582,9 @@ export const crearNaranja: CrearJuego = () => {
       if (!c) return
       if (lados.length > 1 && estado.paso === 1) ladoActivo = c.manoPrincipal() ?? ladoActivo
       cierre = cierreDe(ladoActivo)
+      donde = dondeEsta(c)
       if (!metaAlcanzada()) {
-        const r = pasoNaranja(estado, cierre, Math.min(dt, 0.25) * 1000, nivel)
+        const r = pasoNaranja(estado, cierre, Math.min(dt, 0.25) * 1000, nivel, donde)
         estado = r.estado
         for (const ev of r.eventos) {
           aplicar(ev)
@@ -563,10 +603,11 @@ export const crearNaranja: CrearJuego = () => {
         manos[l] = k >= nivel.umbral ? { texto: 'Puño cerrado', tono: 'acento' } : k >= INICIO_CIERRE_PCT ? { texto: 'Cerrando', tono: 'acento' } : { texto: 'Abierta', tono: 'ok' }
       }
       let pista: string | undefined
-      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste los cierres'
+      if (metaAlcanzada()) pista = '¡Muy bien! Llenaste el vaso'
       else if (falloT > 0 && ultimoFallo != null) pista = pistaFallo(ultimoFallo as 2 | 3 | 4, nivel)
       else if (cierre != null) {
         if (estado.paso === 3) pista = `Sostén el puño: faltan ${num(Math.max(0, nivel.sostenerMs - estado.sostenidoMs) / 1000, 1)} s`
+        else if (estado.paso > 1 && donde !== 'vaso') pista = 'Lleva la naranja sobre el vaso'
         else if (estado.paso === 2) pista = `Cierra el puño hasta el ${nivel.umbral} %`
         else pista = PISTAS_PASO[estado.paso]
       }

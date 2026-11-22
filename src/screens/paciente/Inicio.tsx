@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/contexto'
 import { repos } from '../../data/repos'
 import type { Cita, Paciente, Plan, Sesion } from '../../domain/types'
+import { acotarDuracion, textoMinutos } from '../../games/preparar'
 import { juegoPorId, nombreJuego } from '../../games/registry'
 import { diaSemana, fechaCorta, hora, iniciales, LETRAS_DIA } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
@@ -71,7 +72,8 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
     )
 
   const deHoy = planDeHoy(plan.items, sesiones, hoy)
-  const minutos = plan.items.reduce((a, it) => a + it.duracionMin, 0)
+  // Cada sesión dura a lo más DURACION_MAX aunque el plan diga más (planes anteriores al límite de 5 min).
+  const minutos = plan.items.reduce((a, it) => a + acotarDuracion(it.duracionMin), 0)
   const tira = semana(sesiones, plan.items.length, hoy)
   const hechasSemana = tira.filter((x) => x.estado === 'cumplido').length
   const autor = plan.creadoPorNombre ?? 'tu terapeuta'
@@ -161,7 +163,7 @@ const NOMBRES_DIA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sáb
 function detalleEjercicio(juego: string, duracionMin: number) {
   const j = juegoPorId(juego)
   const que = (j?.categoria ?? j?.descripcionCorta ?? '').toLowerCase()
-  return `${duracionMin} minutos${que ? `, ${que}` : ''}`
+  return `${textoMinutos(acotarDuracion(duracionMin))}${que ? `, ${que}` : ''}`
 }
 
 function FilaEjercicio({ juego, duracionMin, estado }: { juego: string; duracionMin: number; estado: EstadoEjercicio }) {
@@ -171,7 +173,7 @@ function FilaEjercicio({ juego, duracionMin, estado }: { juego: string; duracion
       {escena ? <img className="miniatura" src={escena} alt="" /> : <span className="miniatura" aria-hidden="true" />}
       <span className="fila-hoy-quien">
         <b>{nombreJuego(juego)}</b>
-        <span>{duracionMin} minutos</span>
+        <span>{textoMinutos(acotarDuracion(duracionMin))}</span>
       </span>
       {estado === 'hecho' ? (
         <span className="visto" role="img" aria-label="Hecho">

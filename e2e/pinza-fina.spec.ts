@@ -1,8 +1,8 @@
 // F23 · Pinza fina sobre /sesion/:id/jugar con ?fuente=sintetica (horizontal 844×390).
 // La mano sintética toca cada dedo con `pinzaDedo` (extensión de la fuente: el pulgar va a la punta de ese dedo) y se
 // maneja en lazo cerrado leyendo el estado del juego (window.__manoviva.juego.estado(): dedo pedido, secuencia, contacto).
-// - Sesión REAL, nivel 1, meta 4: una secuencia completa, un dedo tras otro en el orden fijo → contador exacto,
-//   "¡Meta cumplida! 4/4", eventos objetivo_mostrado + toque por dedo, métricas, muestras y /sensacion. Mide el fps.
+// - Sesión REAL, nivel 1, meta 1 secuencia por mano: una secuencia completa, un dedo tras otro en el orden fijo →
+//   el contador (secuencias) pasa a 1 al terminarla, "¡Meta cumplida! 1/1", eventos objetivo_mostrado + toque por dedo, métricas, muestras y /sensacion. Mide el fps.
 //   Con CAPTURA_PINZA=1 guarda docs/capturas/pinza-fina.png (como 02_pinza_fina.png) y pinza-fina-meta.png.
 // - Sesión falsa, nivel 3 (al azar, 4 s por toque): un dedo se deja a 4 cm → al vencer el tiempo el juego avanza con
 //   no_alcanzado y el resumen guarda esa distancia; un toque con el dedo equivocado cuenta como error sin bloquear.
@@ -53,12 +53,12 @@ async function separar(page: Page) {
 test.describe('Pinza fina', () => {
   test.beforeEach(async ({ context }) => entrarComo(context, 'paciente'))
 
-  test('secuencia fija completa: índice, medio, anular y meñique; meta 4/4, eventos y métricas guardados', async ({ page }, info) => {
+  test('secuencia fija completa: índice, medio, anular y meñique; meta 1/1 secuencia, eventos y métricas guardados', async ({ page }, info) => {
     test.setTimeout(120_000)
     const desde = new Date(Date.now() - 5_000).toISOString()
     let id = ''
     try {
-      id = await crearSesion('pinza-fina', 5, 4, 1)
+      id = await crearSesion('pinza-fina', 5, 1, 1)
       await page.setViewportSize(HORIZONTAL)
       const v = vigilarErrores(page)
       const rapier: string[] = []
@@ -70,14 +70,14 @@ test.describe('Pinza fina', () => {
       await expect(page.getByText('Tiempo por toque')).toBeVisible()
       await expect(page.getByText('Distancia pulgar–dedo')).toBeVisible()
       await expect(page.getByText('Secuencia (de 4)')).toBeVisible()
-      await expect(page.getByTestId('contador')).toHaveText('0/4')
+      await expect(page.getByTestId('contador')).toHaveText('0/1')
       await expect(page.getByTestId('mano-derecha')).toContainText('Libre')
 
       const e0 = await estado(page)
       expect(e0.secuencia).toEqual(ORDEN)
       expect(e0.objetivo).toBe('indice')
       expect(e0.limiteMs).toBe(0) // nivel 1: sin límite de tiempo
-      expect(e0.meta).toBe(4)
+      expect(e0.meta).toBe(1) // 1 secuencia por mano (metaAgarres del plan), una mano
       expect(e0.umbrales.toqueCm).toBeCloseTo(1.82, 1) // 10 % del largo de mano calibrado (18,2 cm)
 
       // Esperar en el primer dedo mucho más que el tiempo de otros niveles no hace nada (sin límite, no avanza solo).
@@ -93,17 +93,18 @@ test.describe('Pinza fina', () => {
       await separar(page)
 
       await tocar(page, 'indice')
-      await expect(page.getByTestId('contador')).toHaveText('1/4')
+      await expect(page.getByTestId('contador')).toHaveText('0/1') // cuenta la secuencia completa, no cada toque
       await expect(page.getByTestId('vivo-tiempoToque')).toContainText(' s')
       expect((await estado(page)).objetivo).toBe('medio')
       await tocar(page, 'medio')
-      await expect(page.getByTestId('contador')).toHaveText('2/4')
+      await expect(page.getByTestId('contador')).toHaveText('0/1')
       expect((await estado(page)).objetivo).toBe('anular')
       await expect(page.getByTestId('vivo-secuencia')).toContainText('3')
 
-      // Captura "en acción": 2 toques hechos, el pulgar cerca del anular (como la imagen de referencia).
-      await poner(page, toca('anular', 2.5))
-      await expect(page.getByTestId('vivo-distancia')).toContainText('2,5 cm', { timeout: 3_000 })
+      // Captura "en acción": 2 toques hechos, el pulgar cerca del anular (como la imagen de referencia). 3,5 cm: fuera del
+      // margen del anular (1,5 × 1,82 ≈ 2,7 cm), así que todavía no hay contacto.
+      await poner(page, toca('anular', 3.5))
+      await expect(page.getByTestId('vivo-distancia')).toContainText('3,5 cm', { timeout: 3_000 })
       const j0 = (await juego(page))!
       if (process.env.CAPTURA_PINZA) {
         await page.waitForTimeout(300)
@@ -113,7 +114,7 @@ test.describe('Pinza fina', () => {
       await expect.poll(async () => (await estado(page)).posicion, { timeout: 4_000 }).toBe(3)
       await separar(page)
       await tocar(page, 'menique')
-      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 4/4', { timeout: 6_000 })
+      await expect(page.getByTestId('meta-cumplida')).toContainText('¡Meta cumplida! 1/1', { timeout: 6_000 })
       if (process.env.CAPTURA_PINZA) await page.screenshot({ path: 'docs/capturas/pinza-fina-meta.png', style: SIN_FPS })
       await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion\\?fuente=sintetica&guion=quieta&depuracion=1$`), { timeout: 10_000 })
       expect(rapier, 'Pinza fina no usa física').toEqual([])
@@ -124,7 +125,7 @@ test.describe('Pinza fina', () => {
       const sb = await clienteComo('paciente')
       const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
       expect(s.estado).toBe('en curso')
-      expect(s.metricas).toMatchObject({ contador: 4, meta: 4, metaCumplida: true, motivoFin: 'meta' })
+      expect(s.metricas).toMatchObject({ contador: 1, meta: 1, metaCumplida: true, motivoFin: 'meta' })
       expect(s.metricas.juego).toMatchObject({ toques: 4, errores: 0, noAlcanzados: 0, dedosNoAlcanzados: 0, precision: 100 })
       expect(s.metricas.juego.tiempoMedioToque).toBeGreaterThan(0.3)
       for (const d of ['Indice', 'Medio', 'Anular', 'Menique']) {
@@ -193,7 +194,7 @@ test.describe('Pinza fina', () => {
     // 4.º: se toca; la secuencia termina y arranca otra distinta.
     await tocar(page, d)
     await expect.poll(async () => (await estado(page)).secuencias, { timeout: 6_000 }).toBe(2)
-    await expect(page.getByTestId('contador')).toHaveText('3') // 3 toques (el no alcanzado no cuenta)
+    await expect(page.getByTestId('contador')).toHaveText('1/3') // 1 secuencia completa de 3 por mano (sin meta en el plan)
     const e2 = await estado(page)
     expect(e2.secuencia).not.toEqual(e0.secuencia)
 
@@ -202,7 +203,7 @@ test.describe('Pinza fina', () => {
     await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/sensacion`), { timeout: 10_000 })
     const final = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').at(-1)!.cuerpo as { metricas: { contador: number; juego: Record<string, number | null> } }
     const cap = (x: string) => x[0].toUpperCase() + x.slice(1)
-    expect(final.metricas.contador).toBe(3)
+    expect(final.metricas.contador).toBe(1)
     expect(final.metricas.juego).toMatchObject({ toques: 3, errores: 1, noAlcanzados: 1, dedosNoAlcanzados: 1, precision: 60 })
     expect(final.metricas.juego[`noAlcanza${cap(b)}`]).toBe(1)
     // La distancia que faltó: el dedo no alcanzado no bajó de ≈ 4 cm.
@@ -244,7 +245,7 @@ test.describe('Pinza fina', () => {
     expect(e.objetivo).toBe(e.secuencia[0])
     // Repetir de memoria dentro del tiempo: los 4 en orden.
     for (const d of e.secuencia) await tocar(page, d)
-    await expect(page.getByTestId('contador')).toHaveText('4')
+    await expect(page.getByTestId('contador')).toHaveText('1/3')
     // Y si no se repite, a los 2 s pasa al siguiente (no_alcanzado) sin quedarse bloqueado.
     await expect.poll(async () => (await estado(page)).fase, { timeout: 6_000 }).toBe('demostrando')
     await expect.poll(async () => (await estado(page)).fase, { timeout: 8_000 }).toBe('tocando')

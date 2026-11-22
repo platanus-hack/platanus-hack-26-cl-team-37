@@ -6,7 +6,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { repos } from '../../data/repos'
 import type { Mano } from '../../domain/types'
 import { NIVEL_MAX } from '../../games/catalogo'
-import { DURACION_MAX, DURACION_MIN, sesionPreparada, valoresPorDefecto, type Preparacion } from '../../games/preparar'
+import { DURACION_MAX, DURACION_MIN, sesionPreparada, textoMinutos, valoresPorDefecto, type Preparacion } from '../../games/preparar'
 import { juegoPorId, nivelDe, type Juego } from '../../games/registry'
 import { num } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
@@ -153,7 +153,7 @@ function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
           <div className="tarjeta preparar-tarjeta">
             <div className="fila entre">
               <span className="preparar-valor" data-testid="duracion" aria-live="polite">
-                {p.duracionMin} minutos
+                {textoMinutos(p.duracionMin)}
               </span>
               <span className="tenue">
                 {DURACION_MIN} – {DURACION_MAX}
@@ -171,7 +171,7 @@ function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
                 step={1}
                 value={p.duracionMin}
                 aria-label="Duración en minutos"
-                aria-valuetext={`${p.duracionMin} minutos`}
+                aria-valuetext={textoMinutos(p.duracionMin)}
                 style={{ '--p': `${avance}%` } as CSSProperties}
                 onChange={(e) => fijarDuracion(Number(e.target.value))}
               />
