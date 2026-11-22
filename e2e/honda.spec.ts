@@ -4,8 +4,8 @@
 // que se comprueba el resultado de cada tiro y no un número exacto. Nivel 1: zona verde de 30 a 65 % de estiramiento
 // (≈ 2,3 a 3,9 kg con esa banda) y sostener 0,5 s. La separación entre las manos simuladas × f da ≈ (f − 1) de estiramiento.
 import { expect, test, type Page } from '@playwright/test'
-import { entrarComo, vigilarErrores } from './ayudas.ts'
-import { HORIZONTAL, ID_FALSO, esperarFase, sesionFalsa, type Ventana } from './juegos.ts'
+import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
+import { HORIZONTAL, ID_FALSO, crearSesion, esperarFase, limpiarPrueba, sesionFalsa, type Ventana } from './juegos.ts'
 
 type Estado = {
   fase: string
@@ -115,6 +115,56 @@ test.describe('Honda', () => {
     expect(cierre!.metricas!.juego!.cargaMaxKg!).toBeGreaterThan(inicial.topeKg)
     expect(cierre!.metricas!.juego!.tiempoBajoTensionS!).toBeGreaterThan(5)
     errores.sinErrores()
+  })
+
+  test('sesión real del paciente de prueba: se guardan eventos, muestras, poses y métricas; el resumen muestra sus tarjetas', async ({ page }) => {
+    test.setTimeout(150_000)
+    let id = ''
+    try {
+      id = await crearSesion('honda', 5, 2, 1, 'prueba')
+      await page.setViewportSize(HORIZONTAL)
+      const v = vigilarErrores(page)
+      await page.goto(`/sesion/${id}/jugar?fuente=sintetica&guion=quieta`)
+      await esperarFase(page, 'jugando', 20_000)
+      await guion(page, quietas(REPOSO))
+      await expect.poll(async () => (await estado(page)).reposoCm, { timeout: 8_000 }).not.toBeNull()
+      await guion(page, tiro(1.45, 1_200))
+      await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 8_000 }).toBe(1)
+      await page.waitForTimeout(1_600)
+      await guion(page, tiro(1.15, 1_200))
+      await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 8_000 }).toBe(2)
+      await page.waitForTimeout(1_600)
+      await guion(page, tiro(1.45, 1_200))
+      await expect(page).toHaveURL(new RegExp(`/sesion/${id}/sensacion`), { timeout: 15_000 })
+
+      const sb = await clienteComo('prueba')
+      const s = (await sb.from('sesiones').select('*').eq('id', id).single()).data!
+      expect(s.metricas.juego).toMatchObject({ aciertos: 2, tiros: 3, precisionPct: 67, cortos: 1, largos: 0, rachaMax: 1 })
+      expect(s.metricas.juego.cargaMaxKg).toBeGreaterThan(2.3)
+      expect(s.muestras.canales.cargaKg.length).toBe(s.muestras.t.length)
+      const poses = s.muestras.poses as { etiqueta: string; lado: string; puntos: unknown[] }[]
+      for (const etiqueta of ['reposo', 'pico']) expect(poses.filter((p) => p.etiqueta === etiqueta).map((p) => p.lado).sort(), etiqueta).toEqual(['derecha', 'izquierda'])
+      const evs = (await sb.from('eventos_sesion').select('tipo').eq('sesion_id', id).order('seq')).data!.map((e) => e.tipo)
+      expect(evs.filter((t) => t === 'soltar')).toHaveLength(3)
+      expect(evs.filter((t) => t === 'acierto')).toHaveLength(2)
+      expect(JSON.stringify(s.metricas)).not.toMatch(PROHIBIDAS)
+
+      // Sensación → resumen: el anillo con los aciertos y las tarjetas del juego, con «aprox.» en lo que mide la cámara.
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.getByRole('slider', { name: /Dolor durante la sesión/ }).fill('1')
+      await page.getByRole('button', { name: 'Suave', exact: true }).click()
+      await page.getByRole('button', { name: 'Guardar y ver resumen' }).click()
+      await expect(page).toHaveURL(new RegExp(`/sesion/${id}/resumen`), { timeout: 10_000 })
+      await expect(page.getByTestId('anillo')).toContainText('/2 aciertos')
+      await expect(page.locator('.resumen-dato .resumen-dato-nombre')).toHaveText(['En el blanco', 'Carga máx. aprox.', 'Constancia', 'Bajo tensión', 'Dolor reportado'])
+      await expect(page.getByTestId('dato-cargaMaxKg')).toContainText(/\d,\d kg aprox\./)
+      await expect(page.locator('body')).not.toContainText(PROHIBIDAS)
+      if (process.env.CAPTURAS) await page.screenshot({ path: `${process.env.CAPTURAS}/honda-resumen.png`, fullPage: true })
+      v.sinErrores()
+    } finally {
+      await page.goto('about:blank').catch(() => undefined)
+      limpiarPrueba([id])
+    }
   })
 
   test('«Poner en cero» marca el reposo de nuevo y la pantalla no dice lo que la cámara no mide', async ({ page }) => {
