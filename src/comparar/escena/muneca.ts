@@ -55,7 +55,8 @@ export function montarMuneca(m: Motor, d: DatosMuneca): EscenaJuego {
     const ejes: Ejes | null = neutro ? ejesDeMano(neutro.puntos as V3[], neutro.lado) : r0 ? ejesDeMatriz(r0) : null
     const g = new THREE.Group()
     raiz.add(g)
-    const mano = crearMano(m.colores[k], { escala: esc })
+    // Sin antebrazo: el del modelo sigue la dirección de la mano y taparía el ángulo de la muñeca que se compara.
+    const mano = crearMano(m.colores[k], { escala: esc, antebrazo: false })
     const fantasma = crearMano(m.colores.gris, { escala: esc, fantasma: true })
     const cuna = crearCuna(THREE, m.colores[k])
     g.add(mano.g, fantasma.g, cuna.g)
