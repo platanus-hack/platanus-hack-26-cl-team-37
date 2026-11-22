@@ -390,6 +390,37 @@ describe('honda: la zona verde y el tiro', () => {
     })
   })
 
+  it('una sesión larga en bucle (60 tiros con ruido de cámara) no se traba ni pierde la cuenta', () => {
+    let semilla = 7
+    const azar = () => ((semilla = (semilla * 1664525 + 1013904223) >>> 0) / 2 ** 32)
+    const s = new SesionHonda(curva, nivelHonda(3))
+    const r = { t: 0 }
+    const ruidoso = (ms: number, desde: number, hasta = desde) => {
+      const n = Math.round((ms / 1000) * CPS)
+      for (let i = 0; i < n; i++) {
+        r.t += 1000 / CPS
+        const e = desde + ((hasta - desde) * (i + 1)) / n
+        s.paso(r.t, azar() < 0.03 ? null : REPOSO * (1 + e) * (1 + 0.01 * (azar() - 0.5) * 2))
+      }
+    }
+    ruidoso(3000, 0)
+    const esperado: string[] = []
+    for (let i = 0; i < 60; i++) {
+      const tipo = i % 3
+      const e = tipo === 0 ? 0.85 : tipo === 1 ? 0.45 : 1.4
+      ruidoso(800, 0, e)
+      ruidoso(tipo === 2 ? 200 : 1300, e)
+      ruidoso(300, e, 0)
+      ruidoso(1500, 0)
+      esperado.push(tipo === 0 ? 'acierto' : tipo === 1 ? 'corto' : 'largo')
+    }
+    expect(s.tiros).toHaveLength(60)
+    expect(s.tiros.map((t) => t.resultado)).toEqual(esperado)
+    expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO, 0)
+    expect(s.fase).toBe('listo')
+    expect(Number.isFinite(s.resumen().tiempoBajoTensionS!)).toBe(true)
+  })
+
   it('el resumen cuenta aciertos, precisión, carga y tiempo bajo tensión', () => {
     const { s, r } = nueva(2)
     tiro(s, r, 0.65, 1300)

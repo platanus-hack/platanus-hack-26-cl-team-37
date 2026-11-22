@@ -188,6 +188,21 @@ test.describe('Honda', () => {
     expect(e.metaKg).toBeGreaterThan(4.2)
   })
 
+  test('demo sin cámara en bucle (guion honda): aciertos, cortos y largos que se repiten sin trabarse', async ({ page }) => {
+    test.setTimeout(120_000)
+    const errores = vigilarErrores(page)
+    await sesionFalsa(page, 'honda', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=honda`)
+    await esperarFase(page, 'jugando', 20_000)
+    // Una vuelta del guion dura ≈ 21 s; en dos vueltas salen 8 tiros.
+    await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 60_000, intervals: [1_000] }).toBeGreaterThanOrEqual(8)
+    const r = (await estado(page)).tiros.map((t) => t.resultado)
+    expect(r.slice(0, 8)).toEqual(['acierto', 'corto', 'acierto', 'largo', 'acierto', 'corto', 'acierto', 'largo'])
+    if (process.env.CAPTURAS) await page.screenshot({ path: `${process.env.CAPTURAS}/honda-demo.png` })
+    errores.sinErrores()
+  })
+
   test('desde el menú se sale al catálogo sin terminar la sesión ni pasar por la encuesta', async ({ page }) => {
     test.setTimeout(60_000)
     const escrituras = await sesionFalsa(page, 'honda', 5, 0, 1)

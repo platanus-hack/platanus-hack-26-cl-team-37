@@ -337,7 +337,7 @@ export function secuencia(pasos: [number, Partial<PoseMano>][], desdeMs = 0): Po
 
 // ── Guiones preparados ────────────────────────────────────────────────────────────────────────────
 
-export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda', 'muneca', 'banda-lab'] as const
+export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda', 'muneca', 'banda-lab', 'honda'] as const
 export type NombreGuion = (typeof GUIONES_PRESET)[number]
 
 const X_POR_LADO: Record<LadoMano, number> = { derecha: 0.42, izquierda: 0.58 }
@@ -399,6 +399,30 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
         ...mov({ giroDeg: 22 }),
         ...mov({ giroDeg: -28 }),
       ])
+    }
+    case 'honda': {
+      // Honda (F39), para el nivel 1 (zona verde de 30 a 65 % de estiramiento, sostener 0,5 s): banda quieta 3 s para el
+      // cero y luego, en bucle, un acierto, un tiro corto, otro acierto y uno largo (se pasa de la zona de golpe). Sirve
+      // de demo sin cámara: ?fuente=sintetica&guion=honda. La separación de las manos × f da ≈ (f − 1) de estiramiento.
+      const REPOSO = 0.3
+      const tiro = (f: number, subir: number, sostener: number, bajar: number, quieta: number): [number, number][] => [
+        [subir, REPOSO * f],
+        [sostener, REPOSO * f],
+        [bajar, REPOSO],
+        [quieta, REPOSO],
+      ]
+      const pasos: [number, number][] = [
+        [3000, REPOSO],
+        ...tiro(1.45, 800, 1200, 600, 1400),
+        ...tiro(1.15, 700, 900, 500, 1400),
+        ...tiro(1.5, 800, 1200, 600, 1400),
+        ...tiro(1.95, 500, 250, 500, 1600),
+      ]
+      const manos = (['derecha', 'izquierda'] as LadoMano[]).map((l) => ({
+        lado: l,
+        poses: secuencia([[0, { x: 0.5 + (l === 'derecha' ? -REPOSO : REPOSO) / 2, y: 0.5 }], ...pasos.map(([d, sep]) => [d, { x: 0.5 + (l === 'derecha' ? -sep : sep) / 2 }] as [number, Partial<PoseMano>])]),
+      }))
+      return { manos }
     }
     case 'banda-lab': {
       // Laboratorio de banda: las dos manos toman la banda, la sostienen tensa (reposo) y la estiran a los lados.

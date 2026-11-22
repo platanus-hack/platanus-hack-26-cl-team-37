@@ -331,6 +331,18 @@ describe('estiramiento, repeticiones y métricas de una sesión', () => {
   })
 })
 
+describe('sesión larga en bucle', () => {
+  it('40 repeticiones seguidas se cuentan todas y el reposo no se corre', () => {
+    const s = new SesionBanda(6)
+    correr(s, REPOSO_MS + 200, () => 200)
+    for (let i = 0; i < 40; i++) correr(s, 3000, (t) => 200 + tiron(t, 400, 1400, 40 + (i % 3) * 10))
+    correr(s, 800, () => 200)
+    expect(s.repeticiones).toBe(40)
+    expect(s.reposoPx).toBeCloseTo(200, 0)
+    expect(s.estiramientoPct).toBe(0)
+  })
+})
+
 describe('repeticiones: huecos, fragmentos e incompletas', () => {
   const serie = (dt: number, tramos: [number, number | null][]) => tramos.flatMap(([ms, pct]) => Array.from({ length: Math.round(ms / dt) }, () => [dt, pct] as const))
 
