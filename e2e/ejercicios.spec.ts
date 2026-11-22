@@ -4,13 +4,13 @@ import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, disponiblesDelRegistro, entrarComo, vigilarErrores } from './ayudas.ts'
 
 // Oráculo independiente del registro de la app (spec §8 + Prompt 3).
-const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d']
+const TODOS = ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'pinza-fina', 'atrapa-burbujas', 'exprime-naranja', 'memoria-cartas', 'piano-dedos', 'banda-elastica', 'muneca-3d', 'honda']
 // Cuáles ya se juegan sí sale de cada src/games/<juego>/juego.ts (`disponible`): así habilitar un juego no edita este
 // archivo compartido. La lista de juegos y los filtros siguen fijos por la spec.
 const DISPONIBLES = disponiblesDelRegistro()
 const POR_FILTRO: Record<string, string[]> = {
   Pinza: ['caja-juguetes', 'torre-cubos', 'pinza-fina'],
-  Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica'],
+  Agarre: ['caja-juguetes', 'movilidad-guiada', 'torre-cubos', 'exprime-naranja', 'banda-elastica', 'honda'],
   Alcance: ['caja-juguetes', 'atrapa-burbujas'],
 }
 

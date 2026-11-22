@@ -1,0 +1,131 @@
+// F39 · Honda sobre /sesion/:id/jugar con ?fuente=sintetica (horizontal 844×390) y una sesión falsa (no toca la BD).
+// Las dos manos simuladas toman la banda: quietas marcan el cero solo y cada tirón es un tiro. La carga sale de la misma
+// medición del laboratorio (centros de las palmas, escala 3D de cada mano, curva de la Corength de 5 kg en lazo), así
+// que se comprueba el resultado de cada tiro y no un número exacto.
+import { expect, test, type Page } from '@playwright/test'
+import { entrarComo, vigilarErrores } from './ayudas.ts'
+import { HORIZONTAL, ID_FALSO, esperarFase, sesionFalsa, type Ventana } from './juegos.ts'
+
+type Estado = {
+  fase: string
+  contador: number
+  meta: number
+  metaKg: number
+  sostenerS: number
+  banda: string
+  reposoCm: number | null
+  kg: number | null
+  progresoSostener: number
+  tiros: { resultado: string; picoKg: number; sostenidoS: number }[]
+  vuelo: boolean
+}
+const PROHIBIDAS = new RegExp(`${'fuer'}za|${'pre'}si[oó]n|${'apr'}(?:e|ie)t`, 'i')
+const REPOSO = 0.3
+
+const estado = (p: Page) => p.evaluate(() => (globalThis as unknown as Ventana).__manoviva!.juego!.estado() as unknown) as Promise<Estado>
+const guion = (p: Page, g: object) => p.evaluate((x) => (globalThis as unknown as Ventana).__manoviva!.fuente!.cargarGuion(x), g)
+
+/** Las dos manos con separación `sep` (fracción del ancho de la imagen) en cada instante `t` (ms). */
+function manos(pasos: [number, number][]) {
+  return {
+    manos: (['derecha', 'izquierda'] as const).map((lado) => ({
+      lado,
+      poses: pasos.map(([t, sep]) => ({ t, x: 0.5 + (lado === 'derecha' ? -sep : sep) / 2, y: 0.5 })),
+    })),
+  }
+}
+const quietas = (sep: number) => manos([[0, sep], [600_000, sep]])
+/** Un tiro: estirar en 0,8 s hasta `factor` × reposo, sostener `ms`, volver en 0,8 s y quedarse quieta. */
+const tiro = (factor: number, ms: number) => manos([[0, REPOSO], [800, REPOSO * factor], [800 + ms, REPOSO * factor], [1600 + ms, REPOSO], [600_000, REPOSO]])
+
+test.describe('Honda', () => {
+  test.beforeEach(async ({ context }) => entrarComo(context, 'prueba'))
+
+  test('nivel 3 (2 kg, sostener 1 s), meta 3: aciertos, corto, tirón y sin sostener; eventos y métricas guardados', async ({ page }) => {
+    test.setTimeout(150_000)
+    const errores = vigilarErrores(page)
+    const escrituras = await sesionFalsa(page, 'honda', 5, 3, 3)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Honda' })).toBeVisible({ timeout: 15_000 })
+    await esperarFase(page, 'jugando', 20_000)
+    expect(await estado(page)).toMatchObject({ metaKg: 2, sostenerS: 1, meta: 3, banda: 'Corength 5 kg × 2 tiras' })
+
+    // Una sola mano: no se mide nada y la pista pide las dos.
+    await page.waitForTimeout(1_000)
+    expect((await estado(page)).fase).toBe('sin-manos')
+    await expect(page.getByTestId('pista')).toHaveText('Toma la banda con las dos manos frente a la cámara')
+
+    // Dos manos quietas con la banda tensa: el cero se marca solo.
+    await guion(page, quietas(REPOSO))
+    await expect.poll(async () => (await estado(page)).reposoCm, { timeout: 8_000 }).not.toBeNull()
+    expect((await estado(page)).fase).toBe('listo')
+    expect((await estado(page)).kg).toBe(0)
+
+    const tirar = async (factor: number, ms: number, n: number) => {
+      await guion(page, tiro(factor, ms))
+      await expect.poll(async () => (await estado(page)).tiros.length, { timeout: ms + 6_000 }).toBe(n)
+      await expect.poll(async () => (await estado(page)).vuelo, { timeout: 3_000 }).toBe(false)
+      return (await estado(page)).tiros[n - 1]
+    }
+    // Llega a la zona verde (≈ 2,2 kg) y la sostiene 1,5 s: en el blanco.
+    await guion(page, tiro(1.27, 1_500))
+    await expect.poll(async () => (await estado(page)).fase, { timeout: 4_000 }).toBe('sostenido')
+    await page.screenshot({ path: process.env.CAPTURAS ? `${process.env.CAPTURAS}/honda-sostenido.png` : 'test-results/honda-sostenido.png' })
+    await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 6_000 }).toBe(1)
+    expect((await estado(page)).tiros[0]).toMatchObject({ resultado: 'acierto' })
+    await expect.poll(async () => (await estado(page)).vuelo, { timeout: 3_000 }).toBe(false)
+    await expect(page.getByTestId('contador')).toHaveText('1/3')
+
+    expect(await tirar(1.15, 1_500, 2)).toMatchObject({ resultado: 'corto' })
+    expect(await tirar(1.6, 1_500, 3)).toMatchObject({ resultado: 'largo' })
+    expect(await tirar(1.27, 200, 4)).toMatchObject({ resultado: 'sin-sostener' })
+    await page.screenshot({ path: process.env.CAPTURAS ? `${process.env.CAPTURAS}/honda-fallos.png` : 'test-results/honda-fallos.png' })
+    const picos = (await estado(page)).tiros.map((t) => t.picoKg)
+    expect(picos[0]).toBeGreaterThan(1.9)
+    expect(picos[0]).toBeLessThan(2.7)
+    expect(picos[1]).toBeLessThan(1.9)
+    expect(picos[2]).toBeGreaterThan(2.7)
+
+    // Dos aciertos más completan la meta: la sesión termina y pasa a la sensación.
+    expect(await tirar(1.27, 1_500, 5)).toMatchObject({ resultado: 'acierto' })
+    await guion(page, tiro(1.27, 1_500))
+    await expect(page).toHaveURL(/\/sensacion/, { timeout: 15_000 })
+
+    // Eventos: zona verde, sostenido, cada tiro con su resultado.
+    const eventos = escrituras.filter((e) => e.tabla === 'eventos_sesion').flatMap((e) => (Array.isArray(e.cuerpo) ? e.cuerpo : [e.cuerpo])) as { tipo: string; datos: Record<string, unknown> | null }[]
+    const tipos = eventos.map((e) => e.tipo)
+    expect(tipos.filter((t) => t === 'soltar')).toHaveLength(6)
+    expect(tipos.filter((t) => t === 'acierto')).toHaveLength(3)
+    expect(tipos.filter((t) => t === 'no_alcanzado')).toHaveLength(3)
+    expect(tipos).toContain('umbral_alcanzado')
+    expect(tipos).toContain('sostenido_completo')
+    expect(eventos.find((e) => e.tipo === 'soltar')!.datos).toMatchObject({ resultado: 'acierto', metaKg: 2 })
+
+    // Métricas de la sesión (metricas.juego) para el resumen y la vista del terapeuta.
+    const cierre = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').map((e) => e.cuerpo as { metricas?: { juego?: Record<string, number | null> } }).find((c) => c.metricas?.juego)
+    expect(cierre?.metricas?.juego).toMatchObject({ aciertos: 3, tiros: 6, precisionPct: 50, cargaMetaKg: 2, cortos: 1, largos: 1 })
+    expect(cierre!.metricas!.juego!.cargaMaxKg!).toBeGreaterThan(2.7)
+    expect(cierre!.metricas!.juego!.tiempoBajoTensionS!).toBeGreaterThan(5)
+    errores.sinErrores()
+  })
+
+  test('«Poner en cero» marca el reposo de nuevo y la pantalla no dice lo que la cámara no mide', async ({ page }) => {
+    test.setTimeout(90_000)
+    await sesionFalsa(page, 'honda', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await esperarFase(page, 'jugando', 20_000)
+    await guion(page, quietas(REPOSO))
+    await expect.poll(async () => (await estado(page)).reposoCm, { timeout: 8_000 }).not.toBeNull()
+    const antes = (await estado(page)).reposoCm!
+    // Las manos quedan un 20 % más separadas (se movió el agarre): con «Poner en cero» ese es el nuevo reposo.
+    await guion(page, quietas(REPOSO * 1.2))
+    await page.waitForTimeout(500)
+    expect((await estado(page)).kg!).toBeGreaterThan(1)
+    await page.getByRole('button', { name: 'Poner en cero' }).click()
+    await expect.poll(async () => (await estado(page)).reposoCm!, { timeout: 4_000 }).toBeGreaterThan(antes * 1.12)
+    expect((await estado(page)).kg).toBe(0)
+    expect(await page.locator('body').innerText()).not.toMatch(PROHIBIDAS)
+  })
+})
