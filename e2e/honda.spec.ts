@@ -1,7 +1,8 @@
 // F39 · Honda sobre /sesion/:id/jugar con ?fuente=sintetica (horizontal 844×390) y una sesión falsa (no toca la BD).
 // Las dos manos simuladas toman la banda: quietas marcan el cero solo y cada tirón es un tiro. La carga sale de la misma
 // medición del laboratorio (centros de las palmas, escala 3D de cada mano, curva de la Corength de 5 kg en lazo), así
-// que se comprueba el resultado de cada tiro y no un número exacto.
+// que se comprueba el resultado de cada tiro y no un número exacto. Nivel 1: zona verde de 30 a 65 % de estiramiento
+// (≈ 2,3 a 3,9 kg con esa banda) y sostener 0,5 s. La separación entre las manos simuladas × f da ≈ (f − 1) de estiramiento.
 import { expect, test, type Page } from '@playwright/test'
 import { entrarComo, vigilarErrores } from './ayudas.ts'
 import { HORIZONTAL, ID_FALSO, esperarFase, sesionFalsa, type Ventana } from './juegos.ts'
@@ -11,7 +12,9 @@ type Estado = {
   contador: number
   meta: number
   metaKg: number
+  topeKg: number
   sostenerS: number
+  ceroDudoso: boolean
   banda: string
   reposoCm: number | null
   kg: number | null
@@ -35,21 +38,25 @@ function manos(pasos: [number, number][]) {
   }
 }
 const quietas = (sep: number) => manos([[0, sep], [600_000, sep]])
-/** Un tiro: estirar en 0,8 s hasta `factor` × reposo, sostener `ms`, volver en 0,8 s y quedarse quieta. */
-const tiro = (factor: number, ms: number) => manos([[0, REPOSO], [800, REPOSO * factor], [800 + ms, REPOSO * factor], [1600 + ms, REPOSO], [600_000, REPOSO]])
+/** Un tiro: estirar en 0,8 s hasta `factor` × reposo, sostener `ms`, soltar en 0,3 s y quedarse quieta. */
+const tiro = (factor: number, ms: number) => manos([[0, REPOSO], [800, REPOSO * factor], [800 + ms, REPOSO * factor], [1100 + ms, REPOSO], [600_000, REPOSO]])
 
 test.describe('Honda', () => {
   test.beforeEach(async ({ context }) => entrarComo(context, 'prueba'))
 
-  test('nivel 3 (2 kg, sostener 1 s), meta 3: aciertos, corto, tirón y sin sostener; eventos y métricas guardados', async ({ page }) => {
+  test('nivel 1 (estirar 30 %, sostener 0,5 s), meta 3: aciertos, corto, largo y sin sostener; eventos y métricas guardados', async ({ page }) => {
     test.setTimeout(150_000)
     const errores = vigilarErrores(page)
-    const escrituras = await sesionFalsa(page, 'honda', 5, 3, 3)
+    const escrituras = await sesionFalsa(page, 'honda', 5, 3, 1)
     await page.setViewportSize(HORIZONTAL)
     await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
     await expect(page.getByRole('heading', { level: 1, name: 'Honda' })).toBeVisible({ timeout: 15_000 })
     await esperarFase(page, 'jugando', 20_000)
-    expect(await estado(page)).toMatchObject({ metaKg: 2, sostenerS: 1, meta: 3, banda: 'Corength 5 kg × 2 tiras' })
+    const inicial = await estado(page)
+    expect(inicial).toMatchObject({ sostenerS: 0.5, meta: 3, banda: 'Corength 5 kg × 2 tiras', ceroDudoso: false })
+    expect(inicial.metaKg).toBeGreaterThan(2)
+    expect(inicial.metaKg).toBeLessThan(2.7)
+    expect(inicial.topeKg).toBeGreaterThan(3.5)
 
     // Una sola mano: no se mide nada y la pista pide las dos.
     await page.waitForTimeout(1_000)
@@ -68,8 +75,8 @@ test.describe('Honda', () => {
       await expect.poll(async () => (await estado(page)).vuelo, { timeout: 3_000 }).toBe(false)
       return (await estado(page)).tiros[n - 1]
     }
-    // Llega a la zona verde (≈ 2,2 kg) y la sostiene 1,5 s: en el blanco.
-    await guion(page, tiro(1.27, 1_500))
+    // Llega a la zona verde (≈ 45 % de estiramiento) y la sostiene 1,5 s: en el blanco.
+    await guion(page, tiro(1.45, 1_500))
     await expect.poll(async () => (await estado(page)).fase, { timeout: 4_000 }).toBe('sostenido')
     await page.screenshot({ path: process.env.CAPTURAS ? `${process.env.CAPTURAS}/honda-sostenido.png` : 'test-results/honda-sostenido.png' })
     await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 6_000 }).toBe(1)
@@ -78,18 +85,18 @@ test.describe('Honda', () => {
     await expect(page.getByTestId('contador')).toHaveText('1/3')
 
     expect(await tirar(1.15, 1_500, 2)).toMatchObject({ resultado: 'corto' })
-    expect(await tirar(1.6, 1_500, 3)).toMatchObject({ resultado: 'largo' })
-    expect(await tirar(1.27, 200, 4)).toMatchObject({ resultado: 'sin-sostener' })
+    expect(await tirar(1.95, 1_500, 3)).toMatchObject({ resultado: 'largo' })
+    expect(await tirar(1.45, 150, 4)).toMatchObject({ resultado: 'sin-sostener' })
     await page.screenshot({ path: process.env.CAPTURAS ? `${process.env.CAPTURAS}/honda-fallos.png` : 'test-results/honda-fallos.png' })
     const picos = (await estado(page)).tiros.map((t) => t.picoKg)
-    expect(picos[0]).toBeGreaterThan(1.9)
-    expect(picos[0]).toBeLessThan(2.7)
-    expect(picos[1]).toBeLessThan(1.9)
-    expect(picos[2]).toBeGreaterThan(2.7)
+    expect(picos[0]).toBeGreaterThan(inicial.metaKg)
+    expect(picos[0]).toBeLessThan(inicial.topeKg)
+    expect(picos[1]).toBeLessThan(inicial.metaKg)
+    expect(picos[2]).toBeGreaterThan(inicial.topeKg)
 
     // Dos aciertos más completan la meta: la sesión termina y pasa a la sensación.
-    expect(await tirar(1.27, 1_500, 5)).toMatchObject({ resultado: 'acierto' })
-    await guion(page, tiro(1.27, 1_500))
+    expect(await tirar(1.45, 1_500, 5)).toMatchObject({ resultado: 'acierto' })
+    await guion(page, tiro(1.45, 1_500))
     await expect(page).toHaveURL(/\/sensacion/, { timeout: 15_000 })
 
     // Eventos: zona verde, sostenido, cada tiro con su resultado.
@@ -100,12 +107,12 @@ test.describe('Honda', () => {
     expect(tipos.filter((t) => t === 'no_alcanzado')).toHaveLength(3)
     expect(tipos).toContain('umbral_alcanzado')
     expect(tipos).toContain('sostenido_completo')
-    expect(eventos.find((e) => e.tipo === 'soltar')!.datos).toMatchObject({ resultado: 'acierto', metaKg: 2 })
+    expect(eventos.find((e) => e.tipo === 'soltar')!.datos).toMatchObject({ resultado: 'acierto', sePaso: false })
 
     // Métricas de la sesión (metricas.juego) para el resumen y la vista del terapeuta.
     const cierre = escrituras.filter((e) => e.tabla === 'sesiones' && e.metodo === 'PATCH').map((e) => e.cuerpo as { metricas?: { juego?: Record<string, number | null> } }).find((c) => c.metricas?.juego)
-    expect(cierre?.metricas?.juego).toMatchObject({ aciertos: 3, tiros: 6, precisionPct: 50, cargaMetaKg: 2, cortos: 1, largos: 1 })
-    expect(cierre!.metricas!.juego!.cargaMaxKg!).toBeGreaterThan(2.7)
+    expect(cierre?.metricas?.juego).toMatchObject({ aciertos: 3, tiros: 6, precisionPct: 50, cortos: 1, largos: 1 })
+    expect(cierre!.metricas!.juego!.cargaMaxKg!).toBeGreaterThan(inicial.topeKg)
     expect(cierre!.metricas!.juego!.tiempoBajoTensionS!).toBeGreaterThan(5)
     errores.sinErrores()
   })

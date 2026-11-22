@@ -1,11 +1,12 @@
 // Honda (F39): el paciente toma una banda elástica con las dos manos frente a la cámara y carga una honda sobre la
-// mesa. Estirar la banda tira de la bolsa hacia atrás; cuando la carga entra en la zona verde (la carga del nivel) hay
-// que sostenerla el tiempo del nivel, y al volver se lanza la piedra: vuela más lejos cuanto mayor fue la carga, así
-// que solo da en el blanco un tiro que llegó a la carga pedida, la sostuvo y no se pasó de golpe.
+// mesa. Estirar la banda tira de la bolsa hacia atrás; cuando la carga entra en la zona verde del nivel hay que
+// sostenerla el tiempo del nivel, y al soltar sale la piedra: da en el blanco el tiro que llegó a la zona y la sostuvo;
+// el que no llegó cae antes y el que pasó de largo sin sostener cae después.
 //
 // La medida es la del laboratorio de banda (src/banda/): largo entre los centros de las palmas con la escala 3D de
-// cada mano, estiramiento sobre el reposo (que se marca y se corrige solo), y carga con la curva no lineal del látex
-// de la banda configurada en /laboratorio (o la Corength de 5 kg en lazo). Es una estimación: el juego dice «aprox.».
+// cada mano, estiramiento sobre el reposo, y carga con la curva no lineal del látex de la banda configurada en
+// /laboratorio (o la Corength de 5 kg en lazo). Es una estimación: el juego dice «aprox.». El nivel pide un
+// estiramiento (30 a 110 %) y la carga de la zona sale de la banda (ver logica.ts, con lo aprendido en la prueba real).
 //
 // Eventos (tipos existentes): umbral_alcanzado al entrar en la zona verde, sostenido_completo al cumplir el tiempo,
 // soltar en cada tiro (con todos sus datos) y además acierto o no_alcanzado según el resultado.
@@ -13,7 +14,7 @@ import * as THREE from 'three'
 import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
-import { AGARRE_POR_DEFECTO, TOLERANCIA_META, medirBanda } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, medirBanda } from '../../banda/medicion'
 import type { ManoSeguida } from '../../tracking/tipos'
 import { NATURAL } from '../assets/naturales'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -21,8 +22,9 @@ import {
   NIVELES_HONDA,
   SesionHonda,
   TEXTO_RESULTADO,
-  TOPE_VENTANA,
-  alcanceDe,
+  PISTA_BORDE,
+  PISTA_CERO_DUDOSO,
+  alcanceCorto,
   bandaConfigurada,
   nivelHonda,
   pistaHonda,
@@ -46,7 +48,9 @@ const RADIO_BLANCO = 0.42
 const RADIO_PIEDRA = 0.085
 const TIRON_MAX = 1.05
 const VUELO_S = 0.95
-const RESULTADO_S = 2.6
+const RESULTADO_S = 2.2
+/** Cuadros seguidos con una mano en el borde de la imagen antes de avisar (≈ 0,3 s). */
+const CUADROS_BORDE = 8
 
 /** Tarjeta del medidor, fija a la cámara (píxeles CSS de diseño). */
 const ANCHO_GUIA = 220
@@ -71,8 +75,12 @@ export interface EstadoHondaDepuracion {
   fase: FaseHonda
   contador: number
   meta: number
+  /** Zona verde del nivel con la banda configurada (kg aprox.). */
   metaKg: number
+  topeKg: number
   sostenerS: number
+  ceroDudoso: boolean
+  alBorde: boolean
   banda: string
   reposoCm: number | null
   kg: number | null
@@ -93,7 +101,9 @@ export const crearHonda: CrearJuego = () => {
   let ctx: ContextoJuego | null = null
   let nivel: NivelHonda = nivelHonda(1)
   let banda = bandaConfigurada()
-  let sesion = new SesionHonda(banda.curva, nivel.metaKg, nivel.sostenerS)
+  let sesion = new SesionHonda(banda.curva, nivel)
+  /** Cuadros seguidos con una mano tocando el borde de la imagen (para avisar sin parpadeos). */
+  let cuadrosAlBorde = 0
   let ultimoT: number | null = null
   let vuelo: Vuelo | null = null
   let resultado: { r: ResultadoTiro; t: number } | null = null
@@ -270,11 +280,14 @@ export const crearHonda: CrearJuego = () => {
   function lanzar(t: Tiro) {
     const desde = new THREE.Vector3(bolsa.x, bolsa.y + 0.06, bolsa.z)
     const distancia = Z_HONDA - Z_BLANCO
+    // Dónde cae: el acierto, en el blanco; el corto, antes (más cerca cuanto menos se estiró) y un poco al lado para que
+    // la honda no lo tape; el largo pasa por un lado del blanco y cae detrás; el que no sostuvo cae al otro lado.
     let hasta: THREE.Vector3
     if (t.resultado === 'acierto') hasta = new THREE.Vector3(0, Y_BLANCO, Z_BLANCO + 0.08)
-    else if (t.resultado === 'sin-sostener') hasta = new THREE.Vector3(RADIO_BLANCO * 1.6, RADIO_PIEDRA, Z_BLANCO + 0.25)
-    else hasta = new THREE.Vector3(0, RADIO_PIEDRA, Z_HONDA - distancia * alcanceDe(t.relacion))
-    vuelo = { t: 0, desde, hasta, altura: 0.7 + 0.6 * Math.min(1.4, t.relacion), tiro: t }
+    else if (t.resultado === 'sin-sostener') hasta = new THREE.Vector3(RADIO_BLANCO * 1.7, RADIO_PIEDRA, Z_BLANCO + 0.3)
+    else if (t.resultado === 'largo') hasta = new THREE.Vector3(-RADIO_BLANCO * 1.7, RADIO_PIEDRA, Z_BLANCO - 0.2)
+    else hasta = new THREE.Vector3(0.45, RADIO_PIEDRA, Z_HONDA - distancia * alcanceCorto(t.picoKg, sesion.zona))
+    vuelo = { t: 0, desde, hasta, altura: t.resultado === 'corto' ? 0.7 : t.resultado === 'largo' ? 1.5 : 1.2, tiro: t }
   }
 
   function avanzarVuelo(dt: number) {
@@ -324,7 +337,9 @@ export const crearHonda: CrearJuego = () => {
     const cx = W / 2
     const cy = 92
     const r = 64
-    const tope = TOPE_VENTANA * nivel.metaKg * 1.2
+    const { minKg, maxKg } = sesion.zona
+    // El arco llega un poco más allá de la zona verde, para que pasarse también se vea.
+    const tope = maxKg * 1.3
     const ang = (v: number) => Math.PI + Math.PI * Math.min(1, Math.max(0, v / tope))
     g.lineCap = 'round'
     g.lineWidth = 12
@@ -335,7 +350,7 @@ export const crearHonda: CrearJuego = () => {
     g.lineCap = 'butt'
     g.strokeStyle = kuwuAlfa('menta', 0.85)
     g.beginPath()
-    g.arc(cx, cy, r, ang(TOLERANCIA_META * nivel.metaKg), ang(TOPE_VENTANA * nivel.metaKg))
+    g.arc(cx, cy, r, ang(minKg), ang(maxKg))
     g.stroke()
     if (kg != null && kg > 0) {
       const enVentana = fase === 'en-ventana' || fase === 'sostenido'
@@ -368,7 +383,7 @@ export const crearHonda: CrearJuego = () => {
     } else if (sinReposo) {
       const p = sesion.ultimo?.progresoReposo ?? 0
       texto(`${Math.round(p * 100)} %`, cx, cy - 17, FUENTE_GRANDE)
-      texto('Quieto: marcando el cero', cx, cy + 32, FUENTE_TEXTO)
+      texto('Banda recta y quieto', cx, cy + 32, FUENTE_TEXTO)
     } else {
       texto(`${num(kg ?? 0, 1)}`, cx, cy - 17, FUENTE_GRANDE)
       texto('kg aprox.', cx, cy + 18, FUENTE_NOTA, kuwuAlfa('blanco', 0.75))
@@ -376,12 +391,12 @@ export const crearHonda: CrearJuego = () => {
         resultado != null
           ? CORTO_RESULTADO[resultado.r]
           : fase === 'sostenido'
-            ? 'Vuelve despacio: ¡lanza!'
+            ? '¡Suelta para lanzar!'
             : fase === 'en-ventana'
               ? `Sostén ${num(Math.max(0, nivel.sostenerS * (1 - prog)), 1)} s`
               : fase === 'pasado'
                 ? 'Te pasaste: afloja'
-                : `Meta ${num(nivel.metaKg, 1)} kg`
+                : `Zona verde: ${num(minKg, 1)} a ${num(maxKg, 1)} kg`
       const color = resultado?.r === 'acierto' ? KUWU.menta : resultado ? KUWU.amarillo : KUWU.blanco
       texto(linea, cx, cy + 40, FUENTE_TEXTO, color)
     }
@@ -418,7 +433,7 @@ export const crearHonda: CrearJuego = () => {
     ubicarGuia(c)
     // La bolsa sigue la carga con un suavizado corto; al soltar vuelve rápido, como una honda.
     const kg = sesion.kg ?? 0
-    const objetivo = vuelo ? 0 : Math.min(1.15, kg / (TOPE_VENTANA * nivel.metaKg))
+    const objetivo = vuelo ? 0 : Math.min(1.15, kg / sesion.zona.maxKg)
     tiron += (objetivo - tiron) * Math.min(1, dt * (objetivo < tiron ? 18 : 10))
     ponerBolsa(tiron)
     if (matTira) {
@@ -432,6 +447,8 @@ export const crearHonda: CrearJuego = () => {
       blanco.rotation.x = -0.18 * Math.sin(golpeBlanco * 14) * golpeBlanco
       if (matCentro) matCentro.emissiveIntensity = 1.2 * golpeBlanco
     }
+    // Al empezar otro tiro, la piedra vuelve a la bolsa aunque el cartel del resultado no haya terminado.
+    if (resultado && !vuelo && sesion.enTiro) resultado = null
     if (resultado) {
       resultado.t -= dt
       if (resultado.t <= 0) resultado = null
@@ -447,14 +464,14 @@ export const crearHonda: CrearJuego = () => {
         for (const l of LADOS) c.guardarPose('reposo', l, null)
         break
       case 'en-ventana':
-        c.registrar('umbral_alcanzado', { objeto: 'honda', datos: { kg: r2(ev.kg), metaKg: nivel.metaKg } })
+        c.registrar('umbral_alcanzado', { objeto: 'honda', datos: { kg: r2(ev.kg), metaKg: r2(sesion.zona.minKg), topeKg: r2(sesion.zona.maxKg) } })
         break
       case 'sostenido':
         c.registrar('sostenido_completo', { objeto: 'honda', datos: { kg: r2(ev.kg), sostenerS: nivel.sostenerS } })
         break
       case 'tiro': {
         const t = ev.tiro
-        const datos = { tiro: t.n, resultado: t.resultado, picoKg: r2(t.picoKg), metaKg: nivel.metaKg, relacion: r2(t.relacion), sostenidoS: r2(t.sostenidoS), tensionS: r2(t.tensionS), trabajoJ: r2(t.trabajoJ), vueltaMs: Math.round(t.vueltaMs) }
+        const datos = { tiro: t.n, resultado: t.resultado, picoKg: r2(t.picoKg), metaKg: r2(sesion.zona.minKg), topeKg: r2(sesion.zona.maxKg), estiramientoPct: Math.round(t.picoEstiramiento * 100), sePaso: t.sePaso, sostenidoS: r2(t.sostenidoS), tensionS: r2(t.tensionS), trabajoJ: r2(t.trabajoJ), vueltaMs: Math.round(t.vueltaMs) }
         c.registrar('soltar', { objeto: 'honda', datos })
         c.registrar(t.resultado === 'acierto' ? 'acierto' : 'no_alcanzado', { objeto: 'blanco', datos })
         picoPoseKg = 0
@@ -469,8 +486,11 @@ export const crearHonda: CrearJuego = () => {
       fase: sesion.fase,
       contador: sesion.aciertos,
       meta: ctx?.meta ?? 0,
-      metaKg: nivel.metaKg,
+      metaKg: r2(sesion.zona.minKg),
+      topeKg: r2(sesion.zona.maxKg),
       sostenerS: nivel.sostenerS,
+      ceroDudoso: sesion.ceroDudoso,
+      alBorde: cuadrosAlBorde >= CUADROS_BORDE,
       banda: banda.origen,
       reposoCm: sesion.seguidor.reposoCm == null ? null : Math.round(sesion.seguidor.reposoCm * 10) / 10,
       kg: sesion.kg == null ? null : r2(sesion.kg),
@@ -493,19 +513,19 @@ export const crearHonda: CrearJuego = () => {
       { id: 'sostenidoPct', nombre: 'Sostenido', unidad: '%', formula: 'tiempo seguido dentro de la zona verde / tiempo pedido por el nivel' },
     ],
     metricasResumen: [
-      { id: 'aciertos', nombre: 'Aciertos', unidad: '', formula: 'tiros que llegaron a la carga del nivel (≥ 95 %), la sostuvieron el tiempo del nivel y no se pasaron del 135 % antes de sostener', mejor: 'mayor' },
+      { id: 'aciertos', nombre: 'Aciertos', unidad: '', formula: 'tiros que llegaron a la zona verde del nivel (del estiramiento pedido a 35 puntos más) y la sostuvieron sin salir el tiempo del nivel', mejor: 'mayor' },
       { id: 'precisionPct', nombre: 'Tiros en el blanco', unidad: '%', formula: 'aciertos / tiros × 100', mejor: 'mayor', corto: 'En el blanco' },
       { id: 'cargaMaxKg', nombre: 'Carga máxima aprox.', unidad: 'kg', formula: 'mayor pico de carga de un tiro (curva de la banda en el estiramiento pico)', aprox: true, mejor: 'mayor', corto: 'Carga máx. aprox.' },
       { id: 'constanciaPct', nombre: 'Constancia entre tiros', unidad: '%', formula: '1 − desviación estándar / promedio de los picos de carga (vacío con menos de 2 tiros)', mejor: 'mayor', corto: 'Constancia' },
-      { id: 'tiempoBajoTensionS', nombre: 'Tiempo bajo tensión', unidad: 's', formula: 'suma de segundos con la banda estirada sobre el 10 % en cada tiro', mejor: 'mayor', corto: 'Bajo tensión' },
+      { id: 'tiempoBajoTensionS', nombre: 'Tiempo bajo tensión', unidad: 's', formula: 'suma de segundos con la banda estirada sobre el 10 % en cada tiro, hasta soltar', mejor: 'mayor', corto: 'Bajo tensión' },
       { id: 'cargaPromedioKg', nombre: 'Carga promedio aprox.', unidad: 'kg', formula: 'promedio de los picos de carga de los tiros', aprox: true, tarjeta: false },
-      { id: 'cargaMetaKg', nombre: 'Carga del nivel', unidad: 'kg', formula: 'carga objetivo de cada tiro según el nivel', tarjeta: false },
-      { id: 'tiros', nombre: 'Tiros', unidad: '', formula: 'repeticiones completas (estirar sobre el 10 % y volver cerca del reposo)', tarjeta: false },
+      { id: 'cargaMetaKg', nombre: 'Carga del nivel', unidad: 'kg', formula: 'carga que da la banda configurada en el estiramiento que pide el nivel (borde inferior de la zona verde)', aprox: true, tarjeta: false },
+      { id: 'tiros', nombre: 'Tiros', unidad: '', formula: 'estirones de al menos 0,4 s sobre el 10 % que terminan al soltar (la carga cae a la mitad del pico)', tarjeta: false },
       { id: 'sostenidoPromedioS', nombre: 'Sostenido promedio', unidad: 's', formula: 'promedio del mayor tramo seguido dentro de la zona verde en cada tiro', tarjeta: false },
-      { id: 'vueltaPromedioS', nombre: 'Vuelta promedio', unidad: 's', formula: 'promedio del tiempo desde el pico hasta volver al reposo (vuelta controlada o de golpe)', tarjeta: false },
+      { id: 'vueltaPromedioS', nombre: 'Vuelta promedio', unidad: 's', formula: 'promedio del tiempo desde el pico hasta soltar (bajada controlada o de golpe)', tarjeta: false },
       { id: 'trabajoJ', nombre: 'Trabajo aprox.', unidad: '', formula: 'suma del área bajo la curva carga–estiramiento hasta cada pico × largo de reposo × g, en joules', tarjeta: false },
-      { id: 'cortos', nombre: 'Tiros cortos', unidad: '', formula: 'tiros con el pico bajo el 95 % de la carga del nivel', tarjeta: false },
-      { id: 'largos', nombre: 'Tiros largos', unidad: '', formula: 'tiros que pasaron del 135 % de la carga antes de sostener (tirón)', tarjeta: false },
+      { id: 'cortos', nombre: 'Tiros cortos', unidad: '', formula: 'tiros que no llegaron a la zona verde', tarjeta: false },
+      { id: 'largos', nombre: 'Tiros en que se pasó', unidad: '', formula: 'tiros en que la carga pasó de la zona verde en algún momento, aunque después haya vuelto a sostener', tarjeta: false },
       { id: 'estiramientoMaxPct', nombre: 'Estiramiento máximo (% del reposo)', unidad: '%', formula: 'mayor estiramiento de un tiro sobre el largo en reposo', tarjeta: false },
       { id: 'estiramientoMaxCm', nombre: 'Estiramiento máximo', unidad: 'cm', formula: 'mayor estiramiento de un tiro × largo en reposo', aprox: true, tarjeta: false },
       { id: 'reposoCm', nombre: 'Largo de la banda en reposo', unidad: 'cm', formula: 'distancia entre los centros de las palmas con la banda recién tensa', aprox: true, tarjeta: false },
@@ -518,7 +538,7 @@ export const crearHonda: CrearJuego = () => {
       ctx = c
       nivel = nivelHonda(c.parametros.nivel)
       banda = bandaConfigurada()
-      sesion = new SesionHonda(banda.curva, nivel.metaKg, nivel.sostenerS)
+      sesion = new SesionHonda(banda.curva, nivel)
       // Manos más chicas y abiertas hacia los costados: con manos reales empuñando la banda (prueba con cámara), las
       // manos virtuales del tamaño de la base tapaban la honda del centro.
       c.configurarManos({ x: [-3.2, 3.2], escala: 4.6 })
@@ -535,6 +555,7 @@ export const crearHonda: CrearJuego = () => {
       if (f && f.t !== ultimoT && !metaAlcanzada()) {
         ultimoT = f.t
         const medida = medirBanda({ t: f.t, manos, ancho: f.ancho, alto: f.alto }, AGARRE_POR_DEFECTO)
+        cuadrosAlBorde = medida?.alBorde ? cuadrosAlBorde + 1 : 0
         for (const ev of sesion.paso(f.t, medida?.largoCm ?? null)) aplicar(ev)
         const kg = sesion.kg ?? 0
         if (kg > picoPoseKg + 0.05) {
@@ -554,14 +575,22 @@ export const crearHonda: CrearJuego = () => {
       return {
         contador: sesion.aciertos,
         manos: { derecha: estado, izquierda: estado },
-        pista: metaAlcanzada() ? '¡Muy bien! Completaste los aciertos' : resultado ? TEXTO_RESULTADO[resultado.r] : pistaHonda(fase),
+        pista: metaAlcanzada()
+          ? '¡Muy bien! Completaste los aciertos'
+          : sesion.ceroDudoso
+            ? PISTA_CERO_DUDOSO
+            : cuadrosAlBorde >= CUADROS_BORDE || (fase === 'sin-manos' && sesion.enTiro)
+              ? PISTA_BORDE
+              : resultado
+                ? TEXTO_RESULTADO[resultado.r]
+                : pistaHonda(fase),
         vivo: { cargaKg: kg == null ? null : Math.round(kg * 10) / 10, sostenidoPct: Math.round(sesion.progresoSostener * 100) },
       }
     },
 
     reiniciar() {
       // «Poner en cero»: el próximo tramo quieto (0,4 s) pasa a ser el reposo, como la tara de una balanza.
-      sesion.seguidor.pedirCero()
+      sesion.pedirCero()
     },
 
     muestra() {

@@ -55,9 +55,25 @@ export interface PasoSeguidor {
   sospecha: boolean
 }
 
+export interface OpcionesSeguidor {
+  /**
+   * ¿Bajar el reposo solo si la banda queda quieta más corta? (por defecto sí, como en el laboratorio). En un juego se
+   * apaga: entre repeticiones la persona junta las manos con la banda suelta, y ese largo tomado como reposo infla
+   * todo lo que sigue (prueba real de la Honda, 22-nov-2026: se leyeron 14 kg). Ahí el reposo solo baja con el botón.
+   */
+  bajarSolo?: boolean
+  /**
+   * Hasta qué estiramiento un largo quieto puede pasar a ser el reposo (por defecto SEGUIR_REPOSO_MAX). Un juego que
+   * pide SOSTENER un estiramiento lo baja, para que el sostén no se tome por reposo nuevo.
+   */
+  seguirMax?: number
+}
+
 export class SeguidorBanda {
   readonly contador = new ContadorReps()
   reposoCm: number | null = null
+  private readonly bajarSolo: boolean
+  private readonly seguirMax: number
   private pedido = false
   private readonly filtro = new FiltroOneEuro(1.2, 0.05)
   private readonly perdida = new ToleranciaPerdida()
@@ -69,6 +85,11 @@ export class SeguidorBanda {
   private picoLargo: number | null = null
   private sospecha = false
   private ultimaMedida: number | null = null
+
+  constructor(o: OpcionesSeguidor = {}) {
+    this.bajarSolo = o.bajarSolo ?? true
+    this.seguirMax = Math.min(SEGUIR_REPOSO_MAX, o.seguirMax ?? SEGUIR_REPOSO_MAX)
+  }
 
   /** «Poner en cero»: el próximo tramo quieto (0,4 s) pasa a ser el reposo. */
   pedirCero() {
@@ -138,9 +159,9 @@ export class SeguidorBanda {
     const reposo = this.reposoCm
     const estable = this.vigia.agregar(t, largo)
     const estableCorto = this.vigiaCaida.agregar(t, largo)
-    const dentro = (cm: number) => cm > reposo && cm <= reposo * (1 + SEGUIR_REPOSO_MAX)
+    const dentro = (cm: number) => cm > reposo && cm <= reposo * (1 + this.seguirMax)
     const cayo = (cm: number) => this.picoLargo != null && this.picoLargo - cm >= CAIDA_REPOSO * (this.picoLargo - reposo)
-    if (estable != null && !this.contador.estirando && reposoMalMarcado(reposo, estable)) {
+    if (this.bajarSolo && estable != null && !this.contador.estirando && reposoMalMarcado(reposo, estable)) {
       // Quieta y más corta que el reposo: se había marcado estirada.
       this.fijar(estable)
       salida.evento = 'bajado'
