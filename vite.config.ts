@@ -36,8 +36,10 @@ export default defineConfig({
       workbox: {
         // Precaché (se baja al instalar el SW): la app (incl. el chunk de Rapier de ~4,3 MB), las fuentes, el modelo de manos
         // y el wasm de MediaPipe que usa Chromium/Safari. Con eso la app abre y se juega sin red tras la primera visita.
+        // jpg/webp: las portadas de los ejercicios (src/ui/escenas/). Sin ellas, el primer arranque tras un despliegue mostraba
+        // la versión vieja guardada apuntando a imágenes que ya no existen en el servidor (404) y sin red nunca aparecían.
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest,json}', 'mediapipe/hand_landmarker.task', 'mediapipe/wasm/vision_wasm_internal.*'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,webp,woff2,webmanifest,json}', 'mediapipe/hand_landmarker.task', 'mediapipe/wasm/vision_wasm_internal.*'],
         // La otra variante del wasm (_module_) no se baja de antemano (14 MB más): si algún navegador la pide, se guarda al usarla.
         globIgnores: ['mediapipe/wasm/vision_wasm_module_internal.*', 'grabaciones/**'],
         navigateFallback: '/index.html',

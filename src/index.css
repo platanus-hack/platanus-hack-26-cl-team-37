@@ -142,7 +142,8 @@ a { color: var(--tinta); text-underline-offset: 0.2em; }
 /* ---------------------------------------------------------- botones */
 .barra-accion { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(16px + var(--seguro-abajo)); background: var(--fondo); z-index: 20; }
 .barra-accion > .interior { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
-.con-barra .barra-accion { bottom: calc(70px + var(--seguro-abajo)); padding-bottom: 12px; }
+/* 64px = alto de .barra-inferior (con su borde): con 70px quedaba una rendija por donde se veía el contenido. */
+.con-barra .barra-accion { bottom: calc(64px + var(--seguro-abajo)); padding-bottom: 12px; }
 
 /* ---------------------------------------------------------- chips / segmentos */
 .insignia { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; padding: 3px 10px; border-radius: var(--pildora); background: var(--amarillo-suave); color: var(--sobre-amarillo); white-space: nowrap; }
@@ -345,6 +346,7 @@ a.tarjeta-juego:active { background: var(--tarjeta-2); }
 .calibrar-vista > .calibrar-lienzo { inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 .calibrar-cabeza { top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px; }
 .con-video .calibrar-cabeza { background: linear-gradient(180deg, color-mix(in srgb, var(--kuwu-noche) 65%, transparent), transparent); }
+.calibrar-titulo { display: flex; align-items: center; gap: 10px; }
 .calibrar-cabeza h1 { font-size: 24px; text-shadow: 0 1px 8px color-mix(in srgb, var(--kuwu-noche) 35%, transparent); }
 .calibrar-camara { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: color-mix(in srgb, var(--kuwu-noche) 72%, transparent); border: 1px solid var(--borde); font-size: 14px; white-space: nowrap; }
 .punto-vivo { width: 9px; height: 9px; border-radius: 50%; background: var(--kuwu-rojo); flex: none; }
