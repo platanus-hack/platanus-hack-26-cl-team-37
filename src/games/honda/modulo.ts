@@ -14,13 +14,14 @@ import * as THREE from 'three'
 import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
-import { AGARRE_POR_DEFECTO, medirBanda } from '../../banda/medicion'
+import { AGARRE_POR_DEFECTO, medirBanda, type MedidaBanda } from '../../banda/medicion'
 import type { ManoSeguida } from '../../tracking/tipos'
 import { crearEfectoReventar, texturaMasUno } from '../assets/burbujas/burbuja'
 import { crearBaseHonda, crearBaseMarcas, crearBlanco, crearBolsa, crearHorquilla, crearMarca, tender, type BaseMarcas } from '../assets/honda/honda'
 import { geometria, liberar, material as registrar, nuevosRecursos, textura } from '../assets/recursos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import {
+  ANCHO_ZONA,
   NIVELES_HONDA,
   SesionHonda,
   TEXTO_RESULTADO,
@@ -51,6 +52,12 @@ const RADIO_PIEDRA = 0.085
 const TIRON_MAX = 1.05
 const VUELO_S = 0.95
 const RESULTADO_S = 2.2
+/** Manos virtuales: a esta distancia del centro en reposo y con la zona verde al tope, su altura, su z y su tamaño. */
+const X_MANOS_MIN = 1.2
+const X_MANOS_MAX = 2.0
+const Y_MANOS = 0.75
+const Z_MANOS = 0.75
+const ESCALA_MANOS = 4.6
 /** Gotas del festejo y cuánto dura (s). */
 const N_GOTAS = 10
 const FESTEJO_S = 0.9
@@ -109,6 +116,7 @@ export const crearHonda: CrearJuego = () => {
   let sesion = new SesionHonda(banda.curva, nivel)
   /** Cuadros seguidos con una mano tocando el borde de la imagen (para avisar sin parpadeos). */
   let cuadrosAlBorde = 0
+  let manosUbicadas = false
   let ultimoT: number | null = null
   let vuelo: Vuelo | null = null
   let resultado: { r: ResultadoTiro; t: number } | null = null
@@ -181,6 +189,30 @@ export const crearHonda: CrearJuego = () => {
     fija.add(sGuia)
     c.camara.add(fija)
     c.escena.add(c.camara)
+  }
+
+  /**
+   * Las manos virtuales van siempre a los lados de la honda y se abren con el estiramiento, sin importar dónde estén en
+   * la imagen: con manos reales (prueba con la banda, 22-nov-2026) el mapeo de la base las llevaba fuera de la mesa y
+   * detrás de los paneles en los estirones grandes, o encima de la honda en reposo. Se logra moviendo la zona de la base:
+   * su mapeo es lineal en x, así que basta elegir los extremos para que cada palma caiga en ±d.
+   */
+  function ubicarManos(c: ContextoJuego, medida: MedidaBanda | null) {
+    const base = { y: [Y_MANOS, Y_MANOS] as [number, number], z: [Z_MANOS, Z_MANOS] as [number, number], margen: 0, escala: ESCALA_MANOS }
+    if (!medida) {
+      if (!manosUbicadas) c.configurarManos({ ...base, x: [-X_MANOS_MAX, X_MANOS_MAX] })
+      return
+    }
+    // u = 1 − x de la imagen (espejo), como en la base con margen 0.
+    const u = medida.extremos.map((p) => 1 - p.x).sort((a, b) => a - b)
+    const ancho = u[1] - u[0]
+    if (ancho < 0.02) return
+    const e = sesion.ultimo?.e ?? 0
+    const d = X_MANOS_MIN + (X_MANOS_MAX - X_MANOS_MIN) * Math.min(1, Math.max(0, e / (nivel.estirar + ANCHO_ZONA)))
+    const pendiente = (2 * d) / ancho
+    const x0 = -d - pendiente * u[0]
+    c.configurarManos({ ...base, x: [x0, x0 + pendiente] })
+    manosUbicadas = true
   }
 
   /** Bolsa tirada hacia atrás (hacia la cámara) según `f` (0 = en reposo, 1 = el tirón máximo dibujado). */
@@ -507,9 +539,7 @@ export const crearHonda: CrearJuego = () => {
       nivel = nivelHonda(c.parametros.nivel)
       banda = bandaConfigurada()
       sesion = new SesionHonda(banda.curva, nivel)
-      // Manos más chicas y abiertas hacia los costados: con manos reales empuñando la banda (prueba con cámara), las
-      // manos virtuales del tamaño de la base tapaban la honda del centro.
-      c.configurarManos({ x: [-3.2, 3.2], escala: 4.6 })
+      ubicarManos(c, null)
       construirEscena(c)
       dibujar(0)
       // Con cámara, solo en desarrollo (la prueba con video como cámara lo lee).
@@ -524,6 +554,7 @@ export const crearHonda: CrearJuego = () => {
         ultimoT = f.t
         const medida = medirBanda({ t: f.t, manos, ancho: f.ancho, alto: f.alto }, AGARRE_POR_DEFECTO)
         cuadrosAlBorde = medida?.alBorde ? cuadrosAlBorde + 1 : 0
+        ubicarManos(c, medida)
         for (const ev of sesion.paso(f.t, medida?.largoCm ?? null)) aplicar(ev)
         const kg = sesion.kg ?? 0
         if (kg > picoPoseKg + 0.05) {
@@ -547,7 +578,7 @@ export const crearHonda: CrearJuego = () => {
           ? '¡Muy bien! Completaste los aciertos'
           : sesion.ceroDudoso
             ? PISTA_CERO_DUDOSO
-            : cuadrosAlBorde >= CUADROS_BORDE || (fase === 'sin-manos' && sesion.enTiro)
+            : (cuadrosAlBorde >= CUADROS_BORDE && !sesion.enTiro) || (fase === 'sin-manos' && sesion.enTiro)
               ? PISTA_BORDE
               : resultado
                 ? TEXTO_RESULTADO[resultado.r]

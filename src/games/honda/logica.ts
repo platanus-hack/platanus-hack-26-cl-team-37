@@ -452,4 +452,4 @@ export function pistaHonda(fase: FaseHonda): string {
 /** Pista cuando la medida dejó de ser creíble. */
 export const PISTA_CERO_DUDOSO = 'La medida se disparó: deja la banda recta, sin estirar, y toca «Poner en cero»'
 /** Pista cuando una mano toca el borde de la imagen o se pierde a mitad de un tiro. */
-export const PISTA_BORDE = 'Tus manos salen de la imagen: aléjate un poco de la cámara'
+export const PISTA_BORDE = 'Tus manos salen de la imagen: súbelas o aléjate un poco de la cámara'
