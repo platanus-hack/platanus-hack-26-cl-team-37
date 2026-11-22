@@ -11,6 +11,7 @@ const juego: Juego = {
   disponible: true,
   usaCamara: true,
   dosManos: true,
+  tirasBanda: true,
   ruta: null,
   miniatura: 'banda',
   niveles: nivelesDesde(NIVELES_BANDA),

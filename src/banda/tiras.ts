@@ -20,6 +20,14 @@ export function leerTiras(): number {
   }
 }
 
+/**
+ * Cuánto multiplica la carga nominal un juego cuyos kilos están dados para la banda en lazo (2 tiras), como Banda
+ * elástica: 1 tira → la mitad, 4 tiras → el doble.
+ */
+export function factorTiras(tiras: number): number {
+  return tiras / TIRAS_POR_DEFECTO
+}
+
 export function guardarTiras(n: number) {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(n))
