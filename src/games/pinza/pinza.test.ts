@@ -3,6 +3,7 @@ import { manoSintetica, poseEn, secuencia } from '../../tracking/sintetica'
 import { JUEGOS } from '../registry'
 import {
   AgregadoPinza,
+  BLOQUEO_MAX_MS,
   DEDOS_PINZA,
   ERROR_MS,
   HOLD_MS,
@@ -17,6 +18,7 @@ import {
   metaSecuencias,
   nivelPinza,
   pasoPinza,
+  relojPinza,
   umbralesToque,
   type ConfigPinza,
   type DedoPinza,
@@ -204,6 +206,91 @@ describe('Pinza fina: detección de toques', () => {
     const sin = pasoPinza(e, null, 5000, cfg(1000))
     expect(sin.eventos).toEqual([])
     expect(sin.estado.objetivo).toBe('indice')
+  })
+})
+
+describe('Pinza fina: sin mano el reloj no corre', () => {
+  const e0 = () => fijarObjetivo(estadoPinzaInicial(), 'indice', 0)
+
+  it('relojPinza solo avanza con la mano que juega a la vista', () => {
+    expect(relojPinza(1000, 16, true)).toBe(1016)
+    expect(relojPinza(1000, 16, false)).toBe(1000)
+  })
+
+  it('perder la mano no vence el límite: al volver no se registra no_alcanzado y queda el tiempo que faltaba', () => {
+    // Igual que el módulo: el reloj avanza con relojPinza y pasoPinza recibe null sin mano.
+    let reloj = 0
+    let e = e0()
+    const eventos: (EventoPinza & { t: number })[] = []
+    const correrMs = (ms: number, d: Distancias | null) => {
+      for (let k = 0; k < ms / 50; k++) {
+        reloj = relojPinza(reloj, 50, !!d)
+        const r = pasoPinza(e, d, reloj, cfg(4000))
+        e = r.estado
+        for (const ev of r.eventos) eventos.push({ ...ev, t: reloj })
+      }
+    }
+    correrMs(3000, lejos) // 3 s buscando el dedo (límite 4 s)
+    correrMs(2000, null) // se pierde la mano 2 s (lo que tarda la base en pausar)
+    expect(reloj).toBe(3000)
+    correrMs(500, lejos) // vuelve: todavía le queda 1 s
+    expect(eventos).toEqual([])
+    correrMs(500, lejos)
+    expect(eventos).toHaveLength(1)
+    expect(eventos[0]).toMatchObject({ tipo: 'no_alcanzado', dedo: 'indice', tiempoMs: 4000, t: 4000 })
+    // Con el reloj corriendo sin mano (lo que pasaba antes) el primer cuadro de vuelta ya lo daba por no alcanzado.
+    const antes = correr(e0(), [[3000, lejos]], cfg(4000))
+    expect(pasoPinza(antes.e, lejos, 3000 + 2000 + 50, cfg(4000)).eventos.map((x) => x.tipo)).toEqual(['no_alcanzado'])
+  })
+})
+
+describe('Pinza fina: el bloqueo tras un toque tiene salida', () => {
+  /** Tras tocar el índice el pulgar no logra separarse más que el umbral de soltar: queda en la banda. */
+  const pegado: Distancias = { ...lejos, indice: (U.toqueCm + U.sueltaCm) / 2 }
+  /** Toque del índice confirmado (bloqueado desde t = 350) y medio pedido a los 400 ms. */
+  const trasToque = () => {
+    const r = correr(fijarObjetivo(estadoPinzaInicial(), 'indice', 0), [[400, con('indice', 0.5)]], cfg())
+    expect(r.eventos.map((x) => x.tipo)).toEqual(['toque'])
+    expect(r.e.bloqueado).toBe(true)
+    return { e: fijarObjetivo(r.e, 'medio', r.t), t: r.t, desde: r.eventos[0].t }
+  }
+
+  it('sin separar los dedos, el dedo siguiente no cuenta antes de BLOQUEO_MAX_MS y sí después (sin errores)', () => {
+    const { e, t, desde } = trasToque()
+    const alMedio: Distancias = { ...pegado, medio: 0.5 }
+    // Llega al medio enseguida pero sigue bloqueado: nada todavía.
+    let r = correr(e, [[BLOQUEO_MAX_MS - 100, alMedio]], cfg(), t)
+    expect(r.t).toBeLessThan(desde + BLOQUEO_MAX_MS)
+    expect(r.eventos).toEqual([])
+    expect(r.e.bloqueado).toBe(true)
+    // Pasado el máximo se desbloquea solo y el toque se confirma manteniéndolo 0,3 s desde ahí.
+    r = correr(r.e, [[1000, alMedio]], cfg(), r.t)
+    expect(r.eventos.map((x) => x.tipo)).toEqual(['toque'])
+    expect(r.eventos[0]).toMatchObject({ dedo: 'medio', t: desde + BLOQUEO_MAX_MS + HOLD_MS, tiempoMs: HOLD_MS })
+  })
+
+  it('quedarse pegado al dedo anterior no se cobra como error al desbloquearse', () => {
+    const { e, t } = trasToque()
+    const r = correr(e, [[BLOQUEO_MAX_MS + 3000, pegado]], cfg(), t)
+    expect(r.e.bloqueado).toBe(false)
+    expect(r.eventos).toEqual([])
+  })
+
+  it('con límite de tiempo, el plazo del dedo pedido corre desde que se desbloquea (no vence de inmediato)', () => {
+    const { e, t, desde } = trasToque()
+    const limite = 2000
+    let r = correr(e, [[desde + BLOQUEO_MAX_MS + limite - 50 - t, pegado]], cfg(limite), t)
+    expect(r.eventos).toEqual([])
+    r = correr(r.e, [[50, pegado]], cfg(limite), r.t)
+    expect(r.eventos).toHaveLength(1)
+    expect(r.eventos[0]).toMatchObject({ tipo: 'no_alcanzado', dedo: 'medio', tiempoMs: limite })
+  })
+
+  it('quien sí separa los dedos sigue igual: se desbloquea al separar, sin esperar', () => {
+    const { e, t } = trasToque()
+    const r = correr(e, [[100, lejos], [400, con('medio', 0.5)]], cfg(), t)
+    expect(r.eventos.map((x) => x.tipo)).toEqual(['toque'])
+    expect(r.eventos[0].t).toBe(t + 100 + 50 + HOLD_MS)
   })
 })
 

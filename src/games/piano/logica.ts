@@ -331,6 +331,15 @@ export type EventoPiano =
  */
 export const inicioPausa = (actual: number | null, ahora: number): number => actual ?? ahora
 
+/**
+ * Reloj de la partitura (ms): solo corre con alguna mano del juego a la vista. Mientras no se ve (hasta que la base
+ * pausa, ~2 s) las notas no caen ni vencen: una pérdida de seguimiento no es una nota perdida del paciente.
+ */
+export const relojPartitura = (relojMs: number, dtMs: number, hayMano: boolean): number => (hayMano ? relojMs + Math.max(0, dtMs) : relojMs)
+
+/** Tras resolverse la última nota sin cumplir la meta, cuánto se deja ver el resultado antes de terminar la sesión (ms). */
+export const ESPERA_FIN_MS = 1500
+
 /** Cuánto más se espera tras el fin de la ventana a que se cierre una pulsación en curso (ms). */
 const GRACIA_MS = EPISODIO_MS + 100
 
@@ -368,9 +377,19 @@ export class Juez {
     return { i, lado: e.lado, dedo: e.dedo, tMs, apareceMs: tMs - this.nivel.caidaMs, estado: 'pendiente', error: false }
   }
 
-  /** Notas ya resueltas (acertadas o perdidas). */
+  /** Notas ya resueltas (acertadas o perdidas). Sirve para saber si la partitura terminó, NO para la meta. */
   get resueltas(): number {
     return this.notas.filter((n) => n.estado !== 'pendiente').length
+  }
+
+  /** Notas acertadas: es lo que cuenta contra la meta (una nota perdida no la acerca). */
+  get aciertos(): number {
+    return this.notas.filter((n) => n.estado === 'acierto').length
+  }
+
+  /** La partitura con tope ya no tiene notas por resolver (acertadas o perdidas): el juego terminó, cumpla o no la meta. */
+  get completa(): boolean {
+    return this.total > 0 && this.resueltas >= this.total
   }
 
   /** Notas que aún no se resuelven. */

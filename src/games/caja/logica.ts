@@ -109,6 +109,15 @@ export function dentroDeCaja(p: V3, caja: Caja = CAJA, alturaMesa = 0): boolean 
   return Math.abs(p.x - caja.x) < mx && Math.abs(p.z - caja.z) < mz && p.y < alturaMesa + caja.alto + APILADO && p.y > alturaMesa - 0.05
 }
 
+/**
+ * Qué pasa con un juguete soltado que ya quedó quieto. `perdida` = no lo soltó el paciente: el agarre terminó porque
+ * se dejó de ver la mano (pérdida de seguimiento). Ese nunca cuenta como guardado; si cayó dentro de la caja vuelve a
+ * su lugar en la mesa (`vuelve`) para poder guardarlo de verdad.
+ */
+export function resultadoSoltar(dentro: boolean, perdida: boolean): { enCaja: boolean; vuelve: boolean } {
+  return { enCaja: dentro && !perdida, vuelve: dentro && perdida }
+}
+
 export function cayoDeLaMesa(p: V3): boolean {
   return p.y < Y_CAIDA
 }

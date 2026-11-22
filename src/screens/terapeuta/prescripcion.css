@@ -1,0 +1,64 @@
+/* F17 · Prescripción del plan (docs/referencia/imagenes/12_prescripcion.png). Solo tokens de src/index.css y
+   primitivas del brandbook. Pantalla sin barra de navegación: la acción «Enviar plan» queda fija abajo. */
+.prescripcion { padding-bottom: calc(132px + var(--seguro-abajo)); }
+.presc-columna { display: contents; } /* móvil: sin efecto; escritorio: una columna (ver abajo) */
+
+.presc-cabecera h1 { font-size: 24px; overflow-wrap: anywhere; }
+.presc-avatar { width: 48px; height: 48px; font-size: 16px; }
+
+/* Tendencia de 4 semanas */
+.presc-tendencia { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.presc-tendencia-valor { font-family: var(--cifras); font-weight: 800; font-size: 24px; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 4px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.presc-pct { font-weight: 600; font-size: 15px; letter-spacing: 0; color: var(--tinta); }
+.presc-tendencia-vacio { color: var(--texto-2); font-size: 15px; margin-top: 4px; }
+.presc-nota { color: var(--texto-3); font-size: 14px; margin-top: 4px; }
+.presc-tendencia svg { flex: none; }
+
+.presc-enlaces { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Plan semanal */
+.presc-titulo-seccion { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.presc-version { color: var(--texto-3); font-size: 14px; }
+.presc-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tarjeta.presc-fila { padding: 12px 14px 12px 18px; }
+.presc-textos { display: flex; flex-direction: column; gap: 2px; }
+.presc-titulo { font-weight: 800; font-size: 17px; line-height: 1.25; }
+.presc-detalle { color: var(--texto-2); font-size: 15px; line-height: 1.3; }
+.presc-fila .stepper { flex: none; }
+.presc-fila .stepper .valor { min-width: 52px; padding: 4px 2px; border-radius: var(--pildora); font-weight: 600; }
+/* Lo modificado se destaca en amarillo hasta enviar: el valor como píldora y la tarjeta con relleno suave. */
+.presc-fila .stepper .valor.cambiado { background: var(--amarillo); color: var(--sobre-amarillo); font-weight: 800; }
+.tarjeta.presc-fila[data-cambiado='si'],
+.presc-juego:has([data-cambiado='si']) { background: var(--amarillo-suave); }
+
+/* Un ejercicio: nombre y sus dos valores */
+.presc-juego { display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 14px 18px; }
+.presc-juego-nombre { font-size: 18px; }
+.presc-juego .presc-titulo { font-weight: 600; font-size: 16px; }
+.presc-juego .presc-fila + .presc-fila { padding-top: 12px; border-top: 1px solid var(--linea); }
+.presc-sin-ejercicios { color: var(--texto-2); font-size: 15px; }
+
+/* Mensaje */
+.presc-mensaje { margin-top: 4px; }
+.presc-contador { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Acción fija y hoja de confirmación */
+.presc-estado { text-align: center; }
+.presc-hoja-titulo { font-size: 20px; }
+.presc-resumen { gap: 8px; }
+.presc-cambio { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: var(--radio-s); background: var(--pista); }
+.presc-cambio-nombre { color: var(--texto-2); font-size: 14px; }
+.presc-cambio-valor { font-size: 17px; font-variant-numeric: tabular-nums; }
+.presc-cambio-valor strong { font-weight: 800; padding: 1px 8px; border-radius: var(--pildora); background: var(--amarillo); color: var(--sobre-amarillo); }
+.presc-cambio-mensaje { font-size: 16px; overflow-wrap: anywhere; }
+
+/* ——— Escritorio (≥ 1024 px): resumen del paciente y valores generales a la izquierda; ejercicios y mensaje a la derecha. */
+@media (min-width: 1024px) {
+  .pantalla.prescripcion { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 32px; row-gap: 20px; align-items: start; align-content: start; padding-bottom: 0; }
+  .pantalla.prescripcion > * { grid-column: 1 / -1; }
+  .pantalla.prescripcion > .presc-columna { grid-column: auto; display: flex; flex-direction: column; gap: 14px; }
+  .presc-cabecera h1 { font-size: 32px; }
+  .presc-avatar { width: 56px; height: 56px; font-size: 18px; }
+  .presc-mensaje { margin-top: 8px; }
+  .prescripcion .barra-accion > .interior { max-width: 400px; margin: 0 auto; }
+}

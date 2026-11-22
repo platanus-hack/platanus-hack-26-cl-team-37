@@ -6,6 +6,7 @@ import { AlInicio, Protegida, SoloPublica } from './auth/Protegida'
 import { useMarcarVista } from './ui/vista'
 import Acceso from './screens/acceso/Acceso'
 import { EstadoRed } from './ui/EstadoRed'
+import { LimiteErrores } from './ui/Limite'
 import { PantallaCargando } from './ui/Marco'
 import { Avisos } from './ui/piezas'
 
@@ -37,65 +38,67 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<PantallaCargando />}>
-          <Routes>
-            <Route path="/" element={<AlInicio />} />
-            {/* Vista oculta (no enlazada): catálogo de brandbook/primitivas.css. Pública para revisarla sin cuenta. */}
-            <Route path="/primitivas" element={<Primitivas />} />
-            <Route element={<SoloPublica />}>
-              <Route path="/acceso" element={<Acceso />} />
-            </Route>
+        <LimiteErrores>
+          <Suspense fallback={<PantallaCargando />}>
+            <Routes>
+              <Route path="/" element={<AlInicio />} />
+              {/* Vista oculta (no enlazada): catálogo de brandbook/primitivas.css. Pública para revisarla sin cuenta. */}
+              <Route path="/primitivas" element={<Primitivas />} />
+              <Route element={<SoloPublica />}>
+                <Route path="/acceso" element={<Acceso />} />
+              </Route>
 
-            {/* Paciente: pestañas con barra inferior */}
-            <Route element={<Protegida roles={['paciente']} barra />}>
-              <Route path="/inicio" element={<Inicio />} />
-              <Route path="/ejercicios" element={<Ejercicios />} />
-              <Route path="/progreso" element={<Progreso />} />
-              <Route path="/progreso/comparar" element={<CompararPaciente />} />
-              <Route path="/perfil" element={<Perfil />} />
-            </Route>
-            {/* Paciente: flujo de sesión y privacidad, sin barra */}
-            <Route element={<Protegida roles={['paciente']} />}>
-              <Route path="/sesion/:juego/preparar" element={<Preparar />} />
-              <Route path="/sesion/:id/calibrar" element={<Calibrar />} />
-              <Route path="/sesion/:id/sensacion" element={<Sensacion />} />
-              <Route path="/sesion/:id/resumen" element={<Resumen />} />
-              <Route path="/privacidad" element={<Privacidad />} />
-            </Route>
-            {/* Juego: pantalla completa (horizontal), sin barra */}
-            <Route element={<Protegida roles={['paciente']} />}>
-              <Route path="/sesion/:id/jugar" element={<Jugar />} />
-            </Route>
+              {/* Paciente: pestañas con barra inferior */}
+              <Route element={<Protegida roles={['paciente']} barra />}>
+                <Route path="/inicio" element={<Inicio />} />
+                <Route path="/ejercicios" element={<Ejercicios />} />
+                <Route path="/progreso" element={<Progreso />} />
+                <Route path="/progreso/comparar" element={<CompararPaciente />} />
+                <Route path="/perfil" element={<Perfil />} />
+              </Route>
+              {/* Paciente: flujo de sesión y privacidad, sin barra */}
+              <Route element={<Protegida roles={['paciente']} />}>
+                <Route path="/sesion/:juego/preparar" element={<Preparar />} />
+                <Route path="/sesion/:id/calibrar" element={<Calibrar />} />
+                <Route path="/sesion/:id/sensacion" element={<Sensacion />} />
+                <Route path="/sesion/:id/resumen" element={<Resumen />} />
+                <Route path="/privacidad" element={<Privacidad />} />
+              </Route>
+              {/* Juego: pantalla completa (horizontal), sin barra */}
+              <Route element={<Protegida roles={['paciente']} />}>
+                <Route path="/sesion/:id/jugar" element={<Jugar />} />
+              </Route>
 
-            {/* Historial: del paciente, y el terapeuta lo abre desde un paciente. Barra según el rol. */}
-            <Route element={<Protegida roles={['paciente', 'terapeuta']} barra />}>
-              <Route path="/historial" element={<Historial />} />
-              <Route path="/historial/:id" element={<RegistroSesion />} />
-            </Route>
+              {/* Historial: del paciente, y el terapeuta lo abre desde un paciente. Barra según el rol. */}
+              <Route element={<Protegida roles={['paciente', 'terapeuta']} barra />}>
+                <Route path="/historial" element={<Historial />} />
+                <Route path="/historial/:id" element={<RegistroSesion />} />
+              </Route>
 
-            {/* Terapeuta */}
-            <Route element={<Protegida roles={['terapeuta']} barra />}>
-              <Route path="/terapeuta/pacientes" element={<Pacientes />} />
-              <Route path="/terapeuta/alertas" element={<Alertas />} />
-              <Route path="/terapeuta/planes" element={<Planes />} />
-              <Route path="/terapeuta/informes" element={<Informes />} />
-            </Route>
-            <Route element={<Protegida roles={['terapeuta']} />}>
-              <Route path="/terapeuta/pacientes/:id/plan" element={<Prescripcion />} />
-              <Route path="/terapeuta/pacientes/:id/comparar" element={<CompararTerapeuta />} />
-            </Route>
+              {/* Terapeuta */}
+              <Route element={<Protegida roles={['terapeuta']} barra />}>
+                <Route path="/terapeuta/pacientes" element={<Pacientes />} />
+                <Route path="/terapeuta/alertas" element={<Alertas />} />
+                <Route path="/terapeuta/planes" element={<Planes />} />
+                <Route path="/terapeuta/informes" element={<Informes />} />
+              </Route>
+              <Route element={<Protegida roles={['terapeuta']} />}>
+                <Route path="/terapeuta/pacientes/:id/plan" element={<Prescripcion />} />
+                <Route path="/terapeuta/pacientes/:id/comparar" element={<CompararTerapeuta />} />
+              </Route>
 
-            {/* Ambos roles */}
-            <Route element={<Protegida roles={['paciente', 'terapeuta']} />}>
-              <Route path="/depuracion" element={<Depuracion />} />
-            </Route>
+              {/* Ambos roles */}
+              <Route element={<Protegida roles={['paciente', 'terapeuta']} />}>
+                <Route path="/depuracion" element={<Depuracion />} />
+              </Route>
 
-            {/* Vista previa pública del ambiente 3D de la oficina */}
-            <Route path="/oficina-3d" element={<VistaOficina3D />} />
+              {/* Vista previa pública del ambiente 3D de la oficina */}
+              <Route path="/oficina-3d" element={<VistaOficina3D />} />
 
-            <Route path="*" element={<AlInicio />} />
-          </Routes>
-        </Suspense>
+              <Route path="*" element={<AlInicio />} />
+            </Routes>
+          </Suspense>
+        </LimiteErrores>
         <Avisos />
         <EstadoRed />
       </AuthProvider>

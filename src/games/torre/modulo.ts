@@ -23,7 +23,7 @@ import { crearPiezaFisica } from '../assets/piezas'
 import type { Recursos } from '../assets/recursos'
 import { crearBaseTorre, crearSilueta } from '../assets/torre/base'
 import type { LadoMano } from '../../domain/types'
-import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
+import { configDesdeCalibracion, pasoAgarreTolerante, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
 import { ZONA_BASE, type ZonaManos } from '../shell/manos3d'
 import {
@@ -37,6 +37,7 @@ import {
   Y_CAIDA,
   alturaSilueta,
   aperturaAlTomar,
+  colocacionSinMano,
   desvioCm,
   distanciaToma,
   estaQuieto,
@@ -82,6 +83,8 @@ interface Cubo {
   apertura: number | null
   /** Dónde quedó al colocarse. */
   colocadoEn: { x: number; y: number; z: number } | null
+  /** El último agarre terminó porque se dejó de ver la mano (no lo soltó el paciente): no cuenta como colocado. */
+  perdido: boolean
 }
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_TORRE[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
@@ -193,6 +196,7 @@ export const crearTorre: CrearJuego = () => {
       estab: null,
       apertura: null,
       colocadoEn: null,
+      perdido: false,
     }
     sincronizar(cubo)
     return cubo
@@ -224,6 +228,7 @@ export const crearTorre: CrearJuego = () => {
     j.mano = null
     j.quietoDesde = null
     j.colocadoEn = null
+    j.perdido = false
     sincronizar(j)
   }
 
@@ -242,6 +247,7 @@ export const crearTorre: CrearJuego = () => {
     j.estado = 'tomado'
     j.mano = l
     j.quietoDesde = null
+    j.perdido = false
     const p = j.cuerpo.translation()
     j.sostenido.set(p.x, p.y, p.z)
     // Se endereza para poder apilarlo (queda alineado con la torre).
@@ -259,7 +265,8 @@ export const crearTorre: CrearJuego = () => {
     c.registrar('agarre_inicio', { mano: l, objeto: j.id, datos: { aperturaCm: ap } })
   }
 
-  function soltarDeMano(l: LadoMano) {
+  /** `perdida` = el agarre terminó porque se dejó de ver la mano (pasada la gracia), no porque el paciente abrió la pinza. */
+  function soltarDeMano(l: LadoMano, perdida = false) {
     const c = ctx!
     const s = sostiene[l]
     delete sostiene[l]
@@ -273,10 +280,15 @@ export const crearTorre: CrearJuego = () => {
     j.sostenido.set(donde.x, donde.y, donde.z)
     j.desvio = desvioCm(donde)
     j.estab = estabilidad(histPosicion[l], t - MS_ANTES_SOLTAR)
-    vivoDesvio = j.desvio
-    if (j.estab != null) vivoEstab = j.estab
-    if (j.estab != null) registro.estabilidades.push(j.estab)
-    c.registrar('agarre_fin', { mano: l, objeto: j.id, datos: { duracionMs: Math.round(t - s.inicioT) } })
+    j.perdido = perdida
+    // Una pérdida de seguimiento no es un soltar del paciente: no entra en el desvío en vivo ni en la estabilidad.
+    if (!perdida) {
+      vivoDesvio = j.desvio
+      if (j.estab != null) vivoEstab = j.estab
+      if (j.estab != null) registro.estabilidades.push(j.estab)
+    }
+    const duracionMs = Math.round(t - s.inicioT)
+    c.registrar('agarre_fin', { mano: l, objeto: j.id, datos: perdida ? { duracionMs, motivo: 'sin-mano' } : { duracionMs } })
     aDinamico(j)
     j.cuerpo.setTranslation({ x: j.sostenido.x, y: j.sostenido.y, z: j.sostenido.z }, true)
     j.estado = 'soltado'
@@ -288,8 +300,11 @@ export const crearTorre: CrearJuego = () => {
   function resolverSoltado(j: Cubo) {
     const c = ctx!
     const p = j.cuerpo.translation()
-    const ev = evaluarColocacion(p, colocados.length, lado, nivel.toleranciaCm, c.mesa.altura)
-    const datos = { desvioCm: j.desvio, estabilidad: j.estab, aperturaCm: j.apertura, enCaja: ev.valida }
+    const perdido = j.perdido
+    const medida = evaluarColocacion(p, colocados.length, lado, nivel.toleranciaCm, c.mesa.altura)
+    // Soltado por pérdida de seguimiento: nunca cuenta como colocado (y si quedó sobre la torre, vuelve a la mesa).
+    const ev = perdido ? colocacionSinMano(medida) : medida
+    const datos = { desvioCm: j.desvio, estabilidad: j.estab, aperturaCm: j.apertura, enCaja: ev.valida, ...(perdido ? { motivo: 'sin-mano' } : {}) }
     if (ev.valida) {
       c.registrar('soltar', { mano: j.mano, objeto: j.id, datos })
       const piso = colocados.length
@@ -303,15 +318,16 @@ export const crearTorre: CrearJuego = () => {
       c.registrar('colocado', { mano: j.mano, objeto: j.id, datos: { piso: piso + 1, alturaCubos: colocados.length, desvioCm: d, desvioFinalCm: ev.desvioCm } })
       posicionarSilueta()
     } else if (ev.enHuella) {
-      c.registrar('soltar', { mano: j.mano, objeto: j.id, datos: { ...datos, motivo: 'fuera de tolerancia' } })
+      c.registrar('soltar', { mano: j.mano, objeto: j.id, datos: perdido ? datos : { ...datos, motivo: 'fuera de tolerancia' } })
       volverAlInicio(j)
-      mostrarAviso('Centra el cubo sobre la silueta amarilla')
+      mostrarAviso(perdido ? 'No vimos tu mano: el cubo vuelve a la mesa' : 'Centra el cubo sobre la silueta amarilla')
     } else {
       c.registrar('soltar', { mano: j.mano, objeto: j.id, datos })
       j.estado = 'mesa'
     }
     j.mano = null
     j.quietoDesde = null
+    j.perdido = false
   }
 
   function cercano(l: LadoMano): Cubo | null {
@@ -432,10 +448,11 @@ export const crearTorre: CrearJuego = () => {
           while (hp.length && hp[0].t < t - 3000) hp.shift()
         }
         const candidato = m && !agarre[l].agarrando && caidaT == null ? cercano(l) : null
-        const r = pasoAgarre(agarre[l], m ? m.aperturaPinzaCm : null, !!candidato, cfg)
+        // Un hueco corto sin ver la mano no suelta el cubo; si se pierde de verdad, se suelta sin contar como colocado.
+        const r = pasoAgarreTolerante(agarre[l], m ? m.aperturaPinzaCm : null, !!candidato, dt * 1000, cfg)
         agarre[l] = r.estado
         if (r.cambio === 'inicio' && candidato) tomar(l, candidato)
-        else if (r.cambio === 'fin') soltarDeMano(l)
+        else if (r.cambio === 'fin') soltarDeMano(l, r.perdida)
       }
       // 2) Cubos sostenidos siguen al punto de pinza (sin hundirse en la mesa ni en la base).
       const k = Math.min(1, dt * 25)

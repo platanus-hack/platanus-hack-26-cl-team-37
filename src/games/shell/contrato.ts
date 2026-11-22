@@ -78,6 +78,12 @@ export interface HudJuego {
   manos?: Partial<Record<LadoMano, EstadoManoHud>>
   /** Pista dinámica (reemplaza a `pista` del módulo mientras exista). */
   pista?: string
+  /**
+   * Opcional: el juego ya no tiene nada más que ofrecer SIN haber cumplido la meta (p. ej. el Piano resolvió todas sus
+   * notas y no todas fueron aciertos). La base termina la sesión como cuando se acaba el tiempo (motivoFin 'tiempo',
+   * metaCumplida según el contador). Si no se entrega, la sesión termina solo por tiempo, por meta o a mano.
+   */
+  terminado?: boolean
 }
 
 /** Medidas de una mano en el cuadro actual (las calcula la base para la mano de la sesión y las demás). */

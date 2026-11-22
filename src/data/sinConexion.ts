@@ -46,6 +46,13 @@ export function conRespaldoLocal(base: Repos, sincronizar: () => Promise<void>):
     }
   }
 
+  /** Guarda la cuenta abierta; si es otra que la última conocida, borra antes la copia local de la anterior. */
+  async function recordarUsuario(u: Usuario) {
+    const previo = await leerCache<Usuario>('usuario').catch(() => undefined)
+    if (previo && previo.id !== u.id) await borrarCache().catch(() => undefined) // otra cuenta en el mismo teléfono
+    await guardarCache('usuario', u).catch(() => undefined)
+  }
+
   /** ID real de la sesión, o null si es provisional y todavía no se sincroniza. */
   async function idReal(id: string): Promise<string | null> {
     if (!esIdProvisional(id)) return id
@@ -138,13 +145,18 @@ export function conRespaldoLocal(base: Repos, sincronizar: () => Promise<void>):
           if (!esErrorDeRed(e)) throw e
         }
         if (u) {
-          const previo = await leerCache<Usuario>('usuario')
-          if (previo && previo.id !== u.id) await borrarCache() // otra cuenta en el mismo teléfono
-          await guardarCache('usuario', u).catch(() => undefined)
+          await recordarUsuario(u)
           return u
         }
         // Sin red el perfil no se puede pedir (y el token puede estar vencido): se sigue con la última cuenta conocida.
         return null
+      },
+      async ingresar(datos) {
+        // Al entrar con otra cuenta sin haber salido de la anterior (sesión vencida), la copia local de la anterior se borra
+        // aquí mismo: si no, la cuenta nueva podría ver sin red la ficha de la otra persona.
+        const u = await base.auth.ingresar(datos)
+        await recordarUsuario(u)
+        return u
       },
       async salir() {
         await base.auth.salir()
@@ -193,6 +205,7 @@ export function conRespaldoLocal(base: Repos, sincronizar: () => Promise<void>):
     perfiles: {
       ...base.perfiles,
       nombre: (id) => leer(`perfiles.nombre:${id}`, () => base.perfiles.nombre(id)),
+      clinica: (id) => leer(`perfiles.clinica:${id}`, () => base.perfiles.clinica(id)),
     },
   }
 }

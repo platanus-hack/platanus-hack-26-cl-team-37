@@ -8,7 +8,9 @@
 // Los pasos 2 a 4 solo avanzan con la mano sobre el vaso (en otro lado quedan en pausa: se lleva la naranja).
 // La sesión termina al llenar el vaso: REPETICIONES_VASO repeticiones válidas (o las del plan).
 // La repetición solo cuenta si se cumplen los cuatro pasos. Si se suelta antes, queda anotada como incompleta con el
-// paso en que falló (repeticion_incompleta { paso }).
+// paso en que falló (repeticion_incompleta { paso }). Ningún paso espera para siempre: si tras empezar a cerrar no se
+// llega al umbral (paso 2), o tras sostener no se logra abrir por completo (paso 4), a los ESPERA_PASO_MS la repetición
+// se cierra como incompleta en ese paso y empieza la siguiente.
 //
 // Cierre de puño en % (0..100): 0 % = mano abierta de la calibración, 100 % = su puño (1 − apertura calibrada, donde la
 // apertura es la distancia de las yemas al centro de la palma normalizada por el largo de la mano). La cámara no mide
@@ -67,6 +69,12 @@ export const INICIO_CIERRE_PCT = 30
 /** Margen bajo el umbral con el que se sigue "sosteniendo" (temblor de la mano y del seguimiento). */
 export const HISTERESIS_PCT = 10
 
+/**
+ * Tiempo máximo (ms, con la mano a la vista) en el paso 2 desde que empezó a cerrar, y en el paso 4 desde que completó
+ * el sostén. Holgado para una mano con poca movilidad; quien completa el movimiento nunca lo alcanza.
+ */
+export const ESPERA_PASO_MS = 15_000
+
 export const soltarPct = (n: Pick<NivelNaranja, 'umbral'>) => n.umbral - HISTERESIS_PCT
 
 /** Cierre de puño en % (0..100) desde la apertura calibrada 0..1 (1 = mano abierta). */
@@ -86,9 +94,11 @@ export interface EstadoNaranja {
   abriendo: boolean
   /** Paso 4: mejor apertura (%) vista al abrir. */
   aperturaMax: number
+  /** Ms (con la mano a la vista) esperando en el paso 2 desde cierre_inicio, o en el paso 4 (ver ESPERA_PASO_MS). */
+  esperaMs: number
 }
 
-export const estadoNaranjaInicial = (): EstadoNaranja => ({ paso: 1, abiertaMs: 0, iniciada: false, cierreMax: 0, sostenidoMs: 0, abriendo: false, aperturaMax: 0 })
+export const estadoNaranjaInicial = (): EstadoNaranja => ({ paso: 1, abiertaMs: 0, iniciada: false, cierreMax: 0, sostenidoMs: 0, abriendo: false, aperturaMax: 0, esperaMs: 0 })
 
 export type EventoNaranja =
   | { tipo: 'naranja' }
@@ -137,10 +147,16 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
       eventos.push({ tipo: 'umbral_alcanzado', cierrePct: r1(cierre), umbralPct: n.umbral })
       e.paso = 3
       e.sostenidoMs = 0
+      e.esperaMs = 0
       return { estado: e, eventos }
     }
     // Empezó a cerrar y volvió a abrir sin pasar el umbral: falla el paso 2.
     if (e.iniciada && cierre <= n.abiertaPct) return { estado: fallo(2), eventos }
+    // Empezó a cerrar y no llega al umbral ni logra volver a abrir: no se queda esperando para siempre.
+    if (e.iniciada) {
+      e.esperaMs += dtMs
+      if (e.esperaMs >= ESPERA_PASO_MS) return { estado: fallo(2), eventos }
+    }
     return { estado: e, eventos }
   }
 
@@ -155,30 +171,35 @@ export function pasoNaranja(s: EstadoNaranja, cierre: number | null, dtMs: numbe
       e.paso = 4
       e.abriendo = false
       e.aperturaMax = 0
+      e.esperaMs = 0
     }
     return { estado: e, eventos }
   }
 
   // Paso 4: abrir por completo.
   e.cierreMax = Math.max(e.cierreMax, cierre)
+  e.esperaMs += dtMs
   if (cierre >= suelta) {
     // Sigue con el puño: el tiempo sostenido ya no suma (quedó fijo al completar el paso 3). Si ya había empezado a
     // abrir y vuelve a cerrar, falla.
     if (e.abriendo && cierre >= n.umbral) return { estado: fallo(4), eventos }
-    return { estado: e, eventos }
+  } else {
+    e.abriendo = true
+    e.aperturaMax = Math.max(e.aperturaMax, 100 - cierre)
+    if (cierre <= n.abiertaPct) {
+      eventos.push({ tipo: 'apertura_completa', aperturaPct: r1(e.aperturaMax), cierreMaxPct: r1(e.cierreMax), sostenidoMs: Math.round(e.sostenidoMs) })
+      return { estado: { ...estadoNaranjaInicial() }, eventos }
+    }
   }
-  e.abriendo = true
-  e.aperturaMax = Math.max(e.aperturaMax, 100 - cierre)
-  if (cierre <= n.abiertaPct) {
-    eventos.push({ tipo: 'apertura_completa', aperturaPct: r1(e.aperturaMax), cierreMaxPct: r1(e.cierreMax), sostenidoMs: Math.round(e.sostenidoMs) })
-    return { estado: { ...estadoNaranjaInicial() }, eventos }
-  }
+  // No logra abrir por completo: la repetición se cierra como incompleta en el paso 4 y empieza la siguiente.
+  if (e.esperaMs >= ESPERA_PASO_MS) return { estado: fallo(4), eventos }
   return { estado: e, eventos }
 }
 
 /**
- * "Reiniciar" a mitad de una repetición: la deja anotada como incompleta con el paso en que estaba, para que no queden
- * cierre_inicio / umbral_alcanzado sin cerrar. En el paso 1 (o en el 2 sin haber empezado a cerrar) no hay nada abierto.
+ * "Reiniciar" a mitad de una repetición, o el fin de la sesión: la deja anotada como incompleta con el paso en que
+ * estaba, para que no queden cierre_inicio / umbral_alcanzado sin cerrar ni se pierda lo que alcanzó (cierre máximo,
+ * tiempo sostenido). En el paso 1 (o en el 2 sin haber empezado a cerrar) no hay nada abierto.
  */
 export function cortarRepeticion(s: EstadoNaranja): EventoNaranja[] {
   if (s.paso === 1 || (s.paso === 2 && !s.iniciada)) return []

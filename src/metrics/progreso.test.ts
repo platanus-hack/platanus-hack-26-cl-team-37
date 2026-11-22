@@ -30,6 +30,20 @@ describe('desdeRango', () => {
   })
 })
 
+describe('sesiones con mano simulada', () => {
+  it('no cuentan como hechas ni entran en la tendencia', () => {
+    const real = [sesion(10, { aperturaMaxCm: 5 }), sesion(1, { aperturaMaxCm: 6 })]
+    const simuladas = [
+      sesion(5, { aperturaMaxCm: 9.3 }, { dispositivo: { modelo: 'Windows · Chrome 140', camara: 'sintetica', fps: 30 }, versionModelo: 'sintetica (sin modelo)' }),
+      sesion(4, { aperturaMaxCm: 9.1 }, { versionModelo: 'grabacion (hand_landmarker.task · tasks-vision 1.2.3)' }),
+    ]
+    const p = calcularProgreso([...real, ...simuladas], plan(), null, '4s', HOY)
+    expect(p.puntos.map((x) => x.cm)).toEqual([5, 6])
+    expect(p.hechas).toBe(2)
+    expect(p.excluidas).toBe(0)
+  })
+})
+
 describe('calcularProgreso', () => {
   const sesiones = [sesion(23, { aperturaMaxCm: 4.2 }), sesion(16, { aperturaMaxCm: 9, calidadRegistro: 0.62 }), sesion(10, { aperturaMaxCm: 5 }), sesion(1, { aperturaMaxCm: 6.1 })]
 

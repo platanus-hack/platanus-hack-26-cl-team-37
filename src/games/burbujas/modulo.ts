@@ -37,11 +37,13 @@ import {
   REPOSO_DEFECTO,
   UMBRAL_EXTENSION_DEFECTO,
   AVISO_MS,
+  burbujaAgotada,
   celdaDe,
   extensionPct,
   factorZona,
   limiteDeZona,
   moverEnCaja,
+  nacimientoBurbuja,
   nivelBurbujas,
   pasoToque,
   referenciasFlexion,
@@ -496,6 +498,8 @@ export const crearBurbujas: CrearJuego = () => {
             esperaMs = ESPERA_SIGUIENTE_MS
           }
         }
+        // Sin ninguna mano de la sesión a la vista la vida de las burbujas no corre (no expiran por el seguimiento).
+        for (const b of burbujas) b.t0 = nacimientoBurbuja(b.t0, dtMs, vistas.size > 0)
         if (nivel.velocidad > 0)
           for (const b of burbujas) {
             const r = moverEnCaja(b.pos, b.vel, dt, b.caja)
@@ -527,7 +531,7 @@ export const crearBurbujas: CrearJuego = () => {
             c.registrar('intento_cerrado', { mano: l, objeto: 'burbuja', datos: { extensionMax: Math.round(r.estado.extMax), umbral, numero: tocada.numero } })
           }
         }
-        if (nivel.vidaMs > 0) for (const b of [...burbujas]) if (reloj - b.t0 >= nivel.vidaMs) expirar(b)
+        for (const b of [...burbujas]) if (burbujaAgotada(reloj, b.t0, nivel.vidaMs)) expirar(b)
       }
       animarEfectos(dtMs, nivel.radio)
       dibujarBurbujas()

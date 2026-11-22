@@ -145,13 +145,24 @@ export class FuenteCamara extends FuenteBase {
     video.setAttribute('muted', '')
     this.video = video
     try {
-      const [flujo, detector] = await Promise.all([
+      // Cámara y modelo se piden a la vez. Si uno de los dos falla, el otro ya puede estar abierto: se espera a ambos y se
+      // suelta el que sí resultó. Antes, si fallaba la carga del modelo, la cámara quedaba encendida detrás del aviso de
+      // error (y cada «Reintentar» abría otra); y si se negaba el permiso, el modelo quedaba cargado sin cerrar.
+      const [rFlujo, rDetector] = await Promise.allSettled([
         navigator.mediaDevices.getUserMedia({
           audio: false,
           video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
         }),
         this.crearDetector(),
       ])
+      if (rFlujo.status === 'rejected' || rDetector.status === 'rejected') {
+        if (rFlujo.status === 'fulfilled') rFlujo.value.getTracks().forEach((t) => t.stop())
+        if (rDetector.status === 'fulfilled') rDetector.value.close()
+        // El error de la cámara (permiso, sin dispositivo) es el que el paciente puede resolver: va primero.
+        throw rFlujo.status === 'rejected' ? rFlujo.reason : (rDetector as PromiseRejectedResult).reason
+      }
+      const flujo = rFlujo.value
+      const detector = rDetector.value
       if (!this.activo) {
         flujo.getTracks().forEach((t) => t.stop())
         detector.close()

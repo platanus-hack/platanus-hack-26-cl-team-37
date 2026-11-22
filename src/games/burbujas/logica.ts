@@ -103,6 +103,16 @@ export const CERRADO_MS = 350
 /** Tras un intento cerrado, la pista recuerda abrir la mano durante (ms). */
 export const AVISO_MS = 2800
 
+/**
+ * Nacimiento de la burbuja (ms del reloj del juego) tras un cuadro de `dtMs`. Sin ninguna mano de la sesión a la vista
+ * se corre junto con el reloj: su vida no se gasta mientras no se ve la mano (hasta que la base pausa, ~2 s), así una
+ * pérdida de seguimiento no termina en una burbuja `expirada` que el paciente no tuvo cómo alcanzar.
+ */
+export const nacimientoBurbuja = (t0Ms: number, dtMs: number, hayMano: boolean): number => (hayMano ? t0Ms : t0Ms + Math.max(0, dtMs))
+
+/** ¿Se agotó la vida de la burbuja? (`vidaMs` 0 = sin límite). */
+export const burbujaAgotada = (relojMs: number, t0Ms: number, vidaMs: number): boolean => vidaMs > 0 && relojMs - t0Ms >= vidaMs
+
 export function distanciaToque(palma: V3, centro: V3): number {
   return Math.hypot(palma.x - centro.x, palma.y - centro.y, PESO_Z * (palma.z - centro.z))
 }

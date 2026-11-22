@@ -21,6 +21,7 @@ import {
   VentanaMediana,
   ZONA_COMPLETA,
   alcanceCm,
+  burbujaAgotada,
   celdaDe,
   celdasDeMascara,
   cuadriculaDeMascara,
@@ -32,6 +33,7 @@ import {
   mascaraDe,
   mediana,
   moverEnCaja,
+  nacimientoBurbuja,
   nivelBurbujas,
   pasoToque,
   referenciasFlexion,
@@ -421,5 +423,40 @@ describe('varias burbujas a la vez, de tamaños distintos', () => {
     expect(radioBurbuja(n, () => 1)).toBeCloseTo(n.radio * TAMANO_MAX)
     const radios = Array.from({ length: 50 }, () => radioBurbuja(n, Math.random))
     expect(Math.max(...radios) - Math.min(...radios)).toBeGreaterThan(0)
+  })
+})
+
+describe('sin mano la vida de la burbuja no corre', () => {
+  /** Igual que el módulo: el reloj siempre avanza y el nacimiento se corre mientras no se ve ninguna mano de la sesión. */
+  function simular(tramos: [number, boolean][], vidaMs: number) {
+    let reloj = 0
+    let t0 = 0
+    let expiroEn: number | null = null
+    for (const [ms, hayMano] of tramos) {
+      for (let k = 0; k < ms / 50 && expiroEn == null; k++) {
+        reloj += 50
+        t0 = nacimientoBurbuja(t0, 50, hayMano)
+        if (burbujaAgotada(reloj, t0, vidaMs)) expiroEn = reloj
+      }
+    }
+    return { reloj, edad: reloj - t0, expiroEn }
+  }
+  const vida = NIVELES_BURBUJAS[5].vidaMs // 3 s
+
+  it('con la mano a la vista expira al cumplir su vida, como siempre', () => {
+    expect(simular([[10_000, true]], vida).expiroEn).toBe(vida)
+    expect(simular([[60_000, true]], NIVELES_BURBUJAS[1].vidaMs).expiroEn).toBeNull() // nivel 1: sin límite
+  })
+  it('perder la mano no la hace expirar: ni mientras no se ve ni al volver; le queda la vida que tenía', () => {
+    // 1 s con mano, 2 s sin mano (lo que tarda la base en pausar): antes expiraba a los 3 s sin que nadie la viera.
+    const perdida = simular([[1000, true], [2000, false]], vida)
+    expect(perdida.expiroEn).toBeNull()
+    expect(perdida.edad).toBe(1000)
+    // Vuelve la mano: no expira en el primer cuadro; le quedan sus 2 s.
+    expect(simular([[1000, true], [2000, false], [1950, true]], vida).expiroEn).toBeNull()
+    expect(simular([[1000, true], [2000, false], [5000, true]], vida).expiroEn).toBe(1000 + 2000 + 2000)
+  })
+  it('sin mano por mucho tiempo tampoco expira', () => {
+    expect(simular([[60_000, false]], vida)).toMatchObject({ expiroEn: null, edad: 0 })
   })
 })
