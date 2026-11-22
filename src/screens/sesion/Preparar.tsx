@@ -76,7 +76,8 @@ export default function Preparar() {
 function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
   const nav = useNavigate()
   const { pathname, search } = useLocation()
-  const [p, setP] = useState<Preparacion>(datos.defecto)
+  // Los juegos de dos manos (banda) no eligen mano: siempre 'ambas'.
+  const [p, setP] = useState<Preparacion>(() => (juego.dosManos ? { ...datos.defecto, mano: 'ambas' } : datos.defecto))
   const [creando, setCreando] = useState(false)
   const escritorio = useVista() === 'escritorio'
 
@@ -119,7 +120,13 @@ function Formulario({ juego, datos }: { juego: Juego; datos: DatosPreparar }) {
           <h2 id="t-mano" className="seccion">
             Mano a trabajar
           </h2>
-          <Segmentos opciones={MANOS} valor={p.mano} onCambio={(mano) => setP((x) => ({ ...x, mano }))} etiqueta="Mano a trabajar" />
+          {juego.dosManos ? (
+            <p className="tarjeta preparar-tarjeta" data-testid="dos-manos">
+              Con las dos manos a la vez
+            </p>
+          ) : (
+            <Segmentos opciones={MANOS} valor={p.mano} onCambio={(mano) => setP((x) => ({ ...x, mano }))} etiqueta="Mano a trabajar" />
+          )}
         </section>
 
         <section className="col" aria-labelledby="t-dificultad">

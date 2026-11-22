@@ -44,6 +44,8 @@ export interface Juego {
   /** true = no aparece en el catálogo /ejercicios (el código y las sesiones guardadas siguen; se puede abrir por URL). */
   oculto?: boolean
   usaCamara: boolean
+  /** true = se juega con las dos manos a la vez (banda): la preparación no pregunta qué mano trabajar y guarda 'ambas'. */
+  dosManos?: boolean
   ruta: string | null
   miniatura: string
   categoria?: string

@@ -10,6 +10,7 @@ const juego: Juego = {
   descripcionCorta: 'Estirar una banda con ambas manos',
   disponible: true,
   usaCamara: true,
+  dosManos: true,
   ruta: null,
   miniatura: 'banda',
   niveles: nivelesDesde(NIVELES_BANDA),

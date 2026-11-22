@@ -10,6 +10,7 @@ const juego: Juego = {
   descripcionCorta: 'Carga la honda con la banda y da en el blanco',
   disponible: true,
   usaCamara: true,
+  dosManos: true,
   ruta: null,
   miniatura: 'honda',
   niveles: nivelesDesde(NIVELES_HONDA),

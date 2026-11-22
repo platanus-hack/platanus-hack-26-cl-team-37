@@ -363,7 +363,10 @@ export const crearHonda: CrearJuego = () => {
       const color = resultado?.r === 'acierto' ? KUWU.menta : resultado ? KUWU.amarillo : KUWU.blanco
       texto(linea, cx, cy + 40, FUENTE_TEXTO, color)
     }
-    texto(banda.origen, cx, 16, FUENTE_NOTA, kuwuAlfa('blanco', 0.6))
+    // Arriba, la banda en uso y a qué distancia entre las manos quedó el cero: si a esa distancia la banda cuelga, el
+    // cero quedó corto y conviene ponerlo de nuevo.
+    const cero = sesion.seguidor.reposoCm
+    texto(cero == null ? banda.origen : `${banda.origen} · cero ${Math.round(cero)} cm`, cx, 16, FUENTE_NOTA, kuwuAlfa('blanco', 0.6))
     texGuia.needsUpdate = true
   }
 
