@@ -454,6 +454,8 @@ export const crearBanda: CrearJuego = () => {
       // Zona más angosta que la de la base: con la banda real se estira hasta el doble y las manos llegaban a los bordes
       // de la imagen, detrás del panel y de la tarjeta (prueba con grabaciones reales, 22-nov-2026).
       c.configurarManos({ x: [-1.55, 1.55] })
+      // Sin mesa: la banda se tensa en el aire, sobre el fondo (se repone al desmontar).
+      c.mesa.objeto.visible = false
       construirEscena(c)
       dibujar(0)
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
@@ -516,6 +518,7 @@ export const crearBanda: CrearJuego = () => {
     desmontar() {
       const c = ctx
       if (c) {
+        c.mesa.objeto.visible = true
         c.escena.remove(grupo)
         c.camara.remove(luces)
         c.escena.remove(c.camara)

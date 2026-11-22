@@ -267,7 +267,13 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       <div ref={fondo} className="calibrar-fondo" aria-hidden="true" />
       <canvas ref={lienzo} className="calibrar-lienzo" aria-hidden="true" />
       <header className="calibrar-cabeza">
-        <h1>Calibración</h1>
+        <div className="calibrar-titulo">
+          {/* Salir sin calibrar: vuelve a preparar el ejercicio (antes la pantalla no tenía ninguna salida). */}
+          <button type="button" className="boton-icono" aria-label="Salir de la calibración" data-testid="salir-calibracion" onClick={() => nav(`/sesion/${sesion.juego}/preparar${search}`, { replace: true })}>
+            <Icono nombre="atras" />
+          </button>
+          <h1>Calibración</h1>
+        </div>
         <span className="calibrar-camara" data-testid="fuente">
           <span className="punto-vivo" aria-hidden="true" />
           {NOMBRE_FUENTE[fuente?.tipo ?? 'camara']}

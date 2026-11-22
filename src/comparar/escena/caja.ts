@@ -213,7 +213,7 @@ export function montarCaja(m: Motor, d: DatosCaja): EscenaJuego {
         p.etq.poner({
           lado: p.k,
           nom: `${p.k === 'antes' ? 'Antes' : 'Después'} · ${fechaCorta(p.s.inicio ?? '')}`,
-          val: `${p.dentro} de ${p.agarres.length} en la caja`,
+          val: `${p.dentro} de ${p.agarres.length} agarres ${p.dentro === 1 ? 'llegó' : 'llegaron'} a la caja`,
           det: `${num(m1?.tiempoMedioAgarreS)} s por agarre · apertura máx. ${num(m1?.aperturaMaxCm)} cm aprox.`,
         })
         m.proyectar(p.etq, v.set(p.g.position.x, 0, p.g.position.z - 175), w, h, 90)

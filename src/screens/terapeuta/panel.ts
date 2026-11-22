@@ -62,10 +62,15 @@ export function serieApertura(sesiones: Sesion[], max = PUNTOS_MINIGRAFICO): num
     .map((s) => s.metricas!.aperturaMaxCm)
 }
 
-/** La alerta de dolor abierta más reciente del paciente (o null). */
-export function dolorAbierto(alertas: Alerta[], pacienteId: string): AvisoDolor | null {
+/**
+ * La alerta de dolor abierta más reciente del paciente (o null). Con `ultima` (su última sesión cerrada) solo cuenta la
+ * alerta de ESA sesión: la tarjeta dice "en la última sesión" y, sin la pestaña Alertas, una alerta vieja no se puede
+ * marcar como revisada y quedaría a la vista para siempre aunque el dolor ya haya bajado.
+ */
+export function dolorAbierto(alertas: Alerta[], pacienteId: string, ultima?: Pick<Sesion, 'id' | 'inicio'> | null): AvisoDolor | null {
+  const deLaUltima = (a: Alerta) => !ultima || (a.sesionId ? a.sesionId === ultima.id : !!ultima.inicio && a.creada >= ultima.inicio)
   const propias = alertas
-    .filter((a) => a.pacienteId === pacienteId && a.tipo === 'dolor' && a.estado === 'abierta' && a.valor != null)
+    .filter((a) => a.pacienteId === pacienteId && a.tipo === 'dolor' && a.estado === 'abierta' && a.valor != null && deLaUltima(a))
     .sort((x, y) => (x.creada < y.creada ? 1 : -1))
   const a = propias[0]
   return a ? { alertaId: a.id, valor: a.valor!, creada: a.creada } : null
@@ -84,7 +89,8 @@ export function armarFila(e: EntradaFila): FilaPaciente {
   const { paciente, plan, hoy } = e
   const dias = diasSinSesion(e.sesiones, paciente.fechaInicio, hoy)
   const sinSesiones = dias >= e.umbralDias ? dias : null
-  const dolor = dolorAbierto(e.alertas, paciente.id)
+  const ultima = cerradas(e.sesiones)[0] ?? null
+  const dolor = dolorAbierto(e.alertas, paciente.id, ultima)
   return {
     paciente,
     plan,
@@ -117,10 +123,10 @@ export interface Indicadores {
   adherenciaMedia: number | null
 }
 
-/** Alertas abiertas = alertas de dolor abiertas + pacientes que superan los días sin sesiones. */
+/** Alertas abiertas = pacientes con dolor en su última sesión (alerta aún abierta) + pacientes que superan los días sin sesiones. */
 export function indicadores(filas: FilaPaciente[], alertas: Alerta[]): Indicadores {
-  const ids = new Set(filas.map((f) => f.paciente.id))
-  const dolor = alertas.filter((a) => ids.has(a.pacienteId) && a.tipo === 'dolor' && a.estado === 'abierta').length
+  const abiertas = new Set(alertas.filter((a) => a.tipo === 'dolor' && a.estado === 'abierta').map((a) => a.id))
+  const dolor = filas.filter((f) => f.dolor && abiertas.has(f.dolor.alertaId)).length
   const inactivos = filas.filter((f) => f.sinSesiones != null).length
   const adh = filas.map((f) => f.adherencia).filter((x): x is number => x != null)
   return {
