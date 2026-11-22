@@ -1,4 +1,4 @@
-// Atrapa burbujas: burbujas de adorno, burbuja objetivo (esfera brillante con halo y aro de tiempo) y el efecto al
+// Atrapa burbujas: la burbuja (esfera brillante con halo y aro de tiempo; todas se pueden reventar) y el efecto al
 // reventarla (gotas y "+1"). Todas comparten una esfera de radio 1 (el juego la escala) y la textura de halo.
 import * as THREE from 'three'
 import { fuenteKuwu, KUWU, kuwuAlfa, kuwuNum } from '../../../ui/paleta'
@@ -34,19 +34,6 @@ export function texturaMasUno(): THREE.CanvasTexture {
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace
   return t
-}
-
-/** Burbuja de adorno de radio `radio` y color `color`, con un brillo. Sin ubicar. */
-export function crearBurbujaAdorno(r: Recursos, base: BaseBurbujas, radio: number, color: number): THREE.Group {
-  const g = new THREE.Group()
-  const e = new THREE.Mesh(base.geo, material(r, new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0, transparent: true, opacity: 0.78 })))
-  e.scale.setScalar(radio)
-  g.add(e)
-  const { s } = crearSprite(r, base.halo, { color: NEUTRO, opacidad: 0.9 })
-  s.scale.setScalar(radio * 0.42)
-  s.position.set(-radio * 0.3, radio * 0.38, radio * 0.85)
-  g.add(s)
-  return g
 }
 
 /** Burbuja objetivo (oculta): esfera amarilla brillante con brillo, halo aditivo y aro que marca el tiempo. */
