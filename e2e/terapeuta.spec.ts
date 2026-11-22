@@ -6,8 +6,15 @@
 import { execSync } from 'node:child_process'
 import { expect, test, type Page } from '@playwright/test'
 import { clienteComo, entrarComo, vigilarErrores } from './ayudas.ts'
+import { soltarBloqueo, tomarBloqueo } from '../scripts/bloqueo-prueba.ts'
 
 test.describe.configure({ mode: 'serial' })
+// Candado: prescripcion.spec.ts (F17) hace visible un momento al paciente de prueba, y aquí se cuentan 4 pacientes.
+test.beforeAll(async () => {
+  test.setTimeout(300_000)
+  await tomarBloqueo()
+})
+test.afterAll(() => soltarBloqueo())
 
 const fila = (page: Page, nombre: string) => page.getByTestId('fila-paciente').filter({ hasText: nombre })
 const diaSantiago = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' })
@@ -84,7 +91,10 @@ test.describe('Pacientes del terapeuta', () => {
 
     await fila(page, 'Luis A.').click()
     await expect(page).toHaveURL(/\/terapeuta\/pacientes\/[0-9a-f-]{36}\/plan$/)
-    await expect(page.getByRole('heading', { name: 'Plan del paciente' })).toBeVisible()
+    // F17: la prescripción del plan de ese paciente (su detalle se prueba en prescripcion.spec.ts).
+    await expect(page.getByRole('heading', { level: 1, name: 'Luis A.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Plan semanal' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enviar plan' })).toBeDisabled()
   })
 
   test('pestañas Alertas, Planes e Informes; días sin sesiones configurables', async ({ page }) => {

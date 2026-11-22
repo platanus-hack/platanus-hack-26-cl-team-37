@@ -1,0 +1,51 @@
+/* F19 · Perfil del paciente. Clases con prefijo perfil-. Solo tokens de src/index.css; los controles (botones, campo)
+   son los de brandbook/primitivas.css sin cambios de color, letra, alto ni radio. */
+.perfil-cuerpo { display: contents; } /* móvil: las tarjetas son hijas de la columna de .pantalla */
+
+.perfil-identidad { display: flex; align-items: center; gap: 16px; padding: 18px 20px; }
+.perfil-avatar { width: 56px; height: 56px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--amarillo-suave); color: var(--sobre-amarillo); font: 800 20px / 1 var(--letra); }
+.perfil-nombre { min-width: 0; }
+.perfil-nombre h2 { font-size: 20px; overflow-wrap: anywhere; }
+.perfil-nombre p { margin: 2px 0 0; color: var(--suave); font-size: 15px; }
+
+.perfil-nota { margin: 0; color: var(--suave); font-size: 15px; line-height: 1.45; }
+
+.perfil-ficha { padding: 4px 20px 16px; }
+.perfil-datos { margin: 0; }
+.perfil-dato { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; min-height: 52px; padding: 14px 0; border-bottom: 1px solid var(--linea); }
+.perfil-dato dt { flex: none; color: var(--suave); font-size: 15px; }
+.perfil-dato dd { margin: 0; font-size: 16px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.perfil-ficha .perfil-nota { margin-top: 12px; font-size: 14px; }
+
+.perfil-largo { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
+.perfil-largo-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.perfil-largo-form { display: flex; flex-direction: column; gap: 14px; }
+.perfil-largo-control { display: flex; align-items: center; gap: 10px; }
+.perfil-largo-control .entrada { flex: 1; min-width: 0; text-align: center; }
+
+a.perfil-enlace { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 14px 20px; color: var(--tinta); text-decoration: none; }
+a.perfil-enlace:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.perfil-enlace-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.perfil-enlace-texto strong { font-size: 17px; font-weight: 800; }
+.perfil-enlace-texto span { color: var(--suave); font-size: 15px; line-height: 1.35; }
+.perfil-enlace-texto .perfil-pendiente { color: var(--dolor-texto); font-weight: 600; }
+.perfil-flecha { flex: none; color: var(--control); }
+
+.perfil-salir { margin-top: 4px; }
+.perfil-version { margin: 0; text-align: center; color: var(--texto-3); font-size: 14px; }
+
+/* ——— Escritorio (≥ 1024 px): la ficha y la privacidad a la izquierda, el largo de mano a la derecha. La última fila
+   (1fr) absorbe la diferencia de alto para que no queden huecos entre las tarjetas de la izquierda. */
+@media (min-width: 1024px) {
+  .perfil-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; gap: 18px 20px; align-items: start; }
+  .perfil-cuerpo > * { grid-column: 1; }
+  .perfil-cuerpo > .perfil-largo { grid-column: 2; grid-row: 1 / -1; }
+  .perfil .boton.perfil-salir { align-self: flex-start; width: auto; min-width: 280px; margin-top: 0; }
+  .perfil-version { text-align: left; }
+}
+
+/* Con puntero: la entrada a Privacidad se marca al pasar el cursor (igual que las tarjetas del catálogo). */
+@media (min-width: 1024px) and (hover: hover) {
+  a.perfil-enlace { border-color: transparent; }
+  a.perfil-enlace:hover { border-color: var(--control); }
+}

@@ -445,7 +445,7 @@
         "F16",
         "F15"
       ],
-      "status": "not-started",
+      "status": "in-progress",
       "acceptance": [
         "Enviar plan crea versión N+1 y auditoría antes/después",
         "El paciente ve el mensaje nuevo en /inicio y el cambio en /historial"
@@ -455,7 +455,7 @@
         "npm run captura -- /terapeuta/pacientes/<id>/plan prescripcion"
       ],
       "deploy": false,
-      "evidence": "",
+      "evidence": "2026-11-22 · coordinación (rama coord/arreglos-evaluacion, desde linea-G): pantalla de prescripción hecha. /terapeuta/pacientes/:id/plan con tendencia de 4 semanas, +/− de sesiones por semana, meta de pinza, aviso por dolor y nivel/meta por juego, cambios resaltados, mensaje ≤ 280, resumen antes → después y envío que crea la versión N+1 por RPC (auditoría incluida); enlaces a historial y comparar. Unitarias de edicionPlan en verde; e2e/prescripcion.spec.ts 8/8 con --workers=1 (incluye el envío real sobre el paciente de prueba, el mensaje en /inicio y el cambio en /historial); captura docs/capturas/prescripcion.png (390×844) y revisada en 1440×900. FALTA para done: exportar informes por período (pestaña Informes), agregar o quitar juegos del plan, y volver a correr e2e/terapeuta.spec.ts cuando se revise la alerta de dolor abierta de Carmen en la base de desarrollo (hoy falla por ese dato, no por este código).",
       "owner": "P2",
       "rama_inicio": "linea-G",
       "nota_hoy": "Terminar desde linea-G (migración 700001 ya aplicada). No crear planes en pacientes demo desde pruebas."
@@ -493,7 +493,7 @@
       "dependencies": [
         "F18"
       ],
-      "status": "not-started",
+      "status": "done",
       "acceptance": [
         "Cerrar sesión vuelve a /acceso",
         "Enlace a /privacidad"
@@ -502,7 +502,7 @@
         "npm run e2e -- perfil"
       ],
       "deploy": true,
-      "evidence": "",
+      "evidence": "2026-11-22 · coordinación (rama coord/arreglos-evaluacion, desde linea-H): /perfil con nombre, clínica, terapeuta, mano afectada, inicio y condición; entrada «Privacidad y datos» a /privacidad (antes no había ningún enlace a esa pantalla); largo de mano medido con regla editable (validación 10–30 cm, RPC actualizar_largo_mano con auditoría); cerrar sesión vuelve a /acceso. Unitarias de largoMano 6/6; e2e/perfil.spec.ts 9/9 con --workers=1 (dos corridas; restaura el paciente de prueba); captura docs/capturas/perfil.png (390×844) y revisada en 1440×900; bash init.sh INIT OK. Sin probar en teléfono real.",
       "owner": "P2",
       "rama_inicio": "linea-H",
       "nota_hoy": "Terminar desde linea-H (migración 800001 ya aplicada)."

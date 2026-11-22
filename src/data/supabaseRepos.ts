@@ -12,7 +12,7 @@ import type {
   Usuario,
 } from '../domain/types'
 import { hashSesion, idSesion } from '../domain/integridad'
-import { encolar, esErrorDeRed, guardarAlias, hayPendientes, resolverAlias, vaciarCola, type Pendiente } from './colaLocal'
+import { encolar, esErrorDeRed, fijarProveedorDueno, guardarAlias, hayPendientes, resolverAlias, vaciarCola, type Pendiente } from './colaLocal'
 import type { Repos } from './repos'
 import { supabase } from './supabase'
 
@@ -183,8 +183,20 @@ async function ejecutarPendiente(p: Pendiente) {
   }
 }
 
-export function sincronizarCola() {
-  return vaciarCola(ejecutarPendiente).catch(() => undefined)
+/** Cuenta con sesión abierta en este dispositivo (lee el almacenamiento local: también responde sin red). */
+async function cuentaAbierta(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? null
+}
+fijarProveedorDueno(cuentaAbierta)
+
+/** Sube lo pendiente de la cuenta abierta. Sin sesión abierta no sube nada (lo de otra cuenta espera a que vuelva a entrar). */
+export async function sincronizarCola(): Promise<void> {
+  try {
+    await vaciarCola(ejecutarPendiente, await cuentaAbierta())
+  } catch {
+    // sin red: se reintenta al volver la conexión
+  }
 }
 
 if (typeof window !== 'undefined') {
@@ -254,6 +266,9 @@ export const supabaseRepos: Repos = {
     async actualizarPrivacidad(compartir, investigacion) {
       ok(await supabase.rpc('actualizar_privacidad', { p_compartir: compartir, p_investigacion: investigacion }))
     },
+    async actualizarLargoMano(cm) {
+      ok(await supabase.rpc('actualizar_largo_mano', { p_cm: cm }))
+    },
     async marcarMensajeVisto(version) {
       ok(await supabase.rpc('marcar_mensaje_visto', { p_version: version }))
     },
@@ -297,7 +312,7 @@ export const supabaseRepos: Repos = {
       const filas = ok(
         await supabase
           .from('sesiones')
-          .select('id, paciente_id, plan_version, juego, parametros, inicio, fin, estado, metricas, dolor_eva, esfuerzo, hash')
+          .select('id, paciente_id, plan_version, juego, parametros, inicio, fin, estado, metricas, dolor_eva, esfuerzo, dispositivo, version_modelo, hash')
           .in('paciente_id', ids)
           .order('inicio', { ascending: false }),
       )
@@ -438,6 +453,10 @@ export const supabaseRepos: Repos = {
       const n = nombrePerfil(f) ?? null
       cacheNombres.set(id, n)
       return n
+    },
+    async clinica(id) {
+      const f = ok(await supabase.from('clinicas').select('nombre').eq('id', id).maybeSingle())
+      return f?.nombre ?? null
     },
   },
 }

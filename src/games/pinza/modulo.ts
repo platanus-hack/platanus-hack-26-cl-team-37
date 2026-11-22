@@ -31,6 +31,7 @@ import {
   masCercano,
   nivelPinza,
   pasoPinza,
+  relojPinza,
   umbralesToque,
   type ConfigPinza,
   type DedoPinza,
@@ -416,8 +417,9 @@ export const crearPinza: CrearJuego = () => {
     actualizar(manos: ManoSeguida[], dt) {
       const c = ctx
       if (!c) return
-      reloj += dt * 1000
       const m = manos.find((x) => x.lado === lado)
+      // Sin la mano que juega a la vista el reloj no corre: el límite por toque no vence por una pérdida de seguimiento.
+      reloj = relojPinza(reloj, dt * 1000, !!m)
       distancias = m ? distanciasPulgar(m.worldLandmarks, c.escalaCm) : null
 
       if (fase === 'demostrando') {

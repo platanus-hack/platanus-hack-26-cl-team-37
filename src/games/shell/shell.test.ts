@@ -4,7 +4,7 @@ import { manoSintetica, POSE_BASE } from '../../tracking/sintetica'
 import { cicloInicial, ESPERA_META_MS, pasoCiclo, terminarCiclo, type CambioCiclo, type EntradaCiclo, type EstadoCiclo } from './ciclo'
 import { formatoMetrica } from './contrato'
 import { anclaEnEscena, centroPalma, puntosEnEscena, ZONA_BASE } from './manos3d'
-import { AcumuladorBase, aperturaCalibrada, medirMano } from './medidas'
+import { AcumuladorBase, aperturaCalibrada, MaximoSostenido, medirMano, SOSTENIDO_MS } from './medidas'
 import { RegistroSesion } from './registro'
 
 const base: Omit<EntradaCiclo, 't'> = { sinManoMs: 0, manual: false, vertical: false, oculta: false, contador: 0 }
@@ -78,6 +78,24 @@ describe('ciclo de sesión', () => {
     expect(r.e.fase).toBe('jugando')
     r = correr(r.e, 1016 + ESPERA_META_MS, 1016 + ESPERA_META_MS + 200, { contador: 3 }, { duracionMs: 60_000, meta: 3 })
     expect(r.e.fin).toBe('meta')
+  })
+
+  it('un juego agotado sin cumplir la meta termina como por tiempo, sin aviso de meta; si la cumplió manda la meta', () => {
+    const c = { duracionMs: 60_000, meta: 4 }
+    let r = correr(cicloInicial(), 0, 1000, { contador: 2 }, c)
+    expect(r.e.fase).toBe('jugando')
+    r = correr(r.e, 1016, 1016, { contador: 2, agotado: true }, c)
+    expect(r.e.fase).toBe('terminada')
+    expect(r.e.fin).toBe('tiempo')
+    expect(r.cambios).toEqual([{ tipo: 'fin', motivo: 'tiempo' }]) // nunca { tipo: 'meta' }
+    // Con la meta cumplida de verdad, `agotado` no adelanta el final: se muestra el aviso y termina por meta.
+    r = correr(cicloInicial(), 0, 1000, { contador: 4, agotado: true }, c)
+    expect(r.cambios).toEqual([{ tipo: 'inicio' }, { tipo: 'meta' }])
+    expect(r.e.fase).toBe('jugando')
+    r = correr(r.e, 1016, 1016 + ESPERA_META_MS, { contador: 4, agotado: true }, c)
+    expect(r.e.fin).toBe('meta')
+    // Sin el campo (los demás juegos) nada cambia.
+    expect(correr(cicloInicial(), 0, 3000, { contador: 2 }, c).e.fase).toBe('jugando')
   })
 
   it('sin meta (0) no termina por contador; terminar a mano', () => {
@@ -170,6 +188,40 @@ describe('medidas y manos virtuales', () => {
       mov.agregar(i * 30, { ...medirMano(abierta, null), muneca: { x, y: 0.5 } }, 30)
     }
     expect(mov.entrada([], 3, 0).suavidad).toBeGreaterThan(70)
+  })
+
+  it('máximo sostenido: un salto de uno o dos cuadros no fija el récord; un valor mantenido sí', () => {
+    const mx = new MaximoSostenido()
+    // 30 cuadros a 33 ms en 4 cm con un salto del seguimiento a 12 cm en dos cuadros seguidos.
+    for (let i = 0; i < 30; i++) mx.agregar(i * 33, i === 10 || i === 11 ? 12 : 4)
+    expect(mx.valor).toBe(4)
+    // Sube de verdad a 7 cm y lo mantiene 200 ms: cuenta.
+    for (let i = 30; i < 37; i++) mx.agregar(i * 33, 7)
+    expect(mx.valor).toBe(7)
+    // Tras un corte (mano perdida o pausa), dos cuadros sueltos no alcanzan a durar SOSTENIDO_MS.
+    mx.cortar()
+    mx.agregar(2000, 20)
+    mx.agregar(2000 + SOSTENIDO_MS - 1, 20)
+    expect(mx.valor).toBe(7)
+    mx.agregar(2000 + SOSTENIDO_MS, 20)
+    expect(mx.valor).toBe(20)
+  })
+
+  it('acumulador: los máximos de la sesión ignoran un salto aislado y no unen tramos separados por la pérdida de la mano', () => {
+    const base = medirMano(abierta, null)
+    const con = (cm: number, flexIndice: number) => ({ ...base, aperturaPinzaCm: cm, flexion: { ...base.flexion, indice: flexIndice } })
+    const acc = new AcumuladorBase()
+    for (let i = 0; i < 60; i++) acc.agregar(i * 33, i === 20 ? con(15, 170) : con(5, 40), 30)
+    expect(acc.aperturaMaxCm).toBe(5)
+    expect(acc.flexionMax.indice).toBe(40)
+    // Un cuadro alto justo antes de perder la mano y otro justo al volver: no forman un tramo sostenido.
+    acc.agregar(60 * 33, con(15, 170), 30)
+    acc.agregar(61 * 33, null, 30)
+    acc.agregar(62 * 33, con(15, 170), 30)
+    for (let i = 63; i < 70; i++) acc.agregar(i * 33, con(5, 40), 30)
+    const e = acc.entrada([], 3, 0)
+    expect(e.aperturaMaxCm).toBe(5)
+    expect(e.flexionMax.indice).toBe(40)
   })
 
   it('mapeo en espejo: la mano derecha (izquierda en la imagen cruda) queda a la derecha de la escena', () => {

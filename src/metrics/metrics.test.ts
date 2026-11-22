@@ -181,6 +181,29 @@ describe('agregados de sesión', () => {
     expect(c.tiempoMedio).toBeCloseTo(2)
   })
 
+  it('un agarre perdido por el seguimiento no cuenta como intento fallido', () => {
+    const perdido: EventoSesion = { sesionId: 'S', seq: 4, t: 5200, tipo: 'soltar', mano: 'derecha', objeto: 'esfera', datos: { enCaja: false, motivo: 'sin-mano' } }
+    const c = contarAgarres([
+      ev(1, 1000, 'agarre_inicio', 'derecha', 'cubo'),
+      ev(2, 3000, 'soltar', 'derecha', 'cubo', true),
+      ev(3, 4000, 'agarre_inicio', 'derecha', 'esfera'),
+      perdido,
+    ])
+    expect(c).toMatchObject({ intentos: 1, exitosos: 1 })
+    expect(c.tiempoMedio).toBeCloseTo(2)
+  })
+
+  it('el tiempo en pausa no cuenta dentro de un agarre', () => {
+    const c = contarAgarres([
+      ev(1, 1000, 'agarre_inicio', 'derecha', 'cubo'),
+      ev(2, 2000, 'pausa', null as never, null as never),
+      ev(3, 32000, 'reanudar', null as never, null as never), // 30 s en pausa con el cubo tomado
+      ev(4, 34000, 'soltar', 'derecha', 'cubo', true),
+    ])
+    expect(c).toMatchObject({ intentos: 1, exitosos: 1 })
+    expect(c.tiempoMedio).toBeCloseTo(3) // 1 s antes de la pausa + 2 s después
+  })
+
   it('agrega la sesión', () => {
     const m = agregarSesion({
       eventos,

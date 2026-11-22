@@ -328,7 +328,7 @@ export function JuegoShell({ sesion, crear, seqInicial }: { sesion: Sesion; crea
         const sinManoMs = f.ultimaDeteccion == null || !c ? null : Math.max(0, c.t - f.ultimaDeteccion) + detenida
         const r = pasoCiclo(
           ciclo,
-          { t: ahora, sinManoMs: f.ultimaDeteccion == null ? null : sinManoMs, manual: manual.current, vertical: esVertical(), oculta: document.hidden, contador: hud.contador },
+          { t: ahora, sinManoMs: f.ultimaDeteccion == null ? null : sinManoMs, manual: manual.current, vertical: esVertical(), oculta: document.hidden, contador: hud.contador, agotado: hud.terminado === true },
           { duracionMs, meta },
         )
         ciclo = r.estado
@@ -358,8 +358,13 @@ export function JuegoShell({ sesion, crear, seqInicial }: { sesion: Sesion; crea
         escena = new EscenaBase(canvas)
         Object.assign(ctx, { escena: escena.escena, camara: escena.camara, mesa: escena.mesa, manos: escena.manos })
         if (modulo.usaFisica) {
-          fisica = await cargarFisica(escena.mesa)
-          if (!vivo) return
+          const cargada = await cargarFisica(escena.mesa)
+          if (!vivo) {
+            // Se desmontó mientras cargaba Rapier: la limpieza ya corrió (y no vio este mundo), así que se libera aquí.
+            cargada.liberar()
+            return
+          }
+          fisica = cargada
           ctx.fisica = fisica
         }
         await modulo.montar(ctx)

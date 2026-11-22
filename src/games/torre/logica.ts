@@ -116,6 +116,14 @@ export function evaluarColocacion(p: V3, piso: number, lado: number, toleranciaC
   return { desvioCm: d, dy: +dy.toFixed(2), valida, enHuella }
 }
 
+/**
+ * Colocación de un cubo que NO soltó el paciente: el agarre terminó porque se dejó de ver la mano (pérdida de
+ * seguimiento). Nunca cuenta como colocado; si quedó sobre la torre estorba al piso siguiente, así que vuelve a la mesa.
+ */
+export function colocacionSinMano(ev: Colocacion): Colocacion {
+  return { ...ev, valida: false, enHuella: ev.enHuella || ev.valida }
+}
+
 export interface CuboColocado {
   /** Donde quedó al colocarse. */
   x0: number

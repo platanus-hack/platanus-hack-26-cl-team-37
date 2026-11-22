@@ -10,11 +10,11 @@
 ## Qué hace
 
 - **La mano es el control.** MediaPipe sigue 21 puntos de la mano con la cámara frontal, en el navegador. Sin guantes ni sensores.
-- **Ocho juegos 3D**, uno por gesto: pinza y agarre, abrir y cerrar, precisión, oposición del pulgar, alcance, cierre de puño, giro del antebrazo e independencia de dedos.
+- **Diez juegos 3D**: pinza y agarre, abrir y cerrar, precisión, oposición del pulgar, alcance, cierre de puño, giro del antebrazo, independencia de dedos, estirar una banda con ambas manos y movilidad de la muñeca.
 - **Cada sesión deja medidas** (repeticiones, precisión, apertura, rango por dedo, suavidad), siempre como estimaciones de cámara.
-- **Vista del terapeuta:** pacientes, alertas e historial de cada uno.
+- **Vista del terapeuta:** pacientes, alertas, historial de cada uno y prescripción del plan (cada cambio crea una versión nueva).
 - **Privacidad:** el video no se guarda ni se envía; solo puntos, eventos y métricas.
-- **Registro verificable:** una sesión cerrada es inmutable y lleva un hash.
+- **Registro verificable:** una sesión cerrada es inmutable en la base de datos y lleva un hash SHA-256 de su contenido, que permite detectar si cambió después.
 
 La cuenta demo trae datos ficticios (la app lo indica). Kuwü no entrega diagnósticos ni reemplaza al terapeuta.
 

@@ -13,13 +13,12 @@ Revisión técnica de lo que la app contacta, qué viaja y la política que lo l
 | El propio sitio (`'self'`) | Código, estilos, `public/mediapipe/hand_landmarker.task` y `public/mediapipe/wasm/*`, `public/grabaciones/demo.json`, favicon | Nada del usuario (solo descargas) | `default-src`, `script-src`, `connect-src`, `worker-src`, `media-src` |
 | `https://iniposctftmzxkqasikh.supabase.co` (REST + Auth) | Datos: `repos` (PostgREST `/rest/v1`, RPC) e ingreso (`/auth/v1`) | Filas del paciente/terapeuta con el token del usuario (RLS). Nunca imágenes | `connect-src` |
 | `wss://iniposctftmzxkqasikh.supabase.co` | Realtime de supabase-js. **Hoy la app no abre ningún canal**; se deja habilitado para no romper una función futura | Nada hoy | `connect-src` |
-| `https://fonts.googleapis.com` | Hoja de estilos de Google Fonts (DM Sans, Poppins) de `index.html` | Una petición GET de CSS (la IP del usuario llega a Google) | `style-src-elem` |
-| `https://fonts.gstatic.com` | Archivos de las fuentes | GET de `.woff2` | `font-src` |
+| Fuentes (Nunito, Poppins, DM Sans) | Tipografía | Nada: se sirven desde el propio sitio (Nunito empaquetada desde `brandbook/tipografia/`; Poppins y DM Sans en `public/fuentes/`, autoalojadas desde F20) | `font-src 'self'` |
 | `https://odml.pa.googleapis.com/v1/log` | **Telemetría de MediaPipe Tasks.** Está **bloqueada**: `bloquearTelemetriaMediapipe()` responde 204 sin salir y, además, la CSP no la deja pasar | Nada (no sale) | no permitido |
 
-Las fuentes de Google son el único contacto con terceros. Si F20 las autoaloja (`@fontsource` o archivos en `public/`), hay que quitar de `index.html` los `preconnect` y la hoja, y de `vercel.json` `https://fonts.googleapis.com` (en `style-src-elem`) y `https://fonts.gstatic.com` (en `font-src`); nada más depende de ellos.
+**No hay contacto con terceros fuera de Supabase.** Las fuentes de Google que usaba la primera versión se autoalojaron en F20 y sus orígenes ya no están en la CSP de `vercel.json` (actualizado 2026-11-21).
 
-El e2e `tracking` (cámara falsa) comprueba que, con MediaPipe corriendo, no hay peticiones fuera del origen salvo Supabase y las fuentes (GET).
+El e2e `tracking` (cámara falsa) comprueba que, con MediaPipe corriendo, no hay peticiones fuera del origen salvo Supabase.
 
 ## Content-Security-Policy y encabezados (`vercel.json`)
 
@@ -28,8 +27,7 @@ Content-Security-Policy:
   default-src 'self';
   script-src 'self' 'wasm-unsafe-eval';
   style-src 'self';
-  style-src-elem 'self' https://fonts.googleapis.com;      ← fuentes de Google (quitar si F20 las autoaloja)
-  font-src 'self' https://fonts.gstatic.com;               ← fuentes de Google (quitar si F20 las autoaloja)
+  font-src 'self';
   img-src 'self' data: blob:;
   media-src 'self' blob:;
   worker-src 'self' blob:;
@@ -49,7 +47,7 @@ Justificación de lo no obvio:
 - **`style-src 'self'` sin `unsafe-inline`**: React y three.js cambian estilos por el objeto CSS del DOM (no es "inline" para la CSP), y Vite emite los estilos como archivos. Se probó la app completa y no hubo violaciones, así que no hace falta `'unsafe-inline'`. Si una librería futura usa `<style>` o `style="..."` en el HTML, aparecerá como violación y habrá que decidir entre `style-src-attr 'unsafe-inline'` (más acotado) o cambiar el código.
 - **`worker-src 'self' blob:`**, **`img-src data: blob:`**, **`media-src blob:`**: MediaPipe y three.js pueden crear workers, texturas y medios desde `blob:`/`data:` locales; no abre ningún origen externo.
 - **`camera=(self)`** (Permissions-Policy): la cámara solo la puede pedir este sitio (ni iframes). `frame-ancestors 'none'` + `X-Frame-Options: DENY`: nadie puede incrustar la app.
-- **`Referrer-Policy: no-referrer`**: ni Supabase ni Google reciben la URL (que puede incluir ids de sesión).
+- **`Referrer-Policy: no-referrer`**: Supabase no recibe la URL (que puede incluir ids de sesión).
 - La política queda más estricta que lo que se probó: `connect-src` ya impide hasta la telemetría de Google aunque se quitara el bloqueo en código.
 
 ## Cómo se verificó

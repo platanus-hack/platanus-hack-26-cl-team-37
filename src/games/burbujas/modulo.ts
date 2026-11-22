@@ -36,11 +36,13 @@ import {
   REPOSO_DEFECTO,
   UMBRAL_EXTENSION_DEFECTO,
   AVISO_MS,
+  burbujaAgotada,
   celdaDe,
   extensionPct,
   factorZona,
   limiteDeZona,
   moverEnCaja,
+  nacimientoBurbuja,
   nivelBurbujas,
   pasoToque,
   referenciasFlexion,
@@ -460,6 +462,8 @@ export const crearBurbujas: CrearJuego = () => {
           } else if (esperaMs <= 0) nuevoObjetivo()
         } else {
           const o = objetivo
+          // Sin ninguna mano de la sesión a la vista la vida de la burbuja no corre (no expira por el seguimiento).
+          o.t0 = nacimientoBurbuja(o.t0, dtMs, vistas.size > 0)
           if (nivel.velocidad > 0) {
             const r = moverEnCaja(o.pos, o.vel, dt, o.caja)
             o.pos = r.p
@@ -483,7 +487,7 @@ export const crearBurbujas: CrearJuego = () => {
               c.registrar('intento_cerrado', { mano: l, objeto: 'burbuja', datos: { extensionMax: Math.round(r.estado.extMax), umbral, numero: nObjetivos } })
             }
           }
-          if (objetivo && nivel.vidaMs > 0 && reloj - o.t0 >= nivel.vidaMs) expirar()
+          if (objetivo && burbujaAgotada(reloj, o.t0, nivel.vidaMs)) expirar()
         }
       }
       for (const a of adornos) a.malla.position.set(a.base.x, a.base.y + 0.06 * Math.sin(anim * 1.3 + a.fase), a.base.z)
