@@ -245,7 +245,8 @@ export const crearHonda: CrearJuego = () => {
   function ponerBolsa(f: number) {
     bolsa.set(0, Y_PUNTAS - 0.06 - 0.22 * f, Z_HONDA + 0.12 + TIRON_MAX * f)
     if (cuero) cuero.position.copy(bolsa)
-    if (piedra && !vuelo) piedra.position.set(bolsa.x, bolsa.y + 0.06, bolsa.z)
+    // La piedra queda donde cayó mientras se muestra el resultado; después vuelve a la bolsa.
+    if (piedra && !vuelo && resultado == null) piedra.position.set(bolsa.x, bolsa.y + 0.06, bolsa.z)
     const radio = 0.024 * (1 - 0.35 * Math.min(1, f))
     tiras.forEach((t, i) => entre(t, puntas[i], new THREE.Vector3(bolsa.x + (i === 0 ? -0.12 : 0.12), bolsa.y, bolsa.z), radio))
   }
@@ -431,7 +432,6 @@ export const crearHonda: CrearJuego = () => {
       blanco.rotation.x = -0.18 * Math.sin(golpeBlanco * 14) * golpeBlanco
       if (matCentro) matCentro.emissiveIntensity = 1.2 * golpeBlanco
     }
-    if (piedra && !vuelo && resultado == null) piedra.visible = true
     if (resultado) {
       resultado.t -= dt
       if (resultado.t <= 0) resultado = null
@@ -519,9 +519,13 @@ export const crearHonda: CrearJuego = () => {
       nivel = nivelHonda(c.parametros.nivel)
       banda = bandaConfigurada()
       sesion = new SesionHonda(banda.curva, nivel.metaKg, nivel.sostenerS)
+      // Manos más chicas y abiertas hacia los costados: con manos reales empuñando la banda (prueba con cámara), las
+      // manos virtuales del tamaño de la base tapaban la honda del centro.
+      c.configurarManos({ x: [-3.2, 3.2], escala: 4.6 })
       construirEscena(c)
       dibujar(0)
-      if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
+      // Con cámara, solo en desarrollo (la prueba con video como cámara lo lee).
+      if ((c.fuente.tipo !== 'camara' || import.meta.env.DEV) && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
     },
 
     actualizar(manos: ManoSeguida[], dt) {
