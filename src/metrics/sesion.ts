@@ -9,6 +9,16 @@ export function calidadRegistro(cuadrosConMano: number, cuadrosTotales: number):
   return cuadrosTotales > 0 ? cuadrosConMano / cuadrosTotales : 0
 }
 
+/**
+ * Sesión jugada con una fuente de manos simulada (`?fuente=sintetica` o `grabacion`: pruebas y demostraciones sin cámara).
+ * Queda marcada desde la calibración (dispositivo.camara y versionModelo). Sus medidas no vienen de la mano del paciente:
+ * se ven en el historial con esa marca, pero no entran en la tendencia de /progreso.
+ */
+export function esSimulada(s: Pick<Sesion, 'dispositivo' | 'versionModelo'>): boolean {
+  const camara = s.dispositivo?.camara
+  return camara === 'sintetica' || camara === 'grabacion' || /^(sintetica|grabacion)\b/.test(s.versionModelo ?? '')
+}
+
 export const UMBRAL_CALIDAD = 0.7
 export function calidadSuficiente(s: Pick<Sesion, 'metricas'>): boolean {
   return (s.metricas?.calidadRegistro ?? 0) >= UMBRAL_CALIDAD
@@ -18,6 +28,9 @@ export function calidadSuficiente(s: Pick<Sesion, 'metricas'>): boolean {
  * Intentos y agarres exitosos a partir de los eventos. Un intento = un agarre_inicio. Éxito = soltar con datos.enCaja.
  * Tiempo de un agarre = agarre_inicio → agarre_fin (abrir la pinza) del mismo mano|objeto si existe; si no, → soltar
  * (en Caja, `soltar` llega cuando el juguete ya quedó quieto, F10).
+ * Los eventos llevan la hora del reloj, que sigue corriendo en pausa: el tiempo entre `pausa` y `reanudar` se descuenta,
+ * así un agarre que quedó a medias durante una pausa (p. ej. la automática por perder la mano) no infla el tiempo medio.
+ * Un `soltar` con datos.motivo = 'sin-mano' (el seguimiento perdió la mano mientras agarraba) anula ese intento: no baja la precisión.
  */
 export function contarAgarres(eventos: EventoSesion[]) {
   let intentos = 0
@@ -27,19 +40,37 @@ export function contarAgarres(eventos: EventoSesion[]) {
   const tiempos: number[] = []
   const abiertos = new Map<string, number>()
   const finales = new Map<string, number>()
+  let pausado = 0
+  let enPausaDesde: number | null = null
   for (const e of eventos) {
+    if (e.tipo === 'pausa') {
+      enPausaDesde ??= e.t
+      continue
+    }
+    if (e.tipo === 'reanudar') {
+      if (enPausaDesde != null) pausado += Math.max(0, e.t - enPausaDesde)
+      enPausaDesde = null
+      continue
+    }
+    // Tiempo activo (sin pausas) de este evento.
+    const t = e.t - pausado - (enPausaDesde != null ? Math.max(0, e.t - enPausaDesde) : 0)
     const clave = `${e.mano}|${e.objeto}`
     if (e.tipo === 'agarre_inicio') {
       intentos++
-      abiertos.set(clave, e.t)
+      abiertos.set(clave, t)
       finales.delete(clave)
     } else if (e.tipo === 'agarre_fin') {
-      if (abiertos.has(clave)) finales.set(clave, e.t)
+      if (abiertos.has(clave)) finales.set(clave, t)
     } else if (e.tipo === 'soltar') {
       const t0 = abiertos.get(clave)
-      const t1 = finales.get(clave) ?? e.t
+      const t1 = finales.get(clave) ?? t
       abiertos.delete(clave)
       finales.delete(clave)
+      // Agarre que terminó porque se dejó de ver la mano (no lo soltó el paciente): no es un intento fallido suyo.
+      if (t0 != null && (e.datos as { motivo?: string } | null)?.motivo === 'sin-mano') {
+        intentos = Math.max(0, intentos - 1)
+        continue
+      }
       if (e.datos && (e.datos as { enCaja?: boolean }).enCaja) {
         exitosos++
         if (e.mano === 'izquierda') izq++
