@@ -63,7 +63,8 @@ export function montarBanda(m: Motor, d: DatosBanda): EscenaJuego {
     const reposoP = manosDePose(s, 'reposo')
     const modelo = [poseModelo(PUNO, 0.7, esc, 'derecha'), poseModelo(PUNO, 0.7, esc, 'izquierda')]
     const real = Boolean(pico)
-    const manos = [crearMano(m.colores[k], { escala: esc * HS }), crearMano(m.colores[k], { escala: esc * HS })]
+    // Sin antebrazo: con las manos agrandadas (HS) cruzaba hasta la fila de la otra sesión; aquí importa la distancia entre manos.
+    const manos = [crearMano(m.colores[k], { escala: esc * HS, antebrazo: false }), crearMano(m.colores[k], { escala: esc * HS, antebrazo: false })]
     manos.forEach((x) => raizS.add(x.g))
     const matBanda = new THREE.MeshPhysicalMaterial({ color: kuwuNum('azul'), roughness: 0.5, clearcoat: 0.3, emissive: 0x000000 })
     const tramos = [0, 1].map(() => {
