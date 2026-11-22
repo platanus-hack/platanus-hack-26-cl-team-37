@@ -1,7 +1,7 @@
 // /laboratorio: prueba interna para estimar la carga de una banda elástica tomada entre las dos manos.
 // Sin sesión, sin base de datos y sin 3D: cámara → puntos de las manos → largo de la banda → estiramiento → carga.
 // El cálculo está en src/banda/ (con pruebas); aquí solo se conecta con la cámara y se muestra.
-// Sin cámara: /laboratorio?fuente=sintetica&guion=banda. Una prueba grabada (solo puntos, nunca video) se repite con
+// Sin cámara: /laboratorio?fuente=sintetica&guion=banda-lab. Una prueba grabada (solo puntos, nunca video) se repite con
 // el botón «Abrir grabación». El video no se guarda ni se envía.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'

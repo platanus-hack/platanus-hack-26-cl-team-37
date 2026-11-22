@@ -3,9 +3,11 @@
 import { CONEXIONES } from '../metrics/geometria'
 import { aVista } from '../metrics/calibracion'
 import type { CuadroManos, ManoSeguida } from '../tracking/tipos'
+import { KUWU, kuwuAlfa } from './paleta'
 
-/** Color por punto: muñeca roja; pulgar, índice, medio, anular y meñique como en 05_calibracion.png. */
-export const COLOR_DEDO = ['#ff5f5f', '#ffa86b', '#b48cff', '#ffd23f', '#4fd1a1', '#5ab0ff']
+/** Color por punto, solo del brandbook: muñeca crema; pulgar, índice, medio, anular y meñique con los pasteles en el orden
+ * de los pétalos del logo (rojo, amarillo, azul, menta y otra vez rojo: pulgar y meñique quedan lejos). */
+export const COLOR_DEDO = [KUWU.crema, KUWU.rojo, KUWU.amarillo, KUWU.azul, KUWU.menta, KUWU.rojo]
 export function colorPunto(i: number): string {
   return i === 0 ? COLOR_DEDO[0] : COLOR_DEDO[1 + Math.floor((i - 1) / 4)]
 }
@@ -46,8 +48,8 @@ function silueta(g: CanvasRenderingContext2D, p: Pt[]) {
     g.fill()
     g.stroke()
   }
-  pintar('#8394a8', 5)
-  pintar('#c6d1de', 0)
+  pintar(KUWU.control, 5)
+  pintar(KUWU.linea, 0)
 }
 
 /**
@@ -72,7 +74,7 @@ export function dibujarManos(lienzo: HTMLCanvasElement, cuadro: CuadroManos | nu
     const p = mano.landmarks.map((q) => aVista(q, cuadro, { ancho: W, alto: H }))
     const color = mano === elegida
     if (opciones.silueta) silueta(g, p)
-    g.strokeStyle = color ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)'
+    g.strokeStyle = color ? kuwuAlfa('crema', 0.95) : kuwuAlfa('crema', 0.45)
     g.lineWidth = 2.5
     g.lineCap = 'round'
     g.beginPath()
@@ -84,10 +86,10 @@ export function dibujarManos(lienzo: HTMLCanvasElement, cuadro: CuadroManos | nu
     p.forEach((q, i) => {
       g.beginPath()
       g.arc(q.x, q.y, radio, 0, Math.PI * 2)
-      g.fillStyle = color ? colorPunto(i) : '#9fb0bf'
+      g.fillStyle = color ? colorPunto(i) : KUWU.control
       g.fill()
       g.lineWidth = 2
-      g.strokeStyle = '#16202a'
+      g.strokeStyle = KUWU.marino
       g.stroke()
     })
   }

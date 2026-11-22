@@ -51,13 +51,13 @@ export default function Calibrar() {
   const s = r.datos?.sesion
   if (r.estado === 'listo' && s && s.estado !== 'cerrada') {
     return (
-      <main className="calibrar">
+      <main className="calibrar kuwu-noche">
         <Calibracion sesion={s} largoReglaCm={r.datos?.largoReglaCm ?? null} />
       </main>
     )
   }
   return (
-    <main className="calibrar">
+    <main className="calibrar kuwu-noche">
       <div className="pantalla">
         <Encabezado titulo="Calibración" />
         <Estados r={r}>
@@ -105,6 +105,9 @@ interface DatosDebug {
   confianza: number | null
 }
 
+/** En la calibración la cámara entrega solo la mano más cercana. */
+const CONFIG_FUENTE_CALIBRACION = { maxManos: 1 }
+
 const VISTA_INICIAL: Vista = { paso: 'abierta', repeticiones: 0, progreso: 0, hayMano: false, puntos: 0, dentro: false, luminancia: null, distanciaCm: null, confianza: null, largoCm: null, fps: 0, pinza: null, debug: null }
 const MS_REFRESCO = 150
 const MS_CONTINUAR = 2000
@@ -114,7 +117,8 @@ const NOMBRE_FUENTE = { camara: 'Cámara frontal', sintetica: 'Mano simulada', g
 function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: number | null }) {
   const nav = useNavigate()
   const { search } = useLocation()
-  const { fuente, estado } = useFuenteManos(search)
+  // calibración: solo la mano más cercana a la cámara (una mano del fondo no se cuela)
+  const { fuente, estado } = useFuenteManos(search, CONFIG_FUENTE_CALIBRACION)
   const debug = new URLSearchParams(search).has('debug')
   const raiz = useRef<HTMLDivElement>(null)
   const fondo = useRef<HTMLDivElement>(null)
@@ -157,7 +161,8 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       const m = mr.getBoundingClientRect()
       const rect = { x: m.left - caja.left, y: m.top - caja.top, ancho: m.width, alto: m.height }
       const puntos = mano ? puntosDentro(mano.landmarks.map((p) => aVista(p, c, { ancho: caja.width, alto: caja.height })), rect) : 0
-      const dentro = !!mano && puntos === mano.landmarks.length
+      // margen: hasta UMBRALES.puntosFueraMax puntos fuera del marco (p. ej. la punta de un dedo) cuentan como dentro
+      const dentro = !!mano && puntos >= mano.landmarks.length - UMBRALES.puntosFueraMax
       const med = mano ? medidasMano(mano, largoReglaCm, c) : { apertura: 0, pinzaCm: 0, pinzaVistaCm: null, largoCm: 0 }
       const antes = calib.current
       const e = avanzarCalibracion(antes, { t: c.t, mano: !!mano, dentro, ...med, confianza: mano?.confianza ?? 0, fps: fuente.fps })

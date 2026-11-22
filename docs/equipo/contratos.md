@@ -28,7 +28,7 @@ Orden de llamadas: `montar(ctx)` → `actualizar(manos, dt)` en cada cuadro mien
 
 ### 1.3 Lista de verificación para agregar un juego (todo, en el mismo PR)
 1. `src/games/<id>/logica.ts` con la lógica pura y `<id>.test.ts` con sus pruebas unitarias.
-2. `src/games/<id>/modulo.ts` con `crear<Nombre>()`.
+2. `src/games/<id>/modulo.ts` con `crear<Nombre>()`. Los **modelos 3D** (mallas, materiales y texturas de los objetos) van en `src/games/assets/<id>/` como funciones `crearX(recursos, …)`; antes de crear uno, revisa lo compartido en `src/games/assets/` (mano, mesa, halo, anillo, sprites, formas planas, piezas con física). Colores solo desde `assets/colores.ts`. Índice: `src/games/assets/README.md`.
 3. **Una línea** en `src/games/shell/modulos.ts` (import diferido, como los demás).
 4. Entrada en `src/games/registry.ts`: copia la de `pinza-fina`. **`disponible: true` solo cuando todo lo demás de esta lista esté listo.**
 5. Miniatura en `src/games/Miniatura.tsx` (las claves `torre`, `burbujas`, `naranja`, `memoria` y `piano` ya existen; revisa que se vean bien).
@@ -121,7 +121,8 @@ Este mapa es **orientativo**: dice a quién avisar y quién revisa mejor cada co
 | `src/games/shell/`, `src/games/caja|movilidad|pinza/` | P2 | solo aditivo y avisando |
 | `src/tracking/` | P2 | `sintetica.ts` y `fuentes`: solo agregar (P3 puede) |
 | `src/metrics/`, `src/screens/terapeuta/` | P2 | PR a P2 |
-| `src/games/<juego nuevo>/` | P3 | — |
+| `src/games/assets/` (compartido: colores, recursos, texturas, sprites, formas, mano, mesa, piezas) | P2 | aditivo y avisando |
+| `src/games/<juego nuevo>/`, `src/games/assets/<juego nuevo>/` | P3 | — |
 | `src/games/registry.ts`, `src/games/shell/modulos.ts`, `src/games/Miniatura.tsx`, `e2e/ejercicios.spec.ts` | **compartido P2/P3** | solo **agregar líneas** para tu juego; en el PR se resuelven choques de una línea |
 | `src/screens/paciente/`, `src/screens/acceso/`, `src/screens/privacidad/` | P1 (visual) y P2 (lógica) | si cambia lógica: P2 revisa; si cambia lo visual: P1 revisa |
 | `src/domain/` (tipos, integridad) | P2 | solo aditivo; `TipoEvento` lo amplía quien agrega eventos |

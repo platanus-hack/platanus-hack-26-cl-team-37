@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90.53 90.53" width="91" height="91" role="img" aria-label="Kuwü (símbolo)">
+  <title>Kuwü (símbolo)</title>
+  <line x1="45.63" y1="48.10" x2="45.63" y2="16.10" stroke="#24283b" stroke-width="4.60" stroke-linecap="round"/>
+  <line x1="45.63" y1="48.10" x2="76.06" y2="38.21" stroke="#24283b" stroke-width="4.60" stroke-linecap="round"/>
+  <line x1="45.63" y1="48.10" x2="64.44" y2="73.99" stroke="#24283b" stroke-width="4.60" stroke-linecap="round"/>
+  <line x1="45.63" y1="48.10" x2="26.82" y2="73.99" stroke="#24283b" stroke-width="4.60" stroke-linecap="round"/>
+  <line x1="45.63" y1="48.10" x2="15.20" y2="38.21" stroke="#24283b" stroke-width="4.60" stroke-linecap="round"/>
+  <circle cx="64.44" cy="73.99" r="10.67" fill="#8ec5ff" stroke="#24283b" stroke-width="3.10"/>
+  <circle cx="45.63" cy="16.10" r="10.23" fill="#ff9b93" stroke="#24283b" stroke-width="3.10"/>
+  <circle cx="15.20" cy="38.21" r="9.65" fill="#ffd66b" stroke="#24283b" stroke-width="3.10"/>
+  <circle cx="76.06" cy="38.21" r="8.91" fill="#ffd66b" stroke="#24283b" stroke-width="3.10"/>
+  <circle cx="26.82" cy="73.99" r="8.48" fill="#ff9b93" stroke="#24283b" stroke-width="3.10"/>
+  <circle cx="45.63" cy="48.10" r="8.50" fill="#24283b"/>
+</svg>

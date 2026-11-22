@@ -125,7 +125,7 @@ test('acceso + ingreso del paciente de prueba + inicio: sin violaciones', async 
   test.setTimeout(60_000)
   const problemas = vigilarCsp(page)
   await page.goto(`${BASE}/acceso`)
-  await expect(page.getByRole('heading', { level: 1, name: 'ManoViva' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Kuwü' })).toBeVisible()
   await page.getByRole('radio', { name: /Soy paciente/ }).click()
   await page.getByLabel('Código de la clínica').fill('CRM-4821')
   await page.getByLabel('Correo').fill(CUENTAS.prueba)
@@ -156,6 +156,22 @@ for (const [como, rutas] of [
     expect(problemas).toEqual([])
   })
 }
+
+// F38 · Comparar sesiones: vista 3D (three.js + OrbitControls + RoomEnvironment), etiquetas y gráficos SVG, sin violaciones.
+test('Comparar sesiones en 3D (terapeuta): sin violaciones', async ({ page, context }) => {
+  test.setTimeout(90_000)
+  await entrarComo(context, 'terapeuta')
+  const problemas = vigilarCsp(page)
+  await page.goto(BASE + '/terapeuta/pacientes')
+  await page.getByRole('link', { name: 'Comparar sesiones de Carmen R.' }).click()
+  await expect(page.locator('.cmp-estadio canvas')).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator('.cmp-etq').first()).toBeVisible()
+  await expect(page.getByTestId('grafico-evolucion')).toBeVisible()
+  await page.getByRole('tab', { name: /Movilidad guiada/ }).click()
+  await expect(page.getByTestId('barra-indice')).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  expect(problemas).toEqual([])
+})
 
 test('juego con ?fuente=sintetica (three.js + Rapier): sin violaciones', async ({ page, context }) => {
   test.setTimeout(60_000)

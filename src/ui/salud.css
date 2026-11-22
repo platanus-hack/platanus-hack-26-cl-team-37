@@ -1,11 +1,11 @@
-/* Piezas del sistema de diseño «Salud» (src/ui/salud.tsx). Solo tokens de src/index.css.
+/* Piezas propias de la app (src/ui/salud.tsx). Solo tokens de src/index.css (que apuntan al brandbook).
    El amarillo es lo que avanza y va solo de relleno; el rojo es dolor o revisar; el resto, tinta y grises. */
 
 /* ——— Encabezado con marca ——— */
 .encabezado-marca { display: grid; gap: 20px; padding: 4px 4px 0; }
 .encabezado-marca-barra { display: flex; align-items: center; justify-content: space-between; min-height: var(--toque); }
-.marca { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta); font-weight: 600; font-size: 17px; }
-.marca-simbolo { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--amarillo); color: var(--sobre-amarillo); }
+.marca { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta); font-weight: 800; font-size: 17px; }
+.marca-logo { display: block; width: auto; height: 28px; flex: none; } /* sobre crema o blanco, como pide el brandbook */
 .avatar-marca { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--pildora); background: var(--tarjeta); color: var(--tinta); font-size: 14px; font-weight: 600; }
 .titulo-pantalla { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; color: var(--tinta); margin: 0; text-wrap: balance; }
 
@@ -29,7 +29,7 @@
 /* ——— Ahora: la escena del juego con el título encima ——— */
 .ahora { position: relative; display: block; overflow: hidden; height: 214px; border-radius: 24px; background: var(--tinta); color: var(--sobre-tinta); text-decoration: none; }
 .ahora img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.ahora::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(to top, rgba(10, 12, 16, 0.72), rgba(10, 12, 16, 0)); }
+.ahora::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(to top, color-mix(in srgb, var(--kuwu-noche) 72%, transparent), transparent); }
 .etiqueta-ahora { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 5px 11px; border-radius: var(--pildora); background: var(--amarillo); color: var(--sobre-amarillo); font-size: 14px; font-weight: 600; }
 .ahora-texto { position: absolute; z-index: 1; left: 20px; right: 20px; bottom: 16px; display: grid; gap: 2px; }
 .ahora-nombre { font: 600 22px / 1.15 var(--letra); letter-spacing: -0.01em; }
@@ -60,7 +60,6 @@
 }
 
 /* ——— Un enlace con forma de botón no se subraya ——— */
-a.boton { text-decoration: none; }
 
 /* ——— Catálogo de ejercicios: una tarjeta, una fila por juego ——— */
 .catalogo { padding: 4px 20px; }
@@ -89,8 +88,40 @@ a.boton { text-decoration: none; }
 .encabezado .textos h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }
 .encabezado .subtitulo { color: var(--suave); font-size: 15px; margin-top: 4px; }
 
-/* ——— Botón de peligro: pasa a secundario; el texto dice qué se borra (Del repo actual) ——— */
-.boton.peligro { background: var(--tarjeta); color: var(--tinta); border: 1.5px solid var(--control); }
-
 /* ——— Título de pantalla: una línea, 30 px, 600 ——— */
 .pantalla > h1, .pantalla > header > h1 { font: 600 30px / 1.1 var(--letra); letter-spacing: -0.025em; text-wrap: balance; }
+
+/* ——— Escritorio (≥ 1024 px, src/escritorio.css) ——— */
+@media (min-width: 1024px) {
+  .titulo-pantalla, .encabezado .textos h1, .pantalla > h1, .pantalla > header > h1 { font-size: 36px; }
+  /* El logo ya está en la barra lateral: el título sube a la fila del avatar. */
+  .app.con-nav .encabezado-marca { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .app.con-nav .encabezado-marca-barra { display: contents; }
+  .app.con-nav .encabezado-marca .marca { display: none; }
+  .app.con-nav .encabezado-marca .titulo-pantalla { order: -1; }
+  /* Inicio en dos columnas independientes (Inicio.tsx las arma en escritorio): la semana y el plan de hoy a la
+     izquierda, «Ahora» con «Empezar» a la derecha. */
+  .inicio-columnas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .inicio-izq { display: flex; flex-direction: column; gap: 18px; }
+  /* Tarjeta Ahora con «Empezar» debajo de la escena (misma forma que la ficha de preparar). */
+  .ahora-tarjeta { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .ahora-tarjeta > .ahora { height: auto; aspect-ratio: 4 / 3; border-radius: 0; }
+  .ahora-accion { padding: 18px 22px 22px; }
+  /* Catálogo de ejercicios: cada juego es una tarjeta propia, en una grilla de dos columnas con espacio entre ellas
+     (en móvil sigue siendo una lista dentro de una sola tarjeta). */
+  .tarjeta.catalogo { padding: 0; border: 0; border-radius: 0; background: none; }
+  .catalogo ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .catalogo li { display: flex; }
+  .catalogo li + li .catalogo-fila { border-top: 0; }
+  .catalogo-fila { flex: 1; gap: 18px; min-height: 120px; padding: 18px 20px; border: 1px solid transparent; border-radius: var(--radio); background: var(--tarjeta); }
+  .catalogo-miniatura { width: 112px; height: 84px; border-radius: var(--radio-s); }
+  .catalogo-miniatura.dibujo svg { width: 64px; height: 64px; }
+  .catalogo-textos { gap: 4px; }
+  .catalogo-textos b { font-size: 18px; font-weight: 800; }
+  a.catalogo-fila:focus-visible { outline-offset: 2px; }
+}
+
+/* Con puntero: la tarjeta de un ejercicio disponible se marca al pasar el cursor. */
+@media (min-width: 1024px) and (hover: hover) {
+  a.catalogo-fila:hover { border-color: var(--control); }
+}

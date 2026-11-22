@@ -114,7 +114,7 @@ describe('calibración con pesos', () => {
 const cuadro = (guion: GuionSintetico, t: number): CuadroManos => ({ t, manos: manosEnGuion(guion, t).manos, ancho: guion.camara?.ancho ?? 640, alto: guion.camara?.alto ?? 480 })
 
 describe('medición entre las dos manos', () => {
-  const banda = guionPreset('banda')
+  const banda = guionPreset('banda-lab')
   const T_REPOSO = 1000
   const T_ESTIRADA = 4000
 
@@ -318,7 +318,7 @@ describe('repeticiones', () => {
   })
 
   it('con el guion sintético cuenta una repetición por ciclo', () => {
-    const banda = guionPreset('banda')
+    const banda = guionPreset('banda-lab')
     const c = new ContadorReps()
     const reposo = medirBanda(cuadro(banda, 1000), 'pinza')!.largoCm
     for (let t = 0; t < 13000; t += 33) c.agregar(t, medirBanda(cuadro(banda, t), 'pinza')!.largoCm, reposo, CORENGTH_5KG)

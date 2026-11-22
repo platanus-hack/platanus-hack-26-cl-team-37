@@ -17,16 +17,16 @@ export default defineConfig({
       injectRegister: 'script', // <script src="/registerSW.js"> solo en el build
       includeAssets: ['favicon.svg', 'iconos/apple-touch-icon.png'],
       manifest: {
-        name: 'ManoViva',
-        short_name: 'ManoViva',
+        name: 'Kuwü',
+        short_name: 'Kuwü',
         description: 'Rehabilitación de manos que se juega.',
         lang: 'es-CL',
         start_url: '/',
         scope: '/',
         id: '/',
         display: 'standalone',
-        background_color: '#0f1720',
-        theme_color: '#0f1720',
+        background_color: '#fff9f0', // --kuwu-crema (brandbook)
+        theme_color: '#fff9f0', // --kuwu-crema (brandbook)
         icons: [
           { src: '/iconos/icono-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/iconos/icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

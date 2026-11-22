@@ -13,6 +13,8 @@
 // Eventos: nota_mostrada {dedo, posicion}, acierto {dedo, desfase, independencia}, dedo_equivocado {dedo, pedido, simultaneo},
 // nota_perdida {dedo}. El contador es notas resueltas / total (la meta del plan); sin meta, práctica libre.
 import * as THREE from 'three'
+import { crearGeoTecla, crearNotas, crearTeclado } from '../assets/piano/tecla'
+import type { Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
 import type { ManoSeguida } from '../../tracking/tipos'
 import type { ContextoJuego, CrearJuego, EstadoManoHud, NumeroNivel, ParametrosNivel } from '../shell/contrato'
@@ -40,6 +42,7 @@ import {
   type NivelPiano,
 } from './logica'
 import './piano.css'
+import { KUWU, kuwuAlfa, fuenteKuwu, kuwuNum } from '../../ui/paleta'
 
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 const PUNTA: Record<Dedo, number> = { pulgar: 4, indice: 8, medio: 12, anular: 16, menique: 20 }
@@ -58,8 +61,8 @@ const POOL_NOTAS = 10
 /** La tecla del dedo pedido late desde este tiempo antes de la línea (ms). */
 const AVISO_TECLA_MS = 900
 
-const COLOR_OK = 0x4fd1a1
-const COLOR_PERDIDA = 0x8da0b3
+const COLOR_OK = kuwuNum('menta')
+const COLOR_PERDIDA = kuwuNum('control')
 
 const niveles = Object.fromEntries(([1, 2, 3, 4, 5] as NumeroNivel[]).map((n) => [n, { ...NIVELES_PIANO[n] }])) as unknown as Record<NumeroNivel, ParametrosNivel>
 
@@ -146,6 +149,7 @@ export const crearPiano: CrearJuego = () => {
   const materiales: THREE.Material[] = []
   const geometrias: THREE.BufferGeometry[] = []
   const texturas: THREE.Texture[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas }
   const diseno: Record<LadoMano, Diseno> = { derecha: disenoPorDefecto('derecha', 1), izquierda: disenoPorDefecto('izquierda', 1) }
   const teclas: Record<LadoMano, Record<Dedo, THREE.Mesh> | null> = { derecha: null, izquierda: null }
   const lineas: Partial<Record<LadoMano, THREE.Mesh>> = {}
@@ -222,36 +226,16 @@ export const crearPiano: CrearJuego = () => {
   }
 
   function crearTeclas(c: ContextoJuego) {
-    const geoTecla = new THREE.BoxGeometry(1, 1, 1)
-    geometrias.push(geoTecla)
+    const geoTecla = crearGeoTecla(recursos)
     for (const lado of lados) {
-      const por = {} as Record<Dedo, THREE.Mesh>
-      for (const f of DEDOS_PIANO) {
-        const mat = new THREE.MeshStandardMaterial({ color: COLOR_DEDO[f], emissive: COLOR_DEDO[f], emissiveIntensity: 0.12, roughness: 0.5 })
-        materiales.push(mat)
-        const m = new THREE.Mesh(geoTecla, mat)
-        m.castShadow = true
-        m.receiveShadow = true
-        grupo.add(m)
-        por[f] = m
-      }
+      const { teclas: por, linea } = crearTeclado(recursos, geoTecla, DEDOS_PIANO, COLOR_DEDO)
+      grupo.add(...DEDOS_PIANO.map((f) => por[f]), linea)
       teclas[lado] = por
-      const matLinea = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false })
-      materiales.push(matLinea)
-      const linea = new THREE.Mesh(geoTecla, matLinea)
       lineas[lado] = linea
-      grupo.add(linea)
     }
-    const geoNota = new THREE.BoxGeometry(ANCHO_TECLA, 0.14, 0.3)
-    geometrias.push(geoNota)
-    for (let i = 0; i < POOL_NOTAS; i++) {
-      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.4, transparent: true })
-      materiales.push(mat)
-      const malla = new THREE.Mesh(geoNota, mat)
-      malla.castShadow = true
-      malla.visible = false
-      grupo.add(malla)
-      notasMalla.push({ malla, mat })
+    for (const nota of crearNotas(recursos, ANCHO_TECLA, POOL_NOTAS)) {
+      grupo.add(nota.malla)
+      notasMalla.push(nota)
     }
     c.escena.add(grupo)
   }
@@ -267,21 +251,21 @@ export const crearPiano: CrearJuego = () => {
     const W = L.width
     const H = L.height
     g.clearRect(0, 0, W, H)
-    g.fillStyle = 'rgba(15,20,26,0.92)'
+    g.fillStyle = kuwuAlfa('noche', 0.92)
     g.beginPath()
     g.roundRect(4, 4, W - 8, H - 8, 26)
     g.fill()
-    g.fillStyle = '#ffffff'
-    g.font = '700 27px system-ui, sans-serif'
+    g.fillStyle = KUWU.crema
+    g.font = fuenteKuwu(800, 27)
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.fillText(texto, W / 2, frac == null ? H / 2 : 33)
     if (frac != null) {
-      g.fillStyle = 'rgba(255,255,255,0.18)'
+      g.fillStyle = kuwuAlfa('crema', 0.18)
       g.beginPath()
       g.roundRect(40, 62, W - 80, 14, 7)
       g.fill()
-      g.fillStyle = '#ffc83d'
+      g.fillStyle = KUWU.amarillo
       g.beginPath()
       g.roundRect(40, 62, Math.max(14, (W - 80) * frac), 14, 7)
       g.fill()

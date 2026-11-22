@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 0%, #3a4957 0%, #24303b 70%, #1a232b 100%);
+  background: linear-gradient(180deg, var(--kuwu-marino) 0%, var(--kuwu-noche) 100%);
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
@@ -35,17 +35,17 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 16px;
-  background: rgba(15, 20, 26, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  color: var(--texto, #f3f6fa);
+  background: color-mix(in srgb, var(--kuwu-noche) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kuwu-crema) 10%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--kuwu-noche) 35%, transparent);
+  color: var(--texto, var(--kuwu-crema));
   font-size: 13px;
 }
 
 .oficina-btn {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: #f3f6fa;
+  border: 1px solid color-mix(in srgb, var(--kuwu-crema) 14%, transparent);
+  background: color-mix(in srgb, var(--kuwu-crema) 8%, transparent);
+  color: var(--kuwu-crema);
   border-radius: 10px;
   padding: 7px 12px;
   font-size: 13px;
@@ -54,9 +54,9 @@
 }
 
 .oficina-btn[aria-pressed='true'] {
-  background: #f5c438;
-  color: #12161c;
-  border-color: #f5c438;
+  background: var(--kuwu-amarillo);
+  color: var(--kuwu-marino);
+  border-color: var(--kuwu-amarillo);
 }
 
 .oficina-fps {
@@ -74,9 +74,9 @@
   width: 210px;
   padding: 11px 14px;
   border-radius: 16px;
-  background: rgba(15, 20, 26, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f3f6fa;
+  background: color-mix(in srgb, var(--kuwu-noche) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kuwu-crema) 8%, transparent);
+  color: var(--kuwu-crema);
   font-size: 14px;
   pointer-events: none;
 }
@@ -95,9 +95,9 @@
   z-index: 2;
   padding: 8px 18px;
   border-radius: 16px;
-  background: rgba(15, 20, 26, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f3f6fa;
+  background: color-mix(in srgb, var(--kuwu-noche) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kuwu-crema) 8%, transparent);
+  color: var(--kuwu-crema);
   display: flex;
   gap: 18px;
   align-items: center;

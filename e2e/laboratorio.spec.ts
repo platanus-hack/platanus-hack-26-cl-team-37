@@ -3,7 +3,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { vigilarErrores } from './ayudas.ts'
 
-const URL_SIMULADA = '/laboratorio?fuente=sintetica&guion=banda'
+const URL_SIMULADA = '/laboratorio?fuente=sintetica&guion=banda-lab'
 const texto = (page: Page, id: string) => page.getByTestId(id)
 
 test.beforeEach(async ({ page }) => {

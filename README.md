@@ -1,6 +1,6 @@
-# ManoViva
+# Kuwü
 
-<img src="./project-logo.png" alt="Logo de ManoViva" width="160" />
+<img src="./project-logo.png" alt="Logo de Kuwü" width="160" />
 
 **Rehabilitación de manos que se juega.** El paciente hace sus ejercicios jugando frente a la cámara del teléfono, la app mide cada movimiento y el terapeuta ve el avance a distancia.
 
@@ -16,7 +16,7 @@
 - **Privacidad:** el video no se guarda ni se envía; solo puntos, eventos y métricas.
 - **Registro verificable:** una sesión cerrada es inmutable y lleva un hash.
 
-La cuenta demo trae datos ficticios (la app lo indica). ManoViva no entrega diagnósticos ni reemplaza al terapeuta.
+La cuenta demo trae datos ficticios (la app lo indica). Kuwü no entrega diagnósticos ni reemplaza al terapeuta.
 
 ## Stack
 

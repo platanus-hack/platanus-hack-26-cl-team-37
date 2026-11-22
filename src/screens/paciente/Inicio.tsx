@@ -13,6 +13,7 @@ import { planDeHoy, semana, type EstadoEjercicio } from '../../metrics/sesion'
 import { Icono } from '../../ui/Icono'
 import { BarraAccion, Estados, Vacio } from '../../ui/piezas'
 import { escenaDe } from '../../ui/escenas'
+import { useVista } from '../../ui/vista'
 import { Ahora, ArcoSemana, EncabezadoMarca } from '../../ui/salud'
 
 interface DatosInicio {
@@ -50,6 +51,7 @@ export default function Inicio() {
 
 function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
   const { paciente, plan, sesiones, cita } = d
+  const escritorio = useVista() === 'escritorio'
   if (!paciente) return <Vacio titulo="Tu ficha aún no está lista" texto="Pide a tu terapeuta que te registre en la clínica." icono="perfil" />
   if (!plan || plan.items.length === 0)
     return (
@@ -78,57 +80,79 @@ function Contenido({ d, hoy }: { d: DatosInicio; hoy: Date }) {
   const todoHecho = deHoy.every((x) => x.estado === 'hecho')
   const dias = tira.map((dia, i) => ({ letra: LETRAS_DIA[i], nombre: NOMBRES_DIA[i], estado: dia.estado === 'cumplido' ? ('hecha' as const) : ('pendiente' as const), hoy: dia.hoy }))
 
+  const semanaNodo = <ArcoSemana hechas={hechasSemana} total={plan.sesionesPorSemana} dias={dias} />
+  const ahoraNodo = ahora && (
+    <Ahora
+      juego={ahora.item.juego}
+      nombre={nombreJuego(ahora.item.juego)}
+      detalle={detalleEjercicio(ahora.item.juego, ahora.item.duracionMin)}
+      to={`/sesion/${ahora.item.juego}/preparar`}
+      accion={escritorio ? botonEmpezar(ahora.item.juego) : undefined}
+    />
+  )
+  const hoyNodo = (
+    <section className="tarjeta lista-hoy" aria-labelledby="hoy-titulo">
+      <h2 id="hoy-titulo" className="lista-hoy-rotulo">
+        Hoy
+      </h2>
+      <p className="lista-hoy-resumen">
+        {plan.items.length} {plan.items.length === 1 ? 'ejercicio' : 'ejercicios'}, {minutos} minutos.
+        <span>
+          <Icono nombre="candado" tam={14} /> Indicado por {autor}
+        </span>
+      </p>
+      {todoHecho && (
+        <p className="lista-hoy-resumen" role="status">
+          Completaste el plan de hoy.
+        </p>
+      )}
+      {resto.length > 0 && (
+        <ul aria-label="Ejercicios de hoy">
+          {resto.map(({ item, estado }, i) => (
+            <li key={`${item.juego}-${i}`}>
+              <FilaEjercicio juego={item.juego} duracionMin={item.duracionMin} estado={estado} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+
   return (
     <>
       <MensajeTerapeuta paciente={paciente} plan={plan} autor={autor} />
 
-      <ArcoSemana hechas={hechasSemana} total={plan.sesionesPorSemana} dias={dias} />
-
-      {ahora && (
-        <Ahora
-          juego={ahora.item.juego}
-          nombre={nombreJuego(ahora.item.juego)}
-          detalle={detalleEjercicio(ahora.item.juego, ahora.item.duracionMin)}
-          to={`/sesion/${ahora.item.juego}/preparar`}
-        />
+      {/* Móvil: semana, Ahora y Hoy en una columna. Escritorio: dos columnas independientes (semana y Hoy a la
+          izquierda, Ahora con «Empezar» a la derecha), para que la altura de una no deje huecos en la otra. */}
+      {escritorio ? (
+        <div className="inicio-columnas">
+          <div className="inicio-izq">
+            {semanaNodo}
+            {hoyNodo}
+          </div>
+          {ahoraNodo}
+        </div>
+      ) : (
+        <>
+          {semanaNodo}
+          {ahoraNodo}
+          {hoyNodo}
+        </>
       )}
-
-      <section className="tarjeta lista-hoy" aria-labelledby="hoy-titulo">
-        <h2 id="hoy-titulo" className="lista-hoy-rotulo">
-          Hoy
-        </h2>
-        <p className="lista-hoy-resumen">
-          {plan.items.length} {plan.items.length === 1 ? 'ejercicio' : 'ejercicios'}, {minutos} minutos.
-          <span>
-            <Icono nombre="candado" tam={14} /> Indicado por {autor}
-          </span>
-        </p>
-        {todoHecho && (
-          <p className="lista-hoy-resumen" role="status">
-            Completaste el plan de hoy.
-          </p>
-        )}
-        {resto.length > 0 && (
-          <ul aria-label="Ejercicios de hoy">
-            {resto.map(({ item, estado }, i) => (
-              <li key={`${item.juego}-${i}`}>
-                <FilaEjercicio juego={item.juego} duracionMin={item.duracionMin} estado={estado} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       {cita && <NotaCita cita={cita} />}
 
-      {ahora && (
-        <BarraAccion>
-          <Link className="boton primario bloque" to={`/sesion/${ahora.item.juego}/preparar`}>
-            Empezar
-          </Link>
-        </BarraAccion>
-      )}
+      {/* En escritorio «Empezar» va en la tarjeta Ahora, bajo la escena (como «Comenzar» en preparar). */}
+      {ahora && !escritorio && <BarraAccion>{botonEmpezar(ahora.item.juego)}</BarraAccion>}
     </>
+  )
+}
+
+function botonEmpezar(juego: string) {
+  return (
+    <Link className="boton primario bloque" to={`/sesion/${juego}/preparar`}>
+      Empezar
+    </Link>
   )
 }
 

@@ -9,6 +9,7 @@
 // - Estabilidad: variación (desviación estándar) de la posición del punto de pinza durante el último segundo antes
 //   de soltar, en cm: 0 cm = 100, STD_MAX_CM o más = 0.
 // - Apertura de pinza al tomar: la mayor apertura pulgar–índice de los últimos 1,5 s antes de cerrar la pinza.
+import { kuwuNum } from '../../ui/paleta'
 
 export interface V3 {
   x: number
@@ -62,7 +63,8 @@ export const QUIETO_ANG = 0.5
 /** Por debajo de esta altura un cubo cayó de la mesa y vuelve a su lugar. */
 export const Y_CAIDA = -1
 
-export const COLORES = [0x8e44c9, 0xf5b82e, 0xe03b3b, 0x1aa0b0, 0x2e9e4f, 0x3a7fdc, 0xe8642c]
+/** Colores de los cubos: los pastel del brandbook. */
+export const COLORES = (['rojo', 'amarillo', 'azul', 'menta'] as const).map(kuwuNum)
 
 const cm = (u: number) => u / U_POR_CM
 const r1 = (x: number) => Math.round(x * 10) / 10

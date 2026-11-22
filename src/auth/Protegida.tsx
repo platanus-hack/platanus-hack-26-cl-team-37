@@ -7,13 +7,13 @@ import { avisar } from '../ui/piezas'
 import { inicioDe, useAuth } from './contexto'
 
 /** Exige sesión y uno de los roles. Sin sesión → /acceso (recordando a dónde iba). Otro rol → su inicio. */
-export function Protegida({ roles, barra, banner }: { roles: Rol[]; barra?: boolean; banner?: boolean }) {
+export function Protegida({ roles, barra }: { roles: Rol[]; barra?: boolean }) {
   const { usuario, cargando } = useAuth()
   const loc = useLocation()
   if (cargando) return <PantallaCargando texto="Abriendo tu sesión…" />
   if (!usuario) return <Navigate to="/acceso" replace state={{ desde: loc.pathname + loc.search }} />
   if (!roles.includes(usuario.rol)) return <FueraDeRol destino={inicioDe(usuario.rol)} />
-  return <Marco barra={barra} banner={banner} />
+  return <Marco barra={barra} />
 }
 
 function FueraDeRol({ destino }: { destino: string }) {

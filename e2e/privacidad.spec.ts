@@ -151,7 +151,7 @@ test.describe('privacidad y datos', () => {
       await page.goto('/privacidad')
       await page.getByRole('button', { name: 'Descargar mis datos' }).click()
       const [dj] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Descargar JSON' }).click()])
-      expect(dj.suggestedFilename()).toMatch(/^manoviva-mis-datos-\d{4}-\d{2}-\d{2}\.json$/)
+      expect(dj.suggestedFilename()).toMatch(/^kuwu-mis-datos-\d{4}-\d{2}-\d{2}\.json$/)
       const json = JSON.parse(readFileSync((await dj.path())!, 'utf8'))
       expect(Object.keys(json)).toEqual(expect.arrayContaining(['perfil', 'planes', 'sesiones', 'eventos', 'consentimientos', 'alertas', 'auditoria']))
       expect(json.perfil.paciente.id).toBe(pacienteId)

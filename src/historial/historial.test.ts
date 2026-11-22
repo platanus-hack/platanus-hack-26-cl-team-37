@@ -131,7 +131,7 @@ describe('historial: datos del PDF', () => {
   it('una sola sesión usa su ID en el título y el archivo', () => {
     const d = datosPdf({ ...entrada, sesiones: [entrada.sesiones[0]], integridad: { 'S-2': 'verificado' } })
     expect(d.titulo).toBe('Registro de sesión S-2')
-    expect(nombreArchivo('S-20261121-02', 'pdf')).toBe('manoviva-S-20261121-02.pdf')
+    expect(nombreArchivo('S-20261121-02', 'pdf')).toBe('kuwu-S-20261121-02.pdf')
   })
 
   it('sin sesiones no inventa datos', () => {

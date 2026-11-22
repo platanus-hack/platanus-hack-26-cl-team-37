@@ -1,4 +1,4 @@
-# CLAUDE.md — ManoViva
+# CLAUDE.md — Kuwü
 
 App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D en three.js y seguimiento de manos con MediaPipe.
 **Desde 2026-11-21 trabajan 3 personas en paralelo** (ver `docs/equipo/`: plan, contratos y flujo de Git). Lee `docs/equipo/README.md` antes de tocar código. Las reglas de abajo siguen valiendo, con estas diferencias para el equipo:
@@ -22,9 +22,9 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - **Decidir sin preguntar** (salvo los contratos compartidos). Ante una ambigüedad dentro de lo tuyo: elegir la opción más simple que cumpla el prompt y la imagen, anotarla en `docs/equipo/decisiones.md` y seguir.
 - **Bloqueos.** Si algo exige al humano (teléfono real, cuenta de pago, dato legal): marcar `blocked` con `blocked_reason`, dejar la parte automatizable hecha y pasar al siguiente feature desbloqueado. Nunca quedarse esperando.
 - **3 intentos.** Si la misma verificación falla 3 veces con enfoques distintos: revertir a lo último verde (`git stash` o `git checkout -- <archivos>`), marcar `blocked` con el error exacto y seguir.
-- **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2. Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
+- **Fuente de verdad del diseño:** la imagen de referencia del feature + `docs/manoviva-spec.md` §2 para la estructura y el contenido; colores, tipografía e íconos salen siempre del [brandbook](brandbook/) (ver «Estilos»). Textos en español de Chile, decimales con coma (`src/lib/formato.ts`).
 - **Datos:** las pantallas usan `repos` (`src/data/repos.ts`), nunca `supabase` directo.
-- **Juegos:** three.js directo (sin React Three Fiber), Rapier solo si el juego mueve objetos. Siguen el contrato de `docs/manoviva-spec.md` §7.
+- **Juegos:** three.js directo (sin React Three Fiber), Rapier solo si el juego mueve objetos. Siguen el contrato de `docs/manoviva-spec.md` §7. Los modelos 3D van en `src/games/assets/` (compartidos en la raíz, los de un juego en `assets/<juego>/`); el `modulo.ts` del juego deja su lógica, el armado de la escena y su HUD.
 - **Sin cámara disponible:** todo juego y flujo debe poder probarse con la fuente de manos `sintetica` o `grabacion` (`?fuente=`).
 
 ## Invariantes (no romper nunca)
@@ -42,6 +42,17 @@ App web móvil de rehabilitación de manos (paciente + terapeuta) con juegos 3D 
 - Git (equipo): commit al terminar cada feature; `push` solo de tu propia rama y PR a `dev`. Prohibido empujar directo a `dev` o `main`, `--force` sobre ramas ajenas y `reset --hard` sobre trabajo no commiteado.
 - **Pull antes de unir (merge).** Antes de unir un PR, trae lo último de su rama base (`dev` para las ramas `p1/…`, `p2/…`, `p3/…`; `main` solo para el PR `dev` → `main` o un `hotfix/…`): `git fetch origin && git merge origin/dev` en tu rama (o `gh pr update-branch <n>` en una ajena), vuelve a correr `npm run verify` y únelo solo con `verificar` en verde **sobre ese commit nuevo**. GitHub no exige rama al día: un PR verde contra un `dev` viejo puede romper `dev` al unirse. Si el choque está en código de otra persona, avísale.
 - No instalar dependencias nuevas sin anotar el motivo en "Decisiones". Preferir lo que ya está en `package.json`.
+
+## Estilos
+
+El [brandbook](brandbook/README.md) es obligatorio para toda UI y front end:
+- **Nombre:** la app se llama **Kuwü**; donde no hay UTF-8 (archivos, ids, URLs) se escribe `kuwu`. Los identificadores internos `manoviva` (sesión, IndexedDB, Vercel, Supabase) no se renombran: ver `docs/equipo/decisiones.md`.
+- **Colores:** solo los de `brandbook/paleta.css` (base y derivados). En CSS se usan los tokens de `src/index.css` (`--fondo`, `--tinta`, `--alerta`…), que apuntan a `--kuwu-*`; en lienzos y three.js, `src/ui/paleta.ts` (`KUWU`, `kuwuAlfa`, `kuwuNum`). Nada de hex sueltos; transparencias con `color-mix()` sobre un color de la paleta. Si falta un color, se agrega en `brandbook/herramientas/generar_brandbook.py`, se regenera y recién ahí se usa.
+- **Controles:** botones, pestañas, chips, campos e interruptores salen de `brandbook/primitivas.css` (README §7): se usan sus clases y variantes, sin cambiarles colores, letra, alto ni radio desde las pantallas. Si falta una variante, se agrega ahí. Para revisarlos, la ruta oculta `/primitivas`. Las zonas oscuras (cámara, juego) llevan la clase `kuwu-noche`.
+- **Móvil y escritorio:** la app se diseña primero para móvil; desde 1024 px se usa la disposición de escritorio (`src/ui/vista.ts`: `useVista()`; CSS: `@media (min-width: 1024px)`). Lo general en `src/escritorio.css`, lo de cada pantalla en su CSS. Revisa las vistas nuevas en 390×844 y en 1440×900.
+- **Tipografía:** Nunito (`--letra`; en lienzos `fuenteKuwu()`), también para cifras.
+- **Logo e íconos:** los SVG de `brandbook/logos/` y `brandbook/iconos/` en la variante que corresponde al fondo, sin recolorear.
+- Excepciones: un componente cuyo estilo el brandbook no define, y el color natural de los objetos de las escenas 3D (fruta, madera, cubos). Los acentos de interfaz dentro del juego sí usan la paleta.
 
 ## Definición de terminado — Definition of Done (por feature)
 

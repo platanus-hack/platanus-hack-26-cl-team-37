@@ -16,6 +16,7 @@
 // - AgregadoPiano: aciertos, perdidas, equivocados, independencia (global y por dedo), desfase medio (|ms|), errores por dedo.
 import type { LadoMano } from '../../domain/types'
 import { ARTICULACIONES, flexionArticulacion, type Dedo, type P3 } from '../../metrics/geometria'
+import { kuwuNum } from '../../ui/paleta'
 
 export type { Dedo }
 /** Teclas de izquierda a derecha para la mano derecha vista en espejo (el pulgar queda hacia el centro). */
@@ -24,8 +25,14 @@ export const DEDOS_PIANO: Dedo[] = ['pulgar', 'indice', 'medio', 'anular', 'meni
 export const ORDEN_NOTAS: Dedo[] = ['indice', 'medio', 'anular', 'menique', 'pulgar']
 export const NOMBRE_DEDO: Record<Dedo, string> = { pulgar: 'pulgar', indice: 'índice', medio: 'medio', anular: 'anular', menique: 'meñique' }
 export const capital = (d: Dedo) => d.charAt(0).toUpperCase() + d.slice(1)
-/** Color de cada tecla y de su nota (como la imagen de referencia). */
-export const COLOR_DEDO: Record<Dedo, number> = { pulgar: 0xff9f5a, indice: 0xa77bdb, medio: 0xffd23f, anular: 0x3fd9a8, menique: 0x4aa8ff }
+/** Color de cada tecla y de su nota: el mismo de cada dedo en el dibujo de la mano (src/ui/dibujoMano.ts). */
+export const COLOR_DEDO: Record<Dedo, number> = {
+  pulgar: kuwuNum('crema'),
+  indice: kuwuNum('rojo'),
+  medio: kuwuNum('amarillo'),
+  anular: kuwuNum('azul'),
+  menique: kuwuNum('menta'),
+}
 
 // ── Umbrales ───────────────────────────────────────────────────────────────────────────────────
 

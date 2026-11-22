@@ -16,26 +16,33 @@ import { aperturaMano, aperturaPinza, clasificarLuz, distancia, escalaCm, largoM
 export type PasoCalibracion = 'abierta' | 'abrir-cerrar' | 'pinza' | 'lista'
 export const PASOS: Exclude<PasoCalibracion, 'lista'>[] = ['abierta', 'abrir-cerrar', 'pinza']
 
+// Márgenes ampliados el 2026-11-21 porque en uso real a veces no "pescaba" (pedido del dueño): abierta 0,8→0,7,
+// cerrada 0,3→0,4, 2→1,5 s, tolerancia a cuadros con ruido también en el paso 1, hasta 2 puntos fuera del marco,
+// pinza 3→3,5 cm y 0,35→0,40 palma, distancia 30–70→25–80 cm, confianza 0,7→0,6.
 export const UMBRALES = {
   /** aperturaMano ≥ esto = mano abierta. */
-  abierta: 0.8,
+  abierta: 0.7,
   /** aperturaMano ≤ esto = mano cerrada. */
-  cerrada: 0.3,
-  msAbierta: 2000,
+  cerrada: 0.4,
+  msAbierta: 1500,
+  /** Paso 1: un cuadro suelto sin mano abierta (ruido) no reinicia la cuenta si dura menos que esto. */
+  msToleranciaAbierta: 300,
   repeticiones: 3,
   /** Distancia pulgar–índice (cm) para contar la pinza (puntas, no yemas: juntas quedan a 1,5–3 cm). */
-  pinzaCm: 3,
+  pinzaCm: 3.5,
   /** Igual, relativa al largo de la palma (muñeca→nudillo del medio, ~9 cm): no depende de la escala. */
-  pinzaRel: 0.35,
+  pinzaRel: 0.4,
   /** Hasta este múltiplo del umbral se muestra "casi". */
   pinzaCasi: 1.8,
   msPinza: 400,
   /** Un cuadro suelto fuera del umbral (ruido) no reinicia la cuenta si dura menos que esto. */
-  msToleranciaPinza: 250,
+  msToleranciaPinza: 350,
+  /** Puntos de la mano (de 21) que pueden quedar fuera del marco guía y seguir contando como "dentro". */
+  puntosFueraMax: 2,
   /** Rango de distancia cámara–mano aceptable (cm, aprox.). */
-  distanciaMinCm: 30,
-  distanciaMaxCm: 70,
-  confianzaMin: 0.7,
+  distanciaMinCm: 25,
+  distanciaMaxCm: 80,
+  confianzaMin: 0.6,
 } as const
 
 /** Lo que la pantalla mide en un cuadro. */
@@ -68,6 +75,8 @@ export interface EstadoCalibracion {
   paso: PasoCalibracion
   /** t desde que la mano está abierta y dentro (paso 1). */
   desdeAbierta: number | null
+  /** Último t con la mano abierta y dentro (para tolerar cuadros con ruido en el paso 1). */
+  ultimaAbierta?: number | null
   repeticiones: number
   cerrada: boolean
   /** t desde que la pinza está cerrada (paso 3). */
@@ -125,13 +134,16 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
   if (s.paso === 'abierta') {
     if (valida && m.apertura >= UMBRALES.abierta) {
       s.desdeAbierta ??= m.t
+      s.ultimaAbierta = m.t
       const f = (m.t - s.desdeAbierta) / UMBRALES.msAbierta
       if (f >= 1) {
         s.paso = 'abrir-cerrar'
         s.progreso = tercio(1, 0)
       } else s.progreso = tercio(0, f)
-    } else {
+    } else if (s.ultimaAbierta == null || m.t - s.ultimaAbierta > UMBRALES.msToleranciaAbierta) {
+      // solo se reinicia si la mano dejó de estar abierta más que la tolerancia (un cuadro con ruido no basta)
       s.desdeAbierta = null
+      s.ultimaAbierta = null
       s.progreso = 0
     }
   } else if (s.paso === 'abrir-cerrar') {
@@ -172,9 +184,10 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
  */
 export function esperaCalibracion(e: Pick<EstadoCalibracion, 'paso' | 'cerrada'>): string {
   const d2 = (n: number) => n.toFixed(2).replace('.', ',')
-  if (e.paso === 'abierta') return `apertura ≥ ${d2(UMBRALES.abierta)} por ${UMBRALES.msAbierta / 1000} s`
+  const coma = (n: number) => String(n).replace('.', ',')
+  if (e.paso === 'abierta') return `apertura ≥ ${d2(UMBRALES.abierta)} por ${coma(UMBRALES.msAbierta / 1000)} s`
   if (e.paso === 'abrir-cerrar') return e.cerrada ? `abrir: apertura ≥ ${d2(UMBRALES.abierta)}` : `cerrar: apertura ≤ ${d2(UMBRALES.cerrada)}`
-  if (e.paso === 'pinza') return `pinza ≤ ${UMBRALES.pinzaCm} cm o ≤ ${d2(UMBRALES.pinzaRel)} palma por ${String(UMBRALES.msPinza / 1000).replace('.', ',')} s`
+  if (e.paso === 'pinza') return `pinza ≤ ${coma(UMBRALES.pinzaCm)} cm o ≤ ${d2(UMBRALES.pinzaRel)} palma por ${coma(UMBRALES.msPinza / 1000)} s`
   return 'nada (lista)'
 }
 
