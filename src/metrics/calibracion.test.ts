@@ -14,6 +14,7 @@ import {
   medidasMano,
   pinzaGesto,
   numeroPaso,
+  puedeOmitirCalibracion,
   puntosDentro,
   resultadoCalibracion,
   UMBRALES,
@@ -255,5 +256,11 @@ describe('mano elegida, checklist y vista', () => {
     e = avanzarCalibracion(e, muestra(500, { pinzaCm: 3.5, pinzaRel: 0.4, pinzaVistaCm: 0.8 }))
     expect(e.paso).toBe('lista')
     expect(e.pinzaMaxCm).toBe(3.5) // la línea base sigue siendo la 3D
+  })
+
+  it('puedeOmitirCalibracion: solo en desarrollo o con ?debug=1', () => {
+    expect(puedeOmitirCalibracion({ dev: true, search: '' })).toBe(true)
+    expect(puedeOmitirCalibracion({ dev: false, search: '?fuente=sintetica' })).toBe(false)
+    expect(puedeOmitirCalibracion({ dev: false, search: '?fuente=sintetica&debug=1' })).toBe(true)
   })
 })
