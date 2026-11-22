@@ -447,6 +447,8 @@ export const crearBanda: CrearJuego = () => {
       ctx = c
       nivel = nivelBanda(c.parametros.nivel)
       sesion = new SesionBanda(nivel.kgBanda)
+      // Sin mesa: la banda se tensa en el aire, sobre el fondo (se repone al desmontar).
+      c.mesa.objeto.visible = false
       construirEscena(c)
       dibujar(0)
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
@@ -509,6 +511,7 @@ export const crearBanda: CrearJuego = () => {
     desmontar() {
       const c = ctx
       if (c) {
+        c.mesa.objeto.visible = true
         c.escena.remove(grupo)
         c.camara.remove(luces)
         c.escena.remove(c.camara)

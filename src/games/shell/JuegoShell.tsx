@@ -24,6 +24,7 @@ import { cicloInicial, pasoCiclo, terminarCiclo, type CambioCiclo, type EstadoCi
 import type { ContextoJuego, CrearJuego, EstadoManoHud, HudJuego, MedidasMano, ModuloJuego, NumeroNivel } from './contrato'
 import { DURACION_MAX } from '../preparar'
 import { EscenaBase } from './escena'
+import './fondo.css'
 import { cargarFisica, type Fisica } from './fisica'
 import { AvisoCentral, BarraSuperior, CapaPausa, GiraTelefono, MetricasVivo, MiniaturaCamara, PanelJuego } from './Hud'
 import { AcumuladorBase, escalaDeCalibracion, medirMano } from './medidas'
