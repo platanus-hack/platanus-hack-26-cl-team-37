@@ -92,3 +92,13 @@ export function disponiblesDelRegistro(): string[] {
     .filter((t) => /^\s*disponible: true,/m.test(t))
     .map((t) => /^\s*id: '([^']+)'/m.exec(t)![1])
 }
+
+/** Ids de los juegos con `oculto: true` en su juego.ts: no aparecen en /ejercicios. */
+export function ocultosDelRegistro(): string[] {
+  const dir = new URL('../src/games/', import.meta.url)
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && existsSync(new URL(`${d.name}/juego.ts`, dir)))
+    .map((d) => readFileSync(new URL(`${d.name}/juego.ts`, dir), 'utf8'))
+    .filter((t) => /^\s*oculto: true,/m.test(t))
+    .map((t) => /^\s*id: '([^']+)'/m.exec(t)![1])
+}

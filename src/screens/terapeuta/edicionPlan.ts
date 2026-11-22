@@ -106,9 +106,10 @@ export function ejerciciosEnPantalla(plan: Plan, b: Borrador): string[] {
 
 /** Juegos del catálogo que se pueden agregar: disponibles y que no estén en pantalla (un ejercicio quitado se recupera
  *  con «Deshacer» en su propia tarjeta). */
-export function juegosParaAgregar(plan: Plan, b: Borrador, catalogo: Pick<Juego, 'id' | 'disponible'>[] = JUEGOS): string[] {
+export function juegosParaAgregar(plan: Plan, b: Borrador, catalogo: Pick<Juego, 'id' | 'disponible' | 'oculto'>[] = JUEGOS): string[] {
   const enPantalla = ejerciciosEnPantalla(plan, b)
-  return catalogo.filter((j) => j.disponible && !enPantalla.includes(j.id)).map((j) => j.id)
+  // Los ocultos del catálogo (`oculto: true`) tampoco se ofrecen al terapeuta.
+  return catalogo.filter((j) => j.disponible && !j.oculto && !enPantalla.includes(j.id)).map((j) => j.id)
 }
 
 /** Agrega un ejercicio: si estaba en el plan vigente vuelve con sus valores; si es nuevo, nivel 1 y la meta por defecto. */

@@ -7,6 +7,7 @@ import {
   INICIO_CIERRE_PCT,
   NARANJA_MS,
   NIVELES_NARANJA,
+  REPETICIONES_VASO,
   cierreDeApertura,
   cortarRepeticion,
   estadoNaranjaInicial,
@@ -14,6 +15,7 @@ import {
   pasoNaranja,
   progresoSostener,
   ritmoRepeticiones,
+  type DondeMano,
   type EstadoNaranja,
   type EventoNaranja,
 } from './logica'
@@ -39,6 +41,41 @@ function correr(n = N1, tramos: [number | null, number][], inicio: EstadoNaranja
   }
   return { estado, eventos, tipos: eventos.map((e) => e.tipo) }
 }
+
+describe('dónde está la mano', () => {
+  /** Como correr(), pero con la posición de la palma en cada tramo. */
+  function correrEn(tramos: [number, number, DondeMano][]) {
+    let estado = estadoNaranjaInicial()
+    const eventos: EventoNaranja[] = []
+    for (const [c, ms, donde] of tramos)
+      for (let t = 0; t < ms; t += 50) {
+        const r = pasoNaranja(estado, c, 50, N1, donde)
+        estado = r.estado
+        eventos.push(...r.eventos)
+      }
+    return { estado, tipos: eventos.map((e) => e.tipo) }
+  }
+
+  it('la naranja se toma solo con la mano abierta sobre la fuente', () => {
+    expect(correrEn([[0, NARANJA_MS + 200, 'vaso']]).tipos).toEqual([])
+    expect(correrEn([[0, NARANJA_MS + 200, 'otro']]).tipos).toEqual([])
+    expect(correrEn([[0, NARANJA_MS + 200, 'fuente']]).tipos).toEqual(['naranja'])
+  })
+
+  it('con la naranja, exprimir solo avanza sobre el vaso: lejos del vaso queda en pausa', () => {
+    // Toma la naranja, cierra el puño camino al vaso (no cuenta) y recién sobre el vaso pasa el umbral y sostiene.
+    let r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 2000, 'otro']])
+    expect(r.estado.paso).toBe(2)
+    expect(r.tipos).toEqual(['naranja'])
+    r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 500, 'otro'], [90, N1.sostenerMs + 300, 'vaso'], [0, 200, 'vaso']])
+    expect(r.tipos).toEqual(['naranja', 'cierre_inicio', 'umbral_alcanzado', 'sostenido_completo', 'apertura_completa'])
+  })
+
+  it('abrir la mano lejos del vaso no la deja incompleta (sigue en pausa)', () => {
+    const r = correrEn([[0, NARANJA_MS + 100, 'fuente'], [90, 300, 'vaso'], [0, 500, 'otro']])
+    expect(r.tipos).not.toContain('repeticion_incompleta')
+  })
+})
 
 describe('niveles', () => {
   it('1, 3 y 5 siguen el prompt J4 (60 %/1 s, 75 %/3 s, 90 %/5 s) y el 2 y el 4 quedan entre medio', () => {
@@ -312,8 +349,14 @@ describe('registro', () => {
     const m = crearNaranja()
     const f = m.metricasVivo.find((x) => x.id === 'sostenido')!.formula
     expect(f).toContain('umbral − 10')
-    expect(m.meta.etiqueta).toBe('Cierres')
-    expect(m.meta.unidad).toBe('cierres')
+    expect(m.meta.etiqueta).toBe('Naranjas')
+    expect(m.meta.unidad).toBe('naranjas')
+  })
+  it('la meta es llenar el vaso: las repeticiones del plan, o REPETICIONES_VASO si el plan no fija', () => {
+    const { desdePlan } = crearNaranja().meta
+    const p = { nivel: 1, duracionMin: 5, metaPinzaCm: 0 }
+    expect(desdePlan({ ...p, metaAgarres: 0 })).toBe(REPETICIONES_VASO)
+    expect(desdePlan({ ...p, metaAgarres: 6 })).toBe(6)
   })
   it('Exprime la naranja declara sus 5 niveles con el texto del módulo', () => {
     const j = JUEGOS.find((x) => x.id === 'exprime-naranja')!

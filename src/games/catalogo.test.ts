@@ -15,9 +15,17 @@ describe('catálogo de ejercicios', () => {
     { juego: 'movilidad-guiada', nivel: 1 },
   ]
 
-  it('Todos muestra el registro completo en su orden', () => {
+  it('Todos muestra el registro completo en su orden, menos los ocultos', () => {
     const c = catalogo(JUEGOS, items, [], null)
-    expect(c.map((e) => e.juego.id)).toEqual(JUEGOS.map((j) => j.id))
+    expect(c.map((e) => e.juego.id)).toEqual(JUEGOS.filter((j) => !j.oculto).map((j) => j.id))
+  })
+
+  it('los juegos ocultos no salen en el catálogo pero siguen en el registro', () => {
+    const ids = catalogo(JUEGOS, items, [], null).map((e) => e.juego.id)
+    for (const id of ['muneca-3d', 'memoria-cartas', 'piano-dedos']) {
+      expect(ids).not.toContain(id)
+      expect(JUEGOS.find((j) => j.id === id)?.oculto).toBe(true)
+    }
   })
 
   it('cada filtro deja solo los juegos que lo declaran', () => {

@@ -91,7 +91,7 @@ test.describe('inicio del paciente', () => {
     await expect(planHoy(page)).toBeVisible()
 
     const total = bd.plan.items.length
-    const min = bd.plan.items.reduce((a, it) => a + it.duracionMin, 0)
+    const min = bd.plan.items.reduce((a, it) => a + Math.min(5, Math.max(1, it.duracionMin)), 0) // 1–5 min por sesión
     await expect(page.getByText(new RegExp(`^${total} ejercicios?, ${min} minutos\\.`))).toBeVisible()
     await expect(page.getByText(/Indicado por Klgo\. Diego/)).toBeVisible()
 

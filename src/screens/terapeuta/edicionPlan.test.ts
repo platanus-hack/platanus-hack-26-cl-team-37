@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DURACION_POR_DEFECTO } from '../../games/preparar'
 import type { MetricasSesion, Plan, PlanItem, Sesion } from '../../domain/types'
 import {
   META_JUEGO_MAX,
@@ -191,6 +192,12 @@ describe('agregar y quitar ejercicios', () => {
     expect(validar(p, { ...b, juegos: [] })).toMatch(/al menos un ejercicio/)
   })
 
+  it('los juegos ocultos del catálogo no se ofrecen para agregar', () => {
+    const p = plan([item('caja-juguetes', 2)])
+    const ofrecidos = juegosParaAgregar(p, borradorDe(p))
+    for (const id of ['muneca-3d', 'memoria-cartas', 'piano-dedos']) expect(ofrecidos).not.toContain(id)
+    expect(ofrecidos).toContain('pinza-fina')
+  })
   it('agregar un ejercicio nuevo: nivel 1, meta por defecto, mano y meta de pinza del plan; va al final', () => {
     const p = plan([item('caja-juguetes', 2, 7, { mano: 'izquierda', duracionMin: 8 })])
     const b = agregarJuego(p, borradorDe(p), 'pinza-fina')
@@ -200,7 +207,7 @@ describe('agregar y quitar ejercicios', () => {
       { campo: 'ejercicio', juego: 'pinza-fina', etiqueta: 'Pinza fina · ejercicio', antes: 'No está', despues: `Se agrega: nivel 1, meta ${META_JUEGO_NUEVO}` },
     ])
     expect(validar(p, b)).toBeNull()
-    expect(itemsNuevos(p, b)).toEqual([p.items[0], { juego: 'pinza-fina', nivel: 1, duracionMin: 5, mano: 'izquierda', metaAgarres: META_JUEGO_NUEVO, metaPinzaCm: 7 }])
+    expect(itemsNuevos(p, b)).toEqual([p.items[0], { juego: 'pinza-fina', nivel: 1, duracionMin: DURACION_POR_DEFECTO, mano: 'izquierda', metaAgarres: META_JUEGO_NUEVO, metaPinzaCm: 7 }])
     // Editar el nivel de un ejercicio recién agregado no genera una fila aparte: va en el «Se agrega».
     const b2 = { ...b, niveles: { ...b.niveles, 'pinza-fina': 3 } }
     expect(cambios(p, b2).map((c) => c.despues)).toEqual([`Se agrega: nivel 3, meta ${META_JUEGO_NUEVO}`])

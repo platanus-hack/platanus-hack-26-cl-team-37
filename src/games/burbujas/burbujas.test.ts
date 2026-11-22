@@ -5,6 +5,9 @@ import { tarjetasResumen } from '../../metrics/resumen'
 import { JUEGOS } from '../registry'
 import { crearBurbujas } from './modulo'
 import {
+  TAMANO_MAX,
+  TAMANO_MIN,
+  radioBurbuja,
   AgregadoBurbujas,
   AlcanceMano,
   CELDAS,
@@ -403,6 +406,23 @@ describe('Atrapa burbujas: agregados del resumen', () => {
     const nombres = [...m.metricasVivo, ...m.metricasResumen].map((d) => d.nombre.toLowerCase())
     expect(nombres.some((n) => n.includes('reacci'))).toBe(false)
     expect(m.metricasVivo.map((d) => d.id)).toEqual(['extension', 'alcance', 'tiempoBurbuja'])
+  })
+})
+
+describe('varias burbujas a la vez, de tamaños distintos', () => {
+  it('cada nivel muestra 2 o 3 burbujas a la vez', () => {
+    for (const k of [1, 2, 3, 4, 5] as const) {
+      expect(NIVELES_BURBUJAS[k].simultaneas).toBeGreaterThanOrEqual(2)
+      expect(NIVELES_BURBUJAS[k].simultaneas).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('el radio de cada burbuja va entre TAMANO_MIN y TAMANO_MAX veces el del nivel', () => {
+    const n = NIVELES_BURBUJAS[3]
+    expect(radioBurbuja(n, () => 0)).toBeCloseTo(n.radio * TAMANO_MIN)
+    expect(radioBurbuja(n, () => 1)).toBeCloseTo(n.radio * TAMANO_MAX)
+    const radios = Array.from({ length: 50 }, () => radioBurbuja(n, Math.random))
+    expect(Math.max(...radios) - Math.min(...radios)).toBeGreaterThan(0)
   })
 })
 

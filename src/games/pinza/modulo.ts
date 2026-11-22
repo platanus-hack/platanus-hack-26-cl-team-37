@@ -29,6 +29,7 @@ import {
   fijarObjetivo,
   generarSecuencia,
   masCercano,
+  metaSecuencias,
   nivelPinza,
   pasoPinza,
   relojPinza,
@@ -163,12 +164,17 @@ export const crearPinza: CrearJuego = () => {
     }
   }
 
+  /** Pasa al dedo siguiente; al terminar la secuencia (con o sin todos los toques) suma 1 al contador de la meta. */
   function avanzar() {
     posicion++
     if (posicion >= secuencia.length) {
-      fase = 'entre'
-      entreT = 0
+      contador++
       estado = fijarObjetivo(estado, null, reloj)
+      if (metaAlcanzada()) fase = 'fin'
+      else {
+        fase = 'entre'
+        entreT = 0
+      }
     } else mostrarObjetivo(posicion, !nivel.memoria)
   }
 
@@ -177,14 +183,10 @@ export const crearPinza: CrearJuego = () => {
     if (!c) return
     agregado.evento(ev)
     if (ev.tipo === 'toque') {
-      contador++
       resultados[posicion] = 'hecho'
       ultimoTiempoS = ev.tiempoMs / 1000
       c.registrar('toque', { mano: lado, objeto: ev.dedo, datos: { dedo: ev.dedo, tiempoMs: Math.round(ev.tiempoMs), distanciaMinCm: Math.round(ev.distMinCm * 10) / 10, posicion: posicion + 1 } })
-      if (metaAlcanzada()) {
-        fase = 'fin'
-        estado = fijarObjetivo(estado, null, reloj)
-      } else avanzar()
+      avanzar()
     } else if (ev.tipo === 'error') {
       error[ev.dedo] = 1
       c.registrar('error', { mano: lado, objeto: ev.dedo, datos: { dedo: ev.dedo, pedido: estado.objetivo } })
@@ -341,7 +343,8 @@ export const crearPinza: CrearJuego = () => {
     gestos: ['Oposición del pulgar'],
     miniatura: 'pinza',
     niveles,
-    meta: { etiqueta: 'Toques', unidad: 'toques', desdePlan: (p) => p.metaAgarres },
+    // Termina tras N secuencias completas por mano (metaAgarres del plan, o SECUENCIAS_POR_MANO).
+    meta: { etiqueta: 'Secuencias', unidad: 'secuencias', desdePlan: (p) => metaSecuencias(p.metaAgarres, p.mano) },
     tiposEvento: ['objetivo_mostrado', 'toque', 'error', 'no_alcanzado'],
     metricasVivo: [
       { id: 'tiempoToque', nombre: 'Tiempo por toque', unidad: 's', formula: 'tiempo desde que se ilumina el dedo hasta confirmar el toque (0,3 s), del último toque', mejor: 'menor' },
@@ -376,8 +379,10 @@ export const crearPinza: CrearJuego = () => {
       lados = mano === 'ambas' ? [...LADOS] : [mano === 'izquierda' ? 'izquierda' : 'derecha']
       umbrales = umbralesToque(c.calibracion?.largoManoCm)
       cfg = { ...umbrales, limiteMs: nivel.limiteMs }
-      // Mano grande y de frente: se acerca a la cámara, casi vertical y centrada en la mesa.
+      // Mano grande y de frente: se acerca a la cámara, casi vertical y centrada. Sin mesa: aquí no hay objetos que apoyar
+      // y el tablero quedaba detrás de la mano, tapando los anillos de los dedos.
       c.configurarManos({ x: [-1.0, 1.0], y: [0.1, 0.5], z: [0.9, 0.3], escala: 9, inclinacionDeg: 10 })
+      c.mesa.objeto.visible = false
 
       const tAnillo = textura(recursos, texturaAnillo(9, 54))
       const tHalo = textura(recursos, texturaHalo([0.45, 0.5]))
@@ -458,7 +463,7 @@ export const crearPinza: CrearJuego = () => {
         else manos[l] = estado.contacto ? { texto: 'Tocando', tono: 'acento' } : { texto: 'Libre', tono: 'ok' }
       }
       let pista: string | undefined
-      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste los toques'
+      if (metaAlcanzada()) pista = '¡Muy bien! Terminaste las secuencias'
       else if (fase === 'demostrando') pista = 'Mira la secuencia'
       else if (nivel.memoria && fase === 'tocando') pista = 'Ahora repítela de memoria'
       else if (lados.length > 1 && fase === 'tocando') pista = `Mano ${lado}: toca con el pulgar el dedo que se ilumina`
@@ -486,6 +491,7 @@ export const crearPinza: CrearJuego = () => {
     desmontar() {
       const c = ctx
       if (c) {
+        c.mesa.objeto.visible = true
         c.escena.remove(grupo)
         c.camara.remove(luces)
         c.escena.remove(c.camara)

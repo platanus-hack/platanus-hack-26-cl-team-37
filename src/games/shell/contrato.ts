@@ -27,7 +27,7 @@ export interface ParametrosNivelBase {
 export type ParametrosNivel = ParametrosNivelBase & Record<string, string | number | boolean>
 
 /** Lo que la meta puede leer: un ítem del plan o los parámetros congelados de la sesión (mismos campos). */
-export type ParametrosMeta = Pick<PlanItem, 'nivel' | 'duracionMin' | 'metaAgarres' | 'metaPinzaCm'>
+export type ParametrosMeta = Pick<PlanItem, 'nivel' | 'duracionMin' | 'metaAgarres' | 'metaPinzaCm'> & Partial<Pick<PlanItem, 'mano'>>
 
 export interface MetaJuego {
   /** Rótulo del contador en la barra superior: "Agarres", "Burbujas", "Toques". */
