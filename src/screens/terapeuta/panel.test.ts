@@ -67,6 +67,16 @@ describe('alertas de dolor', () => {
     expect(dolorAbierto(as, 'a')?.valor).toBe(8)
     expect(dolorAbierto(as, 'c')).toBeNull()
   })
+  it('con la última sesión, ignora el dolor de sesiones anteriores', () => {
+    const ultima = { id: 's2', inicio: '2026-11-21T12:00:00Z' }
+    const vieja = { ...alerta('a', 5, '2026-11-18T10:00:00Z'), sesionId: 's1' }
+    const nueva = { ...alerta('a', 7, '2026-11-21T12:30:00Z'), sesionId: 's2' }
+    expect(dolorAbierto([vieja], 'a', ultima)).toBeNull()
+    expect(dolorAbierto([vieja, nueva], 'a', ultima)?.valor).toBe(7)
+    // Sin id de sesión: vale si se creó después de que empezó la última sesión.
+    expect(dolorAbierto([alerta('a', 6, '2026-11-21T12:10:00Z')], 'a', ultima)?.valor).toBe(6)
+    expect(dolorAbierto([alerta('a', 6, '2026-11-20T12:10:00Z')], 'a', ultima)).toBeNull()
+  })
 })
 
 describe('fila, orden, búsqueda e indicadores', () => {

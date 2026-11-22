@@ -1,7 +1,7 @@
 // F17 · /terapeuta/pacientes/:id/plan (docs/referencia/imagenes/12_prescripcion.png).
 // El plan nunca se edita: «Enviar plan» crea una versión NUEVA (RPC crear_version_plan, que también escribe la
 // auditoría con el antes y el después). La lógica de edición es pura y vive en edicionPlan.ts. Solo describe datos.
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { repos } from '../../data/repos'
 import type { Paciente, Plan, Sesion } from '../../domain/types'
@@ -11,7 +11,7 @@ import { fechaCorta, iniciales, num } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
 import { semanaTratamiento } from '../../metrics/sesion'
 import { Icono } from '../../ui/Icono'
-import { BarraAccion, Estados, Hoja, Sparkline, Stepper, Vacio, avisar } from '../../ui/piezas'
+import { BarraAccion, Dialogo, Estados, Hoja, Sparkline, Stepper, Vacio, avisar } from '../../ui/piezas'
 import { condicionOMano } from './panel'
 import {
   META_JUEGO_MAX,
@@ -88,10 +88,11 @@ export default function Prescripcion() {
   )
 }
 
-function Cabecera({ paciente, semana }: { paciente?: Paciente; semana?: number }) {
+function Cabecera({ paciente, semana, antesDeSalir }: { paciente?: Paciente; semana?: number; antesDeSalir?: (salir: () => void) => void }) {
   const nav = useNavigate()
   // Volver: atrás en el historial si se llegó navegando; si se abrió directo, a la lista de pacientes.
-  const volver = () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? nav(-1) : nav('/terapeuta/pacientes'))
+  const irAtras = () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? nav(-1) : nav('/terapeuta/pacientes'))
+  const volver = () => (antesDeSalir ? antesDeSalir(irAtras) : irAtras())
   return (
     <header className="encabezado con-atras presc-cabecera">
       <button type="button" className="boton-icono" aria-label="Volver" onClick={volver}>
@@ -159,6 +160,23 @@ function Editor({ inicial }: { inicial: Datos }) {
   const marca = (campo: Campo, juego?: string) => cambiado(plan, b, campo, juego)
   const poner = (parcial: Partial<Borrador>) => setB((x) => ({ ...x, ...parcial }))
   const primerNombre = paciente.nombre.trim().split(/\s+/)[0] || 'el paciente'
+  const nav = useNavigate()
+  const pendientes = lista.length > 0
+  // Salir con cambios sin enviar: se pregunta antes (antes se perdían en silencio). `salida` = adónde ir si confirma.
+  const [salida, setSalida] = useState<(() => void) | null>(null)
+  const antesDeSalir = (salir: () => void) => (pendientes ? setSalida(() => salir) : salir())
+  const irA = (ruta: string) => (e: MouseEvent) => {
+    if (!pendientes) return
+    e.preventDefault()
+    setSalida(() => () => nav(ruta))
+  }
+  // Recargar o cerrar la pestaña con cambios sin enviar: aviso del navegador.
+  useEffect(() => {
+    if (!pendientes) return
+    const avisarCierre = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', avisarCierre)
+    return () => window.removeEventListener('beforeunload', avisarCierre)
+  }, [pendientes])
 
   /** Qué significa la meta de ese juego con los valores del borrador (0 = práctica libre). */
   function detalleMeta(juego: string): string {
@@ -190,17 +208,17 @@ function Editor({ inicial }: { inicial: Datos }) {
 
   return (
     <>
-      <Cabecera paciente={paciente} semana={semanaTratamiento(paciente.fechaInicio, hoy)} />
+      <Cabecera paciente={paciente} semana={semanaTratamiento(paciente.fechaInicio, hoy)} antesDeSalir={antesDeSalir} />
 
       {/* En móvil las dos columnas no existen (display: contents); en escritorio van lado a lado. */}
       <div className="presc-columna">
         <TarjetaTendencia t={tendencia} />
         <div className="presc-enlaces">
-          <Link to={`/historial?paciente=${encodeURIComponent(paciente.id)}`} className="boton secundario chico" data-testid="ir-historial">
+          <Link to={`/historial?paciente=${encodeURIComponent(paciente.id)}`} onClick={irA(`/historial?paciente=${encodeURIComponent(paciente.id)}`)} className="boton secundario chico" data-testid="ir-historial">
             <Icono nombre="historial" tam={20} />
             Ver historial
           </Link>
-          <Link to={`/terapeuta/pacientes/${paciente.id}/comparar`} className="boton secundario chico">
+          <Link to={`/terapeuta/pacientes/${paciente.id}/comparar`} onClick={irA(`/terapeuta/pacientes/${paciente.id}/comparar`)} className="boton secundario chico">
             <Icono nombre="tendencia" tam={20} />
             Comparar sesiones
           </Link>
@@ -386,6 +404,28 @@ function Editor({ inicial }: { inicial: Datos }) {
           </button>
         </div>
       </Hoja>
+
+      <Dialogo abierto={salida != null} onCerrar={() => setSalida(null)} titulo="Cambios sin enviar">
+        <h3>¿Salir sin enviar el plan?</h3>
+        <p className="tenue">
+          Tienes {lista.length} {lista.length === 1 ? 'cambio' : 'cambios'} sin enviar. Si sales, se pierden y {primerNombre} sigue con la versión {plan.version}.
+        </p>
+        <button type="button" className="boton primario bloque" onClick={() => setSalida(null)} data-testid="seguir-editando">
+          Seguir editando
+        </button>
+        <button
+          type="button"
+          className="boton secundario bloque"
+          data-testid="salir-sin-enviar"
+          onClick={() => {
+            const ir = salida
+            setSalida(null)
+            ir?.()
+          }}
+        >
+          Salir sin enviar
+        </button>
+      </Dialogo>
     </>
   )
 }
