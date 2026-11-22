@@ -52,19 +52,21 @@ describe('honda: la zona verde y el tiro', () => {
     expect(s.kg).toBe(0)
   })
 
-  it('estirar hasta la zona, sostener y soltar es un acierto, y el tiro sale al soltar', () => {
+  it('estirar hasta la zona y sostener es un acierto: la piedra sale sola al cumplir el sostén', () => {
     const { s, r } = nueva(3)
     tramo(s, r, 1000, 0, 0.85)
     const sosten = tramo(s, r, 1400, 0.85)
-    expect(sosten.map((e) => e.tipo)).toEqual(expect.arrayContaining(['sostenido']))
-    expect(s.fase).toBe('sostenido')
-    // Soltar: la banda aún no vuelve al reposo (queda en 20 %) y el tiro ya salió.
-    const suelta = tramo(s, r, 250, 0.85, 0.2)
-    expect(suelta.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
+    expect(sosten.map((e) => e.tipo)).toEqual(expect.arrayContaining(['sostenido', 'tiro']))
     expect(s.tiros[0]).toMatchObject({ resultado: 'acierto', sePaso: false })
     expect(s.tiros[0].sostenidoS).toBeGreaterThanOrEqual(1)
     expect(s.tiros[0].picoEstiramiento).toBeCloseTo(0.85, 1)
-    tramo(s, r, 1500, 0.2, 0)
+    // La banda sigue estirada: no sale otro tiro y la fase pide volver al centro.
+    expect(s.fase).toBe('volver')
+    tramo(s, r, 2500, 0.85)
+    expect(s.tiros).toHaveLength(1)
+    tramo(s, r, 300, 0.85, 0)
+    tramo(s, r, 1000, 0)
+    expect(s.fase).toBe('listo')
     expect(s.tiros).toHaveLength(1)
   })
 
@@ -87,10 +89,10 @@ describe('honda: la zona verde y el tiro', () => {
     tramo(s, r, 1000, 0)
     tramo(s, r, 800, 0, 1.6)
     expect(s.fase).toBe('pasado')
-    // Volver a la zona no dispara el tiro, aunque el pico haya sido alto.
-    const vuelta = [...tramo(s, r, 600, 1.6, 0.9), ...tramo(s, r, 1400, 0.9)]
-    expect(vuelta.some((e) => e.tipo === 'tiro')).toBe(false)
-    expect(vuelta.some((e) => e.tipo === 'sostenido')).toBe(true)
+    // Volver a la zona no dispara el tiro por sí solo; sale al cumplir el sostén.
+    expect(tramo(s, r, 600, 1.6, 0.9).some((e) => e.tipo === 'tiro')).toBe(false)
+    const sosten = tramo(s, r, 1400, 0.9)
+    expect(sosten.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
     tramo(s, r, 300, 0.9, 0)
     expect(s.tiros).toHaveLength(1)
     expect(s.tiros[0]).toMatchObject({ resultado: 'acierto', sePaso: true })
@@ -255,10 +257,10 @@ describe('honda: la zona verde y el tiro', () => {
       // El cero queda en 30 cm con la banda suelta; la banda recién tensa está a 42 cm (+40 %).
       const { s, r } = nueva(2)
       tramo(s, r, 800, 0, 0.7)
-      expect(tramo(s, r, 1300, 0.7).some((e) => e.tipo === 'sostenido')).toBe(true)
-      const vuelta = [...tramo(s, r, 300, 0.7, 0.4), ...tramo(s, r, 3000, 0.4)]
-      expect(vuelta.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
-      expect(s.tiros[0].resultado).toBe('acierto')
+      expect(tramo(s, r, 1300, 0.7).filter((e) => e.tipo === 'tiro')).toHaveLength(1)
+      tramo(s, r, 300, 0.7, 0.4)
+      tramo(s, r, 3000, 0.4)
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto'])
       expect(s.seguidor.reposoCm).toBeCloseTo(REPOSO * 1.4, 0)
       expect(s.kg).toBe(0)
       expect(s.fase).toBe('listo')
@@ -343,27 +345,37 @@ describe('honda: la zona verde y el tiro', () => {
     })
   })
 
-  describe('soltar (segunda prueba real: «no me queda claro cómo soltar»)', () => {
-    it('con el sostén cumplido, el tiro sale apenas la banda empieza a volver', () => {
+  describe('el tiro sale solo al cumplir el sostén (pruebas reales: «falla al soltarlo»)', () => {
+    it('tras el tiro, otro se arma al volver al centro aunque la banda no llegue justo a cero', () => {
       const { s, r } = nueva(3)
       tramo(s, r, 800, 0, 0.85)
       tramo(s, r, 1300, 0.85)
-      expect(s.fase).toBe('sostenido')
-      // Vuelve despacio: en 0,5 s baja solo hasta 60 % (aún lejos del reposo y de la mitad del pico) y se queda ahí.
-      const vuelta = [...tramo(s, r, 500, 0.85, 0.6), ...tramo(s, r, 250, 0.6)]
-      expect(vuelta.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
-      expect(s.tiros[0].resultado).toBe('acierto')
+      expect(s.tiros).toHaveLength(1)
+      // Vuelve hasta +6 % (el reposo se corrió un poco) y estira de nuevo de inmediato.
+      tramo(s, r, 300, 0.85, 0.06)
+      tramo(s, r, 300, 0.06)
+      tramo(s, r, 800, 0.06, 0.85)
+      tramo(s, r, 1300, 0.85)
+      expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])
     })
 
-    it('bajar las manos fuera de la imagen después de sostener también lanza', () => {
+    it('quedarse en la zona moviéndose un poco después del tiro no lanza otro', () => {
       const { s, r } = nueva(3)
       tramo(s, r, 800, 0, 0.85)
       tramo(s, r, 1300, 0.85)
+      for (let i = 0; i < 120; i++) s.paso((r.t += 1000 / CPS), REPOSO * (1.85 + 0.1 * Math.sin(i / 4)))
+      expect(s.tiros).toHaveLength(1)
+      expect(s.fase).toBe('volver')
+    })
+
+    it('bajar las manos fuera de la imagen después del tiro no lanza otro, y al volver se arma el siguiente', () => {
+      const { s, r } = nueva(3)
+      tramo(s, r, 800, 0, 0.85)
+      tramo(s, r, 1300, 0.85)
+      expect(s.tiros).toHaveLength(1)
       const ev: EventoHonda[] = []
-      for (let i = 0; i < 30; i++) ev.push(...s.paso((r.t += 1000 / CPS), null))
-      expect(ev.filter((e) => e.tipo === 'tiro')).toHaveLength(1)
-      expect(s.tiros[0].resultado).toBe('acierto')
-      // Al volver las manos, el siguiente tiro se arma normal.
+      for (let i = 0; i < 90; i++) ev.push(...s.paso((r.t += 1000 / CPS), null))
+      expect(ev.filter((e) => e.tipo === 'tiro')).toHaveLength(0)
       tramo(s, r, 2500, 0)
       tiro(s, r, 0.85, 1300)
       expect(s.tiros.map((t) => t.resultado)).toEqual(['acierto', 'acierto'])

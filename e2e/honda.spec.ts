@@ -77,7 +77,9 @@ test.describe('Honda', () => {
     }
     // Llega a la zona verde (≈ 45 % de estiramiento) y la sostiene 1,5 s: en el blanco.
     await guion(page, tiro(1.45, 1_500))
-    await expect.poll(async () => (await estado(page)).fase, { timeout: 4_000 }).toBe('sostenido')
+    // La piedra sale sola al cumplir el sostén, sin gesto de soltar: con la banda aún estirada la fase pide volver al centro.
+    await expect.poll(async () => (await estado(page)).fase, { timeout: 4_000, intervals: [50] }).toBe('volver')
+    expect((await estado(page)).tiros).toHaveLength(1)
     await page.screenshot({ path: process.env.CAPTURAS ? `${process.env.CAPTURAS}/honda-sostenido.png` : 'test-results/honda-sostenido.png' })
     await expect.poll(async () => (await estado(page)).tiros.length, { timeout: 6_000 }).toBe(1)
     expect((await estado(page)).tiros[0]).toMatchObject({ resultado: 'acierto' })

@@ -386,8 +386,8 @@ export const crearHonda: CrearJuego = () => {
           ? resultado.r === 'acierto' && sesion.racha >= 2
             ? `¡En el blanco! ×${sesion.racha}`
             : CORTO_RESULTADO[resultado.r]
-          : fase === 'sostenido'
-            ? '¡Junta las manos!'
+          : fase === 'volver'
+            ? 'Vuelve al centro'
             : fase === 'en-ventana'
               ? `Sostén ${num(Math.max(0, nivel.sostenerS * (1 - prog)), 1)} s`
               : fase === 'pasado'
@@ -433,7 +433,8 @@ export const crearHonda: CrearJuego = () => {
     ubicarGuia(c)
     // La bolsa sigue la carga con un suavizado corto; al soltar vuelve rápido, como una honda.
     const kg = sesion.kg ?? 0
-    const objetivo = vuelo ? 0 : Math.min(1.15, kg / sesion.zona.maxKg)
+    // Tras el tiro la bolsa queda suelta hasta que se vuelve al centro, aunque las manos sigan abiertas.
+    const objetivo = vuelo || sesion.fase === 'volver' ? 0 : Math.min(1.15, kg / sesion.zona.maxKg)
     tiron += (objetivo - tiron) * Math.min(1, dt * (objetivo < tiron ? 18 : 10))
     ponerBolsa(tiron)
     if (matTira) {

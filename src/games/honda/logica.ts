@@ -136,7 +136,7 @@ export type EventoHonda =
   | { tipo: 'sostenido'; kg: number }
   | { tipo: 'tiro'; tiro: Tiro }
 
-export type FaseHonda = 'sin-manos' | 'reposo' | 'listo' | 'tensando' | 'en-ventana' | 'sostenido' | 'pasado'
+export type FaseHonda = 'sin-manos' | 'reposo' | 'listo' | 'tensando' | 'en-ventana' | 'sostenido' | 'pasado' | 'volver'
 
 /** El tiro sale cuando la carga cae a esta fracción de su pico (o del tope de la zona, si se pasó): eso es soltar. */
 export const SUELTA = 0.5
@@ -147,12 +147,6 @@ const REARME = 0.4
 /** Tras haber llegado a la zona, quedarse bajo ella este tiempo también es soltar (ms): con el cero corto la carga no
  *  cae a la mitad del pico al volver, y el tiro no salía nunca. */
 export const MS_BAJO_ZONA = 700
-/**
- * Con el sostén ya cumplido, salir de la zona hacia abajo este tiempo es soltar (ms): la persona ya hizo lo que se pedía
- * y el tiro debe salir apenas empieza a volver (prueba real, 22-nov-2026: «no me queda claro cómo soltar»; esperaba hasta
- * 5 s tras sostener).
- */
-export const MS_SOLTAR_SOSTENIDO = 150
 /** El reposo sigue a la banda hasta esta fracción del estiramiento que pide el nivel. */
 const SEGUIR_HASTA = 0.85
 /** Caída desde el pico (fracción del recorrido) que basta para que un largo quieto bajo la zona sea el reposo nuevo. */
@@ -256,7 +250,8 @@ export class SesionHonda {
     if (!u || u.estado === 'perdida' || (u.largoCm == null && u.estado !== 'hueco')) return 'sin-manos'
     if (u.reposoCm == null || this.seguidor.capturando) return 'reposo'
     const t = this.tiro
-    if (!t) return 'listo'
+    // El tiro ya salió y la banda sigue estirada: hay que volver al centro para cargar otra piedra.
+    if (!t) return this.suelto && this.seguidor.contador.estirando ? 'volver' : 'listo'
     if ((u.kg ?? 0) > this.zona.maxKg) return 'pasado'
     if (t.sostuvo) return 'sostenido'
     if (t.enZonaDesde != null) return 'en-ventana'
@@ -346,16 +341,8 @@ export class SesionHonda {
     if (antes == null && p.reposoCm != null) eventos.push({ tipo: 'reposo' })
     if (p.estado === 'hueco') return eventos
     if (p.kg == null || p.e == null) {
-      // Sin medida (manos perdidas o marcando el cero): el tiro en curso no se puede juzgar... salvo que ya se haya
-      // sostenido: bajar las manos fuera de la imagen es la forma natural de soltar, y ese tiro sale ahí mismo (en la prueba
-      // real quedó 10 s sin salir y se perdió).
-      const tr = this.tiro
-      if (tr && p.estado === 'perdida' && tr.sostuvo) {
-        this.tiro = null
-        this.suelto = this.seguidor.contador.estirando
-        this.minTrasSoltar = Infinity
-        if (tr.picoE <= ESTIRAMIENTO_CREIBLE) eventos.push({ tipo: 'tiro', tiro: this.cerrar(tr, t, p.reposoCm ?? antes ?? 0) })
-      } else if (p.estado === 'perdida' && !this.seguidor.contador.estirando) this.tiro = null
+      // Sin medida (manos perdidas o marcando el cero): el tiro en curso no se puede juzgar.
+      if (p.estado === 'perdida' && !this.seguidor.contador.estirando) this.tiro = null
       return eventos
     }
     if (p.evento) {
@@ -375,8 +362,11 @@ export class SesionHonda {
     const estirando = this.seguidor.contador.estirando
 
     if (this.suelto) {
+      // Otro tiro se arma al volver al reposo, o al estirar de nuevo después de haber vuelto casi hasta él (si el reposo se
+      // corrió un poco, la banda no llega a «cero» y no por eso se ignora el estirón siguiente).
       this.minTrasSoltar = Math.min(this.minTrasSoltar, p.kg)
-      if (!estirando || p.kg >= this.minTrasSoltar + REARME * minKg) this.suelto = false
+      const volvio = this.minTrasSoltar <= SUELTA * minKg
+      if (!estirando || (volvio && p.kg >= this.minTrasSoltar + REARME * minKg)) this.suelto = false
     }
     if (!this.tiro && !this.suelto && estirando) {
       this.tiro = { t0: t, picoKg: 0, picoE: 0, picoT: t, enZonaDesde: null, bajoDesde: null, fueraDesde: null, sostenidoMs: 0, mejorSostenidoMs: 0, avisoZona: false, sostuvo: false, sePaso: false }
@@ -400,8 +390,16 @@ export class SesionHonda {
         eventos.push({ tipo: 'en-ventana', kg: p.kg })
       }
       if (!tr.sostuvo && tr.sostenidoMs >= this.sostenerS * 1000) {
+        // Sostén cumplido: la piedra sale sola, sin esperar un gesto de soltar. La cámara ve las manos y no la banda: soltar
+        // solo se notaba cuando las manos volvían bajo la zona, y con la zona ancha eso tardaba segundos o no pasaba
+        // (pruebas reales del 22-nov-2026: «falla al soltarlo»).
         tr.sostuvo = true
         eventos.push({ tipo: 'sostenido', kg: p.kg })
+        this.tiro = null
+        this.suelto = true
+        this.minTrasSoltar = p.kg
+        if (tr.picoE <= ESTIRAMIENTO_CREIBLE) eventos.push({ tipo: 'tiro', tiro: this.cerrar(tr, t, p.reposoCm ?? 0) })
+        return eventos
       }
     } else if (tr.enZonaDesde != null) {
       // Un instante fuera de la zona (temblor en el borde) no corta el sostén; más que eso, sí.
@@ -418,7 +416,7 @@ export class SesionHonda {
     // Y tras haber llegado a la zona, quedarse bajo ella un rato también es soltar.
     if (tr.avisoZona && p.kg < minKg) tr.bajoDesde ??= t
     else tr.bajoDesde = null
-    const bajoZona = tr.bajoDesde != null && t - tr.bajoDesde >= (tr.sostuvo ? MS_SOLTAR_SOSTENIDO : MS_BAJO_ZONA)
+    const bajoZona = tr.bajoDesde != null && t - tr.bajoDesde >= MS_BAJO_ZONA
     if (p.kg <= SUELTA * Math.min(tr.picoKg, maxKg) || bajoZona || !estirando) {
       this.tiro = null
       this.suelto = estirando
@@ -514,9 +512,11 @@ export function pistaHonda(fase: FaseHonda): string {
     case 'tensando':
       return 'Sigue estirando hasta la zona verde'
     case 'en-ventana':
-      return 'Sostén en la zona verde'
+      return 'Sostén en la zona verde: la piedra sale sola'
     case 'sostenido':
-      return '¡Listo! Junta las manos para lanzar'
+      return '¡Listo!'
+    case 'volver':
+      return 'Vuelve al centro para cargar otra piedra'
     case 'pasado':
       return 'Te pasaste de la zona verde: afloja un poco'
   }
