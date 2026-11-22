@@ -47,13 +47,18 @@ escrituras pendientes. Las pantallas nunca llaman a Supabase directo: siempre a 
 | `/sesion/:id/sensacion` | paciente | 07_dolor_y_esfuerzo.png |
 | `/sesion/:id/resumen` | paciente | 08_resumen_sesion.png |
 | `/progreso` | paciente | 09_progreso.png |
+| `/progreso/comparar` | paciente | sin imagen: comparar dos sesiones del mismo juego en 3D (F38) |
 | `/historial`, `/historial/:id` | paciente (y terapeuta vía paciente) | 10a, 10b |
 | `/perfil` | paciente | sin imagen: datos, largo de mano, privacidad, salir |
 | `/privacidad` | paciente | 13_privacidad.png |
 | `/terapeuta/pacientes` | terapeuta | 11_terapeuta_pacientes.png |
 | `/terapeuta/pacientes/:id/plan` | terapeuta | 12_prescripcion.png |
+| `/terapeuta/pacientes/:id/comparar` | terapeuta | sin imagen: la misma comparación 3D, para un paciente (F38) |
 | `/terapeuta/alertas`, `/terapeuta/planes`, `/terapeuta/informes` | terapeuta | pestañas de la barra inferior (sin imagen) |
 | `/depuracion` | ambos (modo depuración) | Prompt 15: validación de mediciones |
+| `/primitivas` | público, sin enlace | catálogo de controles del brandbook (`brandbook/primitivas.css`), para revisarlos |
+| `/oficina-3d` | público, sin enlace | vista previa del ambiente 3D de la oficina del hackatón; no forma parte del flujo de la app |
+| `/` y rutas desconocidas | — | redirigen al inicio del rol, o a `/acceso` sin sesión |
 
 ## 4. Modelo de datos (Supabase, `supabase/migrations/`)
 
@@ -167,8 +172,11 @@ interface ModuloJuego {
 | `exprime-naranja` | Exprime la naranja | Cierre de puño | No | J4 |
 | `memoria-cartas` | Memoria de cartas | Giro del antebrazo | No | J5 |
 | `piano-dedos` | Piano de dedos | Independencia de dedos | No | J6 |
+| `banda-elastica` | Banda elástica | Estirar una banda con ambas manos | No | F36 |
+| `muneca-3d` | Muñeca 3D | Flexión, extensión y desviación de la muñeca | No | F37 |
 
-Un juego aparece como "Próximamente" en `/ejercicios` hasta que su feature esté `done`.
+Los diez están disponibles. Cada juego se declara en su carpeta (`src/games/<juego>/juego.ts`) y el registro los junta solo; uno con
+`disponible: false` aparece como "Próximamente" en `/ejercicios` y no se puede abrir.
 
 ## 9. Datos de demostración (ficticios)
 
@@ -185,14 +193,18 @@ src/
   domain/      tipos, integridad (hash, ids)
   metrics/     funciones puras + pruebas
   tracking/    HandLandmarker, fuentes de manos, One Euro, distancia
-  games/       registry.ts, shell/ (base común), <juego>/ (un módulo por juego)
-  data/        repos.ts (interfaces), supabaseRepos.ts, colaLocal.ts, supabase.ts
+  games/       registry.ts, shell/ (base común), assets/ (modelos 3D), <juego>/ (juego.ts, logica.ts, modulo.ts)
+  data/        repos.ts (interfaces), supabaseRepos.ts, sinConexion.ts, colaLocal.ts, supabase.ts
   auth/        contexto de sesión y protección de rutas
   screens/     una carpeta por área: acceso, paciente, sesion, terapeuta, privacidad, depuracion
-  ui/          piezas compartidas e íconos
-  lib/         formato es-CL, utilidades
-scripts/       seed.ts, verificar-rls.ts
+  historial/   exportar PDF y CSV (con auditoría)
+  comparar/    comparación de dos sesiones en 3D
+  legal/       texto y versión del consentimiento
+  ui/          piezas compartidas, íconos, límite de errores
+  lib/         formato es-CL, mensajes de error, utilidades
+scripts/       seed.ts, verificar-rls.ts, entorno.mjs (dev/prod), ayudantes de limpieza para e2e
 supabase/      migrations/
 e2e/           pruebas Playwright (fuente de manos sintética)
-docs/          spec, validacion.md, referencia/, capturas/
+docs/          spec, validacion.md, equipo/ (ambientes, contratos, flujo), referencia/, capturas/
+brandbook/     paleta, primitivas de interfaz, tipografía
 ```

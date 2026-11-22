@@ -9,6 +9,7 @@ import { hashCorto, verificarSesion } from '../../domain/integridad'
 import type { Paciente, Sesion } from '../../domain/types'
 import { nombreJuego } from '../../games/registry'
 import { exportarCsv, exportarPdf, type ContextoExport } from '../../historial/exportar'
+import { nombrePeriodo, RANGOS, sesionesDelPeriodo, type Rango } from '../../historial/periodo'
 import {
   cantidadSesiones,
   etiquetasSesion,
@@ -22,7 +23,6 @@ import {
   type FilaHistorial,
   type FilaPlan,
 } from '../../historial/filas'
-import { desdeRango, RANGOS, type Rango } from '../../metrics/progreso'
 import { fechaNumerica, hora, mesCorto } from '../../lib/formato'
 import { useCarga } from '../../lib/useCarga'
 import { Icono } from '../../ui/Icono'
@@ -318,17 +318,13 @@ function HojaExportar({ abierta, onCerrar, sesiones, ctx }: { abierta: boolean; 
   const [rango, setRango] = useState<Rango>('4s')
   const [ocupado, setOcupado] = useState<'pdf' | 'csv' | null>(null)
   const [hoy] = useState(() => new Date())
-  const textoRango = RANGOS.find((x) => x.id === rango)?.texto ?? ''
-  const periodo = useMemo(() => {
-    const desde = desdeRango(rango, hoy)
-    return sesiones.filter((s) => !desde || fechaSesion(s).getTime() >= desde.getTime())
-  }, [sesiones, rango, hoy])
+  const periodo = useMemo(() => sesionesDelPeriodo(sesiones, rango, hoy), [sesiones, rango, hoy])
 
   const exportar = async (tipo: 'pdf' | 'csv') => {
     if (ocupado || !periodo.length) return
     setOcupado(tipo)
     try {
-      const nombre = `${textoRango} (hasta ${fechaNumerica(hoy)})`
+      const nombre = nombrePeriodo(rango, hoy)
       if (tipo === 'pdf') avisar(`PDF listo: ${await exportarPdf(ctx, periodo, nombre)}`)
       else avisar(`CSV listo: ${(await exportarCsv(ctx, periodo, nombre)).join(' y ')}`)
       onCerrar()
