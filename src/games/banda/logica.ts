@@ -8,6 +8,8 @@
 //   - estiramiento % = distancia / reposo − 1 (no depende de la escala); en cm = % × reposo en cm (aprox.);
 //   - carga aprox. = kgBanda × estiramiento (modelo lineal: la banda marca sus kg "al doble de largo", o sea al 100 %).
 //     Es una estimación, no una medición.
+//   - deriva del reposo: sin repetición en curso, una distancia estable (±2 %, 2 s) entre 3 % y el umbral de una
+//     repetición pasa a ser el reposo (la banda resbala en el puño; con el reposo fijo se leía carga sin estirar);
 //   - repeticiones: tramos seguidos sobre max(15 % del pico de la sesión, 10 %), tolerando huecos de 0,35 s y
 //     descartando fragmentos menores al 35 % del pico; solo cuentan los que pasan del 25 % de estiramiento.
 // Port de la prueba de laboratorio (prueba-banda/nudillos.py y comparar_banda.py).
@@ -67,6 +69,13 @@ export const REP_MIN_MS = 300
 export const REP_MIN_CUADROS = 3
 /** "Bajo tensión": carga sobre esta fracción del pico de la sesión. */
 export const TENSION_FRAC = 0.5
+/**
+ * Deriva del reposo: entre repeticiones la banda resbala en el puño o las manos no vuelven del todo, y el largo
+ * «en reposo» queda un poco mayor (prueba real con la banda, 21-nov-2026: de 20 a 23,5 cm en dos repeticiones). Con el
+ * reposo fijo eso se lee como carga sin estirar. Si, sin repetición en curso, la distancia queda estable (±2 %, 2 s)
+ * sobre este estiramiento (%) y bajo el umbral de una repetición, ese largo pasa a ser el reposo.
+ */
+export const DERIVA_MIN_PCT = 3
 /** Un cuadro no suma más que esto al tiempo (pausas, saltos de reloj). */
 export const DT_MAX_MS = 100
 /** Tope de cuadros guardados para el tiempo bajo tensión (≈ 1 h a 30 fps). */
@@ -301,6 +310,8 @@ export class SesionBanda {
   private historial: number[] = []
   private escalas: number[] = []
   private corrida = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
+  /** Ventana de distancia estable con el reposo ya marcado (para seguir su deriva). */
+  private deriva = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
   private cargas: number[] = []
   private dts: number[] = []
 
@@ -340,6 +351,7 @@ export class SesionBanda {
       // Sin las dos manos no se mide. Un hueco corta la corrida del reposo y cuenta para cerrar la repetición abierta.
       this.historial = []
       this.reiniciarCorrida()
+      this.deriva = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
       this.estiramientoPct = this.estiramientoCm = this.cargaKg = this.distanciaCm = null
       if (this.reposoPx != null) this.revisar(this.detector.paso(dt, null, null), eventos)
       return eventos
@@ -356,6 +368,8 @@ export class SesionBanda {
       return eventos
     }
 
+    const derivado = this.seguirDeriva(px, dt)
+    if (derivado) eventos.push(derivado)
     const e = Math.max(0, px / this.reposoPx - 1)
     const pct = e * 100
     const cm = e * (this.reposoCm ?? 0)
@@ -386,6 +400,32 @@ export class SesionBanda {
     } else this.fragmentos++
   }
 
+  /**
+   * Sigue la deriva del reposo (ver DERIVA_MIN_PCT): solo sin repetición en curso y con la distancia estable un poco
+   * sobre el reposo. La escala px → cm sigue siendo la congelada. Devuelve el evento de reposo si lo movió.
+   */
+  private seguirDeriva(px: number, dt: number): EventoBanda | null {
+    const vacia = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
+    const pct = (px / this.reposoPx! - 1) * 100
+    if (this.detector.abiertoAhora || pct <= DERIVA_MIN_PCT || pct >= this.detector.umbralPct) {
+      this.deriva = vacia
+      return null
+    }
+    let d = this.deriva
+    const min = Math.min(d.min, px)
+    const max = Math.max(d.max, px)
+    const n = d.n + 1
+    const suma = d.suma + px
+    d = d.n > 0 && (max - min) / (suma / n) > 2 * REPOSO_TOL ? { min: px, max: px, suma: px, n: 1, ms: 0 } : { min, max, suma, n, ms: d.ms + dt }
+    this.deriva = d
+    if (d.ms < REPOSO_MS || this.pxPorCm == null) return null
+    const nuevo = d.suma / d.n
+    this.deriva = vacia
+    this.reposoPx = nuevo
+    this.reposoCm = nuevo / this.pxPorCm
+    return { tipo: 'reposo', reposoCm: this.reposoCm, reposoPx: nuevo, pxPorCm: this.pxPorCm, automatico: true }
+  }
+
   /** Reposo automático: la distancia se queda dentro de ±2 % durante REPOSO_MS con las dos manos a la vista. */
   private corridaReposo(px: number, dt: number, eventos: EventoBanda[]) {
     let c = this.corrida
@@ -412,6 +452,7 @@ export class SesionBanda {
     if (!(px > 1) || !(escala > 0)) return null
     this.reposoPx = px
     this.pxPorCm = escala
+    this.deriva = { min: Infinity, max: -Infinity, suma: 0, n: 0, ms: 0 }
     this.reposoCm = px / escala
     this.reiniciarCorrida()
     this.detector.descartar()

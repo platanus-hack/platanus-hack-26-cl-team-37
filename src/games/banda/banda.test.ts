@@ -190,6 +190,33 @@ describe('reposo', () => {
   })
 })
 
+describe('deriva del reposo (prueba real: la banda resbala en el puño)', () => {
+  it('si tras un tirón la banda queda quieta un poco más larga, ese largo pasa a ser el reposo y la carga vuelve a 0', () => {
+    const s = new SesionBanda(6)
+    correr(s, REPOSO_MS + 200, () => 200)
+    expect(s.reposoPx).toBeCloseTo(200, 0)
+    correr(s, 1500, (t) => 200 + tiron(t, 0, 1500, 50))
+    // Vuelve a 216 px (8 % sobre el reposo, como de 20 a 21,6 cm) y se queda quieta.
+    const ev = correr(s, REPOSO_MS + 400, () => 216)
+    expect(ev.filter((e) => e.tipo === 'reposo')).toHaveLength(1)
+    expect(s.reposoPx).toBeCloseTo(216, 0)
+    expect(s.reposoCm).toBeCloseTo(21.6, 1)
+    expect(s.estiramientoPct!).toBeLessThan(1)
+    expect(s.cargaKg!).toBeLessThan(0.1)
+    expect(s.repeticiones).toBe(1)
+  })
+
+  it('no toca el reposo si la banda vuelve a su largo, ni mientras se sostiene un estiramiento de repetición', () => {
+    const s = new SesionBanda(6)
+    correr(s, REPOSO_MS + 200, () => 200)
+    // De vuelta al reposo exacto (o con 2 % de ruido): nada.
+    expect(correr(s, 3000, () => 204).some((e) => e.tipo === 'reposo')).toBe(false)
+    // Sostener 30 % durante 4 s es una repetición en curso, no un reposo nuevo.
+    expect(correr(s, 4000, () => 260).some((e) => e.tipo === 'reposo')).toBe(false)
+    expect(s.reposoPx).toBeCloseTo(200, 0)
+  })
+})
+
 describe('estiramiento, repeticiones y métricas de una sesión', () => {
   /** Sesión con reposo de 200 px (10 px/cm = 20 cm) y 3 tirones de 40, 60 y 50 %. */
   function sesionTres() {
