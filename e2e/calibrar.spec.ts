@@ -205,6 +205,18 @@ test.describe('calibración', () => {
     await expect(page.getByTestId('debug')).toHaveCount(0)
   })
 
+  test('atajo para devs: Enter omite la calibración, va a /jugar con los mismos parámetros y no guarda nada', async ({ page }) => {
+    const escrituras = await sesionFalsa(page)
+    await page.addInitScript(() => {
+      ;(globalThis as unknown as Ventana).__manoviva = { guion: { manos: [{ lado: 'derecha', poses: [{ t: 0, x: 0.5, y: 0.5, apertura: 1 }] }], camara: { ancho: 480, alto: 640 } } }
+    })
+    await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica`)
+    await expect(page.getByTestId('marco')).toHaveClass(/dentro/)
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(new RegExp(`/sesion/${ID_FALSO}/jugar\\?fuente=sintetica$`))
+    expect(escrituras).toEqual([])
+  })
+
   test('sesión inexistente o cerrada no calibra', async ({ page }) => {
     await page.route('**/rest/v1/sesiones?*', (route) => route.fulfill({ json: [] }))
     await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica`)
