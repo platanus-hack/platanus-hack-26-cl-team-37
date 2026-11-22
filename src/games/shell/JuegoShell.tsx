@@ -407,6 +407,12 @@ export function JuegoShell({ sesion, crear, seqInicial }: { sesion: Sesion; crea
     manual.current = false
     setMenu(false)
   }, [])
+  /** Vuelve al catálogo sin cerrar la sesión ni pasar por la encuesta. Al desmontar se mandan los eventos pendientes. */
+  const salir = useCallback(() => {
+    manual.current = false
+    setMenu(false)
+    nav(`/ejercicios${search}`)
+  }, [nav, search])
   const pausar = useCallback(() => {
     manual.current = true
     setMenu(true)
@@ -484,7 +490,7 @@ export function JuegoShell({ sesion, crear, seqInicial }: { sesion: Sesion; crea
       </div>
 
       {menu && !vertical && !terminada && (
-        <CapaPausa motivo="manual" onContinuar={continuar} onTerminar={() => terminarRef.current()} terminando={terminada} />
+        <CapaPausa motivo="manual" onContinuar={continuar} onTerminar={() => terminarRef.current()} onSalir={salir} terminando={terminada} />
       )}
       {vertical && <GiraTelefono onPantallaCompleta={pantallaCompleta} />}
     </div>

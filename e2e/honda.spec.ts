@@ -188,6 +188,22 @@ test.describe('Honda', () => {
     expect(e.metaKg).toBeGreaterThan(4.2)
   })
 
+  test('desde el menú se sale al catálogo sin terminar la sesión ni pasar por la encuesta', async ({ page }) => {
+    test.setTimeout(60_000)
+    const escrituras = await sesionFalsa(page, 'honda', 5, 0, 1)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await esperarFase(page, 'jugando', 20_000)
+    await page.getByRole('button', { name: 'Menú' }).click()
+    await expect(page.getByTestId('menu-pausa')).toBeVisible()
+    await page.getByRole('button', { name: 'Salir a los juegos' }).click()
+    await expect(page).toHaveURL(/\/ejercicios/, { timeout: 10_000 })
+    await expect(page.getByRole('heading', { level: 1, name: 'Ejercicios' })).toBeVisible()
+    // No se cerró la sesión ni se guardó el resumen.
+    const cierres = escrituras.filter((e) => e.tabla === 'sesiones' && (e.cuerpo as { metricas?: unknown })?.metricas)
+    expect(cierres).toEqual([])
+  })
+
   test('«Poner en cero» marca el reposo de nuevo y la pantalla no dice lo que la cámara no mide', async ({ page }) => {
     test.setTimeout(90_000)
     await sesionFalsa(page, 'honda', 5, 0, 1)
