@@ -18,6 +18,9 @@
 // src/metrics/suavidad.ts; la sesión reporta el promedio (escala 0–100). En vivo se muestra el promedio hasta ahora.
 import type RAPIER_NS from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
+import { crearCajaMadera } from '../assets/caja/cajaMadera'
+import { crearPiezaFisica } from '../assets/piezas'
+import type { Recursos } from '../assets/recursos'
 import type { LadoMano } from '../../domain/types'
 import { configDesdeCalibracion, pasoAgarre, type ConfigAgarre, type EstadoAgarre } from '../../metrics/agarre'
 import { contarAgarres } from '../../metrics/sesion'
@@ -99,6 +102,7 @@ export const crearCaja: CrearJuego = () => {
   const mallasCaja: THREE.Mesh[] = []
   const geometrias: THREE.BufferGeometry[] = []
   const materiales: THREE.Material[] = []
+  const recursos: Recursos = { materiales, geometrias, texturas: [] }
   let cfg: ConfigAgarre = configDesdeCalibracion(null)
   const agarre: Record<LadoMano, EstadoAgarre> = { izquierda: { agarrando: false }, derecha: { agarrando: false } }
   const traslados: Partial<Record<LadoMano, Traslado>> = {}
@@ -111,54 +115,25 @@ export const crearCaja: CrearJuego = () => {
   const pinza = (lado: LadoMano, destino = new THREE.Vector3()) => destino.addVectors(ctx!.manos.punto(lado, 4), ctx!.manos.punto(lado, 8)).multiplyScalar(0.5)
 
   function crearJuguete(c: ContextoJuego, i: number, pos: { x: number; z: number }, tamano: number): Juguete {
-    const { RAPIER, mundo } = c.fisica!
     const forma = FORMAS[i % FORMAS.length]
     const tam = TAM_BASE * tamano
-    let geo: THREE.BufferGeometry
-    let col: RAPIER_NS.ColliderDesc
     const rot = new THREE.Quaternion()
-    switch (forma) {
-      case 'cubo':
-        geo = new THREE.BoxGeometry(tam, tam, tam)
-        col = RAPIER.ColliderDesc.cuboid(tam / 2, tam / 2, tam / 2)
-        rot.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (i * 0.7) % 1.2)
-        break
-      case 'esfera':
-        geo = new THREE.SphereGeometry(tam / 2, 24, 16)
-        col = RAPIER.ColliderDesc.ball(tam / 2)
-        break
-      case 'cilindro':
-        geo = new THREE.CylinderGeometry(tam * 0.38, tam * 0.38, tam, 24)
-        col = RAPIER.ColliderDesc.cylinder(tam / 2, tam * 0.38)
-        break
-      case 'capsula':
-        geo = new THREE.CapsuleGeometry(tam * 0.22, tam * 0.7, 6, 16)
-        col = RAPIER.ColliderDesc.capsule(tam * 0.35, tam * 0.22)
-        // Acostada y girada sobre la mesa, como las de 06a.
-        rot.setFromEuler(new THREE.Euler(0, 0.5 + i * 0.4, Math.PI / 2, 'YXZ'))
-        break
-      case 'cono':
-        geo = new THREE.ConeGeometry(tam * 0.42, tam, 24)
-        col = RAPIER.ColliderDesc.cone(tam / 2, tam * 0.42)
-        break
-    }
-    const mat = new THREE.MeshStandardMaterial({ color: COLORES[i % COLORES.length], roughness: 0.45, metalness: 0.02 })
-    geometrias.push(geo)
-    materiales.push(mat)
-    const malla = new THREE.Mesh(geo, mat)
-    malla.castShadow = true
-    malla.receiveShadow = true
-    c.escena.add(malla)
+    if (forma === 'cubo') rot.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (i * 0.7) % 1.2)
+    // Cápsula acostada y girada sobre la mesa, como las de 06a.
+    if (forma === 'capsula') rot.setFromEuler(new THREE.Euler(0, 0.5 + i * 0.4, Math.PI / 2, 'YXZ'))
     const inicio = { x: pos.x, y: c.mesa.altura + medioAlto(forma, tam) + 0.01, z: pos.z }
-    const cuerpo = mundo.createRigidBody(
-      RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(inicio.x, inicio.y, inicio.z)
-        .setRotation({ x: rot.x, y: rot.y, z: rot.z, w: rot.w })
-        .setLinearDamping(0.3)
-        .setAngularDamping(1.2)
-        .setCcdEnabled(true),
-    )
-    mundo.createCollider(col.setFriction(0.85).setRestitution(0.08).setDensity(1), cuerpo)
+    const { malla, cuerpo } = crearPiezaFisica(recursos, c.fisica!, {
+      forma,
+      tam,
+      color: COLORES[i % COLORES.length],
+      rugosidad: 0.45,
+      inicio,
+      rotacion: { x: rot.x, y: rot.y, z: rot.z, w: rot.w },
+      amortiguacion: [0.3, 1.2],
+      roce: 0.85,
+      rebote: 0.08,
+    })
+    c.escena.add(malla)
     const j: Juguete = {
       id: `${forma}-${i + 1}`,
       forma,
@@ -177,34 +152,10 @@ export const crearCaja: CrearJuego = () => {
     return j
   }
 
-  function crearCajaMadera(c: ContextoJuego) {
-    const { RAPIER, mundo } = c.fisica!
-    const k = CAJA
-    const y0 = c.mesa.altura
-    const madera = new THREE.MeshStandardMaterial({ color: 0xece2cf, roughness: 0.75 })
-    const fondo = new THREE.MeshStandardMaterial({ color: 0xd8c9ad, roughness: 0.85 })
-    materiales.push(madera, fondo)
-    const piezas: { w: number; h: number; d: number; x: number; y: number; z: number; mat: THREE.Material }[] = [
-      { w: k.ancho, h: k.piso, d: k.fondo, x: 0, y: k.piso / 2, z: 0, mat: fondo },
-      { w: k.ancho, h: k.alto, d: k.grosor, x: 0, y: k.alto / 2, z: k.fondo / 2 - k.grosor / 2, mat: madera },
-      { w: k.ancho, h: k.alto, d: k.grosor, x: 0, y: k.alto / 2, z: -k.fondo / 2 + k.grosor / 2, mat: madera },
-      { w: k.grosor, h: k.alto, d: k.fondo - 2 * k.grosor, x: k.ancho / 2 - k.grosor / 2, y: k.alto / 2, z: 0, mat: madera },
-      { w: k.grosor, h: k.alto, d: k.fondo - 2 * k.grosor, x: -k.ancho / 2 + k.grosor / 2, y: k.alto / 2, z: 0, mat: madera },
-    ]
-    for (const p of piezas) {
-      const geo = new THREE.BoxGeometry(p.w, p.h, p.d)
-      geometrias.push(geo)
-      const m = new THREE.Mesh(geo, p.mat)
-      m.position.set(k.x + p.x, y0 + p.y, k.z + p.z)
-      m.castShadow = true
-      m.receiveShadow = true
+  function montarCajaMadera(c: ContextoJuego) {
+    for (const m of crearCajaMadera(recursos, c.fisica!, CAJA, c.mesa.altura)) {
       c.escena.add(m)
       mallasCaja.push(m)
-      mundo.createCollider(
-        RAPIER.ColliderDesc.cuboid(p.w / 2, p.h / 2, p.d / 2)
-          .setTranslation(k.x + p.x, y0 + p.y, k.z + p.z)
-          .setFriction(0.9),
-      )
     }
   }
 
@@ -361,7 +312,7 @@ export const crearCaja: CrearJuego = () => {
       R = c.fisica.RAPIER
       cfg = configDesdeCalibracion(c.calibracion?.aperturaPinzaMaxCm)
       c.configurarManos(ZONA_CAJA)
-      crearCajaMadera(c)
+      montarCajaMadera(c)
       const n = c.nivel
       posicionesJuguetes(Number(n.cantidad ?? 6), Number(n.distanciaCaja ?? 1.1)).forEach((pos, i) => juguetes.push(crearJuguete(c, i, pos, Number(n.tamano ?? 1))))
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }

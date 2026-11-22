@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AlInicio, Protegida, SoloPublica } from './auth/Protegida'
+import { useMarcarVista } from './ui/vista'
 import Acceso from './screens/acceso/Acceso'
 import { EstadoRed } from './ui/EstadoRed'
 import { PantallaCargando } from './ui/Marco'
@@ -25,16 +26,22 @@ const Prescripcion = lazy(() => import('./screens/terapeuta/Prescripcion'))
 const Alertas = lazy(() => import('./screens/terapeuta/Alertas'))
 const Planes = lazy(() => import('./screens/terapeuta/Planes'))
 const Informes = lazy(() => import('./screens/terapeuta/Informes'))
+const CompararPaciente = lazy(() => import('./comparar/Comparar').then((m) => ({ default: m.CompararPaciente })))
+const CompararTerapeuta = lazy(() => import('./comparar/Comparar').then((m) => ({ default: m.CompararTerapeuta })))
 const Depuracion = lazy(() => import('./screens/depuracion/Depuracion'))
+const Primitivas = lazy(() => import('./screens/primitivas/Primitivas'))
 const VistaOficina3D = lazy(() => import('./ui/VistaOficina3D'))
 
 export default function App() {
+  useMarcarVista()
   return (
     <BrowserRouter>
       <AuthProvider>
         <Suspense fallback={<PantallaCargando />}>
           <Routes>
             <Route path="/" element={<AlInicio />} />
+            {/* Vista oculta (no enlazada): catálogo de brandbook/primitivas.css. Pública para revisarla sin cuenta. */}
+            <Route path="/primitivas" element={<Primitivas />} />
             <Route element={<SoloPublica />}>
               <Route path="/acceso" element={<Acceso />} />
             </Route>
@@ -44,6 +51,7 @@ export default function App() {
               <Route path="/inicio" element={<Inicio />} />
               <Route path="/ejercicios" element={<Ejercicios />} />
               <Route path="/progreso" element={<Progreso />} />
+              <Route path="/progreso/comparar" element={<CompararPaciente />} />
               <Route path="/perfil" element={<Perfil />} />
             </Route>
             {/* Paciente: flujo de sesión y privacidad, sin barra */}
@@ -54,8 +62,8 @@ export default function App() {
               <Route path="/sesion/:id/resumen" element={<Resumen />} />
               <Route path="/privacidad" element={<Privacidad />} />
             </Route>
-            {/* Juego: pantalla completa (horizontal), sin barra ni banner */}
-            <Route element={<Protegida roles={['paciente']} banner={false} />}>
+            {/* Juego: pantalla completa (horizontal), sin barra */}
+            <Route element={<Protegida roles={['paciente']} />}>
               <Route path="/sesion/:id/jugar" element={<Jugar />} />
             </Route>
 
@@ -74,6 +82,7 @@ export default function App() {
             </Route>
             <Route element={<Protegida roles={['terapeuta']} />}>
               <Route path="/terapeuta/pacientes/:id/plan" element={<Prescripcion />} />
+              <Route path="/terapeuta/pacientes/:id/comparar" element={<CompararTerapeuta />} />
             </Route>
 
             {/* Ambos roles */}

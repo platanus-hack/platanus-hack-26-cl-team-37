@@ -6,7 +6,7 @@
 //  manosEnGuion(guion, tMs)           → { manos, luz } del guion en el instante tMs (determinista).
 //  secuencia([[durMs, pose], ...])    → PoseClave[] con t acumulado (cada pose dura/llega en durMs).
 //  guionPreset(nombre, lado?)         → guiones listos: GUIONES_PRESET (quieta, abrir-cerrar, pinza, mover,
-//                                        calibracion, sin-mano, ambas).
+//                                        calibracion, sin-mano, ambas, banda).
 //  Ejemplo:
 //    const g: GuionSintetico = { manos: [{ lado: 'derecha', poses: secuencia([
 //      [0, { apertura: 1 }], [800, { apertura: 0 }], [800, { apertura: 1, pinzaCm: 0.5 }] ]) }] }
@@ -337,7 +337,7 @@ export function secuencia(pasos: [number, Partial<PoseMano>][], desdeMs = 0): Po
 
 // ── Guiones preparados ────────────────────────────────────────────────────────────────────────────
 
-export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas'] as const
+export const GUIONES_PRESET = ['calibracion', 'quieta', 'abrir-cerrar', 'pinza', 'mover', 'sin-mano', 'ambas', 'banda', 'muneca'] as const
 export type NombreGuion = (typeof GUIONES_PRESET)[number]
 
 const X_POR_LADO: Record<LadoMano, number> = { derecha: 0.42, izquierda: 0.58 }
@@ -370,6 +370,36 @@ export function guionPreset(nombre: NombreGuion, lado: LadoMano = 'derecha'): Gu
           poses: secuencia([[0, { x: l === 'derecha' ? 0.32 : 0.68 }], [400, {}], [600, { apertura: 0 }], [400, {}], [600, { apertura: 1 }]]),
         })),
       }
+    case 'banda': {
+      // Banda elástica (F36): las dos manos parten en reposo (separación 0,30 del ancho de la imagen, quietas ~3,5 s para
+      // que se marque el reposo) y hacen tres tirones de +40 %, +60 % y +50 % de separación. El guion
+      // se repite (bucle), con un reposo largo entre vueltas. El lado no importa: siempre son las dos manos.
+      const REPOSO = 0.3
+      const pasos: [number, number][] = [
+        [3500, REPOSO],
+        [600, REPOSO * 1.4], [200, REPOSO * 1.4], [600, REPOSO], [900, REPOSO],
+        [700, REPOSO * 1.6], [200, REPOSO * 1.6], [700, REPOSO], [900, REPOSO],
+        [650, REPOSO * 1.5], [200, REPOSO * 1.5], [650, REPOSO], [1500, REPOSO],
+      ]
+      const manos = (['derecha', 'izquierda'] as LadoMano[]).map((l) => ({
+        lado: l,
+        poses: secuencia([[0, { x: 0.5 + (l === 'derecha' ? -REPOSO : REPOSO) / 2, y: 0.5 }], ...pasos.map(([d, sep]) => [d, { x: 0.5 + (l === 'derecha' ? -sep : sep) / 2 }] as [number, Partial<PoseMano>])]),
+      }))
+      return { manos }
+    }
+    case 'muneca': {
+      // F37 · Muñeca 3D: neutro quieto 2,5 s y luego flexión 45°, extensión 38°, desviación radial 22° y cubital 28°
+      // (cada una: sube en 0,7 s, se sostiene 2,2 s, vuelve en 0,7 s y descansa 0,8 s). Mano derecha o izquierda: mismos ángulos.
+      const neutra = { inclinacionDeg: 0, giroDeg: 0 }
+      const mov = (p: Partial<PoseMano>): [number, Partial<PoseMano>][] => [[700, p], [2200, p], [700, neutra], [800, neutra]]
+      return una([
+        [2500, neutra],
+        ...mov({ inclinacionDeg: 45 }),
+        ...mov({ inclinacionDeg: -38 }),
+        ...mov({ giroDeg: 22 }),
+        ...mov({ giroDeg: -28 }),
+      ])
+    }
     case 'calibracion': {
       // Los pasos de la calibración (F08): abierta 2,5 s, abrir y cerrar 3 veces, pinza 1,5 s, soltar.
       // Como un teléfono en vertical: cámara 480×640 y mano centrada (x = y = 0,5), para que quepa en el marco guía.

@@ -1,4 +1,4 @@
-# ManoViva
+# Kuwü
 
 **Rehabilitación de manos que se juega.** El paciente hace sus ejercicios jugando frente a la cámara del teléfono y su terapeuta ve cómo avanza, sin esperar al próximo control.
 
@@ -6,7 +6,7 @@
 
 Después de una lesión, una cirugía o un accidente cerebrovascular, recuperar la mano depende de repetir ejercicios en casa durante semanas. Hoy esos ejercicios se entregan en una hoja impresa: el paciente no sabe si los hace bien, se aburre y deja de hacerlos, y el terapeuta solo se entera en el control siguiente.
 
-## Qué hace ManoViva
+## Qué hace Kuwü
 
 - **La mano es el control.** La cámara frontal del teléfono sigue 21 puntos de la mano en tiempo real. No hace falta guante, sensor ni ningún equipo aparte.
 - **Ocho juegos, cada uno para un gesto.** Caja de juguetes (pinza y agarre), Movilidad guiada (abrir y cerrar), Torre de cubos (precisión y control), Pinza fina (oposición del pulgar), Atrapa burbujas (alcance y extensión), Exprime la naranja (cierre de puño), Memoria de cartas (giro del antebrazo) y Piano de dedos (independencia de dedos). Cada juego tiene cinco niveles.
@@ -26,7 +26,7 @@ La entrada es una señal física real, el movimiento de la mano captado por la c
 
 Abre https://manoviva-sigma.vercel.app en un teléfono, elige «Soy paciente» o «Soy terapeuta» y toca **Entrar con cuenta demo**. Los datos de esa cuenta son ficticios y la app lo indica; las sesiones que juegues con tu mano sí se miden de verdad.
 
-ManoViva no entrega diagnósticos ni reemplaza al terapeuta: lo complementa.
+Kuwü no entrega diagnósticos ni reemplaza al terapeuta: lo complementa.
 
 ## Cómo está hecho
 

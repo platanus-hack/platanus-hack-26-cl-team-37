@@ -1,15 +1,14 @@
-// Marco común de las pantallas con sesión: banner de datos demo, contenido y barra inferior según el rol.
+// Marco común de las pantallas con sesión: contenido y barra de navegación según el rol.
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/contexto'
 import { repos } from '../data/repos'
-import { BannerDemo, BarraPaciente, BarraTerapeuta, Cargando } from './piezas'
+import { BarraPaciente, BarraTerapeuta, Cargando } from './piezas'
 
-export function Marco({ barra = false, banner = true }: { barra?: boolean; banner?: boolean }) {
+export function Marco({ barra = false }: { barra?: boolean }) {
   const { usuario } = useAuth()
   return (
-    <div className="app">
-      {banner && usuario?.demo && <BannerDemo />}
+    <div className={barra ? 'app con-nav' : 'app'}>
       <Suspense fallback={<PantallaCargando />}>
         <Outlet />
       </Suspense>

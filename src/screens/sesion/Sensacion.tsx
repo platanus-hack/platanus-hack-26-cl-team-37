@@ -141,7 +141,7 @@ function Formulario({ datos }: { datos: DatosSensacion }) {
 
       <section className="tarjeta sensacion-tarjeta" aria-labelledby="t-esfuerzo">
         <h2 id="t-esfuerzo">Esfuerzo percibido</h2>
-        <div className="sensacion-chips" role="group" aria-labelledby="t-esfuerzo">
+        <div className="chips en-tarjeta sensacion-chips" role="group" aria-labelledby="t-esfuerzo">
           {ESFUERZOS.map((op) => (
             <button key={op} type="button" className="chip" aria-pressed={esfuerzo === op} onClick={() => setEsfuerzo((v) => (v === op ? null : op))}>
               {op}

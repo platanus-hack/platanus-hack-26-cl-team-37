@@ -182,6 +182,29 @@ test.describe('calibración', () => {
     expect(escrituras).toEqual([])
   })
 
+  test('?debug=1 muestra los valores crudos (apertura, espera, marco); sin el parámetro no aparece', async ({ page }) => {
+    const escrituras = await sesionFalsa(page)
+    await page.addInitScript(() => {
+      ;(globalThis as unknown as Ventana).__manoviva = { guion: { manos: [{ lado: 'derecha', poses: [{ t: 0, x: 0.5, y: 0.5, apertura: 1 }] }], camara: { ancho: 480, alto: 640 } } }
+    })
+    await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica&debug=1`)
+    const panel = page.getByTestId('debug')
+    await expect(panel.locator('[data-campo="marco"]')).toContainText('21/21 ✓')
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('apertura ≥ 0,70')
+    await expect(panel.locator('[data-campo="apertura"]')).toContainText(/\d,\d\d/)
+    await expect(panel.locator('[data-campo="mano"]')).toContainText('derecha')
+    // Mano abierta 2 s → paso 2: ahora espera el cierre.
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('cerrar: apertura ≤ 0,40', { timeout: 10_000 })
+    await page.evaluate(() => (globalThis as unknown as Ventana).__manoviva!.fuente!.fijarPose({ apertura: 0 }))
+    await expect(panel.locator('[data-campo="cerrada"]')).toContainText('sí')
+    await expect(panel.locator('[data-campo="espera"]')).toContainText('abrir: apertura ≥ 0,70')
+    expect(escrituras).toEqual([])
+
+    await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica`)
+    await expect(page.getByTestId('marco')).toHaveClass(/dentro/)
+    await expect(page.getByTestId('debug')).toHaveCount(0)
+  })
+
   test('sesión inexistente o cerrada no calibra', async ({ page }) => {
     await page.route('**/rest/v1/sesiones?*', (route) => route.fulfill({ json: [] }))
     await page.goto(`/sesion/${ID_FALSO}/calibrar?fuente=sintetica`)

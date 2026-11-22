@@ -10,31 +10,39 @@
 
 import type { Calibracion, Mano } from '../domain/types'
 import type { ManoSeguida } from '../tracking/tipos'
+import { escalaPerspectivaDebil } from '../tracking/distancia'
 import { aperturaMano, aperturaPinza, clasificarLuz, distancia, escalaCm, largoMano, type NivelLuz } from './geometria'
 
 export type PasoCalibracion = 'abierta' | 'abrir-cerrar' | 'pinza' | 'lista'
 export const PASOS: Exclude<PasoCalibracion, 'lista'>[] = ['abierta', 'abrir-cerrar', 'pinza']
 
+// Márgenes ampliados el 2026-11-21 porque en uso real a veces no "pescaba" (pedido del dueño): abierta 0,8→0,7,
+// cerrada 0,3→0,4, 2→1,5 s, tolerancia a cuadros con ruido también en el paso 1, hasta 2 puntos fuera del marco,
+// pinza 3→3,5 cm y 0,35→0,40 palma, distancia 30–70→25–80 cm, confianza 0,7→0,6.
 export const UMBRALES = {
   /** aperturaMano ≥ esto = mano abierta. */
-  abierta: 0.8,
+  abierta: 0.7,
   /** aperturaMano ≤ esto = mano cerrada. */
-  cerrada: 0.3,
-  msAbierta: 2000,
+  cerrada: 0.4,
+  msAbierta: 1500,
+  /** Paso 1: un cuadro suelto sin mano abierta (ruido) no reinicia la cuenta si dura menos que esto. */
+  msToleranciaAbierta: 300,
   repeticiones: 3,
   /** Distancia pulgar–índice (cm) para contar la pinza (puntas, no yemas: juntas quedan a 1,5–3 cm). */
-  pinzaCm: 3,
+  pinzaCm: 3.5,
   /** Igual, relativa al largo de la palma (muñeca→nudillo del medio, ~9 cm): no depende de la escala. */
-  pinzaRel: 0.35,
+  pinzaRel: 0.4,
   /** Hasta este múltiplo del umbral se muestra "casi". */
   pinzaCasi: 1.8,
   msPinza: 400,
   /** Un cuadro suelto fuera del umbral (ruido) no reinicia la cuenta si dura menos que esto. */
-  msToleranciaPinza: 250,
+  msToleranciaPinza: 350,
+  /** Puntos de la mano (de 21) que pueden quedar fuera del marco guía y seguir contando como "dentro". */
+  puntosFueraMax: 2,
   /** Rango de distancia cámara–mano aceptable (cm, aprox.). */
-  distanciaMinCm: 30,
-  distanciaMaxCm: 70,
-  confianzaMin: 0.7,
+  distanciaMinCm: 25,
+  distanciaMaxCm: 80,
+  confianzaMin: 0.6,
 } as const
 
 /** Lo que la pantalla mide en un cuadro. */
@@ -47,10 +55,16 @@ export interface MuestraCalibracion {
   dentro: boolean
   /** aperturaMano 0..~1,2. */
   apertura: number
-  /** Distancia pulgar–índice en cm (con la escala del mundo o de la regla). */
+  /** Distancia pulgar–índice en cm (3D, con la escala del mundo o de la regla). */
   pinzaCm: number
   /** Distancia pulgar–índice / largo de la palma. Opcional: si falta, solo se usa pinzaCm. */
   pinzaRel?: number
+  /**
+   * Distancia pulgar–índice en el plano de la imagen, en cm (aprox.). Con la palma hacia la cámara el pulgar tapa
+   * al índice y MediaPipe estima mal la profundidad: la 3D queda en varios cm aunque los dedos se toquen. La pinza
+   * se reconoce si cualquiera de las dos baja del umbral. null si no se pudo calcular.
+   */
+  pinzaVistaCm?: number | null
   /** Largo muñeca→punta del medio estimado con worldLandmarks (cm, escala MediaPipe). */
   largoCm: number
   confianza: number
@@ -61,6 +75,8 @@ export interface EstadoCalibracion {
   paso: PasoCalibracion
   /** t desde que la mano está abierta y dentro (paso 1). */
   desdeAbierta: number | null
+  /** Último t con la mano abierta y dentro (para tolerar cuadros con ruido en el paso 1). */
+  ultimaAbierta?: number | null
   repeticiones: number
   cerrada: boolean
   /** t desde que la pinza está cerrada (paso 3). */
@@ -118,13 +134,16 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
   if (s.paso === 'abierta') {
     if (valida && m.apertura >= UMBRALES.abierta) {
       s.desdeAbierta ??= m.t
+      s.ultimaAbierta = m.t
       const f = (m.t - s.desdeAbierta) / UMBRALES.msAbierta
       if (f >= 1) {
         s.paso = 'abrir-cerrar'
         s.progreso = tercio(1, 0)
       } else s.progreso = tercio(0, f)
-    } else {
+    } else if (s.ultimaAbierta == null || m.t - s.ultimaAbierta > UMBRALES.msToleranciaAbierta) {
+      // solo se reinicia si la mano dejó de estar abierta más que la tolerancia (un cuadro con ruido no basta)
       s.desdeAbierta = null
+      s.ultimaAbierta = null
       s.progreso = 0
     }
   } else if (s.paso === 'abrir-cerrar') {
@@ -159,11 +178,30 @@ export function avanzarCalibracion(e: EstadoCalibracion, m: MuestraCalibracion):
   return s
 }
 
+/**
+ * Modo depuración (?debug=1): qué condición espera el paso actual para avanzar, con su umbral.
+ * Sirve para ver en el teléfono si falla el cierre, la apertura, la pinza o el marco.
+ */
+export function esperaCalibracion(e: Pick<EstadoCalibracion, 'paso' | 'cerrada'>): string {
+  const d2 = (n: number) => n.toFixed(2).replace('.', ',')
+  const coma = (n: number) => String(n).replace('.', ',')
+  if (e.paso === 'abierta') return `apertura ≥ ${d2(UMBRALES.abierta)} por ${coma(UMBRALES.msAbierta / 1000)} s`
+  if (e.paso === 'abrir-cerrar') return e.cerrada ? `abrir: apertura ≥ ${d2(UMBRALES.abierta)}` : `cerrar: apertura ≤ ${d2(UMBRALES.cerrada)}`
+  if (e.paso === 'pinza') return `pinza ≤ ${coma(UMBRALES.pinzaCm)} cm o ≤ ${d2(UMBRALES.pinzaRel)} palma por ${coma(UMBRALES.msPinza / 1000)} s`
+  return 'nada (lista)'
+}
+
+/** Distancia que se usa para reconocer el gesto de pinza: la menor entre la 3D y la de la imagen. */
+export function pinzaGesto(m: Pick<MuestraCalibracion, 'pinzaCm' | 'pinzaVistaCm'>): number {
+  return Math.min(m.pinzaCm, m.pinzaVistaCm ?? Infinity)
+}
+
 /** Qué tan cerca están las puntas del pulgar y el índice: 'junta' cuenta para el paso 3; 'casi' sirve para guiar. */
-export function estadoPinza(m: Pick<MuestraCalibracion, 'pinzaCm' | 'pinzaRel'>): 'junta' | 'casi' | 'lejos' {
+export function estadoPinza(m: Pick<MuestraCalibracion, 'pinzaCm' | 'pinzaRel' | 'pinzaVistaCm'>): 'junta' | 'casi' | 'lejos' {
   const rel = m.pinzaRel
-  if (m.pinzaCm <= UMBRALES.pinzaCm || (rel != null && rel <= UMBRALES.pinzaRel)) return 'junta'
-  if (m.pinzaCm <= UMBRALES.pinzaCm * UMBRALES.pinzaCasi || (rel != null && rel <= UMBRALES.pinzaRel * UMBRALES.pinzaCasi)) return 'casi'
+  const cm = pinzaGesto(m)
+  if (cm <= UMBRALES.pinzaCm || (rel != null && rel <= UMBRALES.pinzaRel)) return 'junta'
+  if (cm <= UMBRALES.pinzaCm * UMBRALES.pinzaCasi || (rel != null && rel <= UMBRALES.pinzaRel * UMBRALES.pinzaCasi)) return 'casi'
   return 'lejos'
 }
 
@@ -196,16 +234,32 @@ export function resultadoCalibracion(e: EstadoCalibracion, largoReglaCm: number 
   }
 }
 
-/** Medidas de una mano para la calibración (todas con worldLandmarks: no dependen de la distancia). */
-export function medidasMano(m: Pick<ManoSeguida, 'worldLandmarks'>, largoReglaCm: number | null) {
+/**
+ * Medidas de una mano para la calibración. apertura, pinzaCm y largoCm usan worldLandmarks (no dependen de la
+ * distancia). pinzaVistaCm usa los puntos de la imagen y, para pasar a cm, la escala px/m de perspectiva débil
+ * (tracking/distancia): necesita el tamaño de la imagen; sin él queda null.
+ */
+export function medidasMano(
+  m: Pick<ManoSeguida, 'worldLandmarks'> & Partial<Pick<ManoSeguida, 'landmarks'>>,
+  largoReglaCm: number | null,
+  imagen?: { ancho: number; alto: number },
+) {
   const largoM = largoMano(m.worldLandmarks)
   const escala = escalaCm(largoM, largoReglaCm)
+  let pinzaVistaCm: number | null = null
+  if (imagen && m.landmarks && m.landmarks.length >= 21) {
+    const pxPorM = escalaPerspectivaDebil(m.landmarks, m.worldLandmarks, imagen.ancho, imagen.alto)
+    const a = m.landmarks[4]
+    const b = m.landmarks[8]
+    if (pxPorM) pinzaVistaCm = (Math.hypot((a.x - b.x) * imagen.ancho, (a.y - b.y) * imagen.alto) / pxPorM) * escala
+  }
   const palma = distancia(m.worldLandmarks[0], m.worldLandmarks[9])
   const pinza = aperturaPinza(m.worldLandmarks)
   return {
     apertura: aperturaMano(m.worldLandmarks),
     pinzaCm: pinza * escala,
     pinzaRel: palma > 0 ? pinza / palma : undefined,
+    pinzaVistaCm,
     largoCm: largoM * 100,
   }
 }

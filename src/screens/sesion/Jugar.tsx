@@ -32,7 +32,7 @@ export default function Jugar() {
   const d = r.datos
   if (r.estado === 'listo' && d?.sesion && d.sesion.estado !== 'cerrada' && d.crear) {
     return (
-      <main className="juego">
+      <main className="juego kuwu-noche">
         <JuegoShell sesion={d.sesion} crear={d.crear} seqInicial={d.seqInicial} />
       </main>
     )

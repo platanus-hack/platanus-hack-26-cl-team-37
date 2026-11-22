@@ -200,6 +200,12 @@ export function JuegoShell({ sesion, crear, seqInicial }: { sesion: Sesion; crea
       configurarManos(z) {
         if (escena) escena.manos.zona = { ...escena.manos.zona, ...z }
       },
+      guardarPose(etiqueta, lado, valor = null) {
+        const m = ultimoCuadro?.manos.find((x) => x.lado === lado)
+        if (!m) return false
+        const c = m.landmarks.reduce((s, p) => [s[0] + p.x / 21, s[1] + p.y / 21], [0, 0]) as [number, number]
+        return registro.pose(ciclo.jugadoMs, etiqueta, lado, m.worldLandmarks, valor, c)
+      },
     }
 
     const aplicarCambios = (cambios: CambioCiclo[], ahora: number) => {
