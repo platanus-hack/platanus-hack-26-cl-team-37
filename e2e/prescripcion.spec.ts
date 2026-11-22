@@ -213,6 +213,60 @@ test.describe('prescripción · plan de Carmen (sin enviar nada)', () => {
     await expect(page.getByTestId('fila-umbral')).toHaveAttribute('data-cambiado', 'si')
     await expect(enviar(page)).toBeEnabled()
   })
+
+  test('quitar y agregar ejercicios: se destacan, van al resumen y se pueden deshacer (sin enviar)', async ({ page }) => {
+    const v = vigilarErrores(page)
+    const id = await idDeCarmen()
+    const vigente = (await planesDe('terapeuta', id)).at(-1)!
+    const juegos = [...new Set(vigente.items.map((i) => i.juego))]
+    expect(juegos.length).toBeGreaterThanOrEqual(2)
+    await page.goto(`/terapeuta/pacientes/${id}/plan`)
+    const [j0, j1] = [juegos[0]!, juegos[1]!]
+
+    // Quitar el primero: queda a la vista, marcado «Se quita», y el último que queda no se puede quitar.
+    await page.getByRole('button', { name: `Quitar ${NOMBRE[j0]} del plan` }).click()
+    await expect(page.getByTestId(`juego-${j0}`)).toHaveAttribute('data-estado', 'quitado')
+    await expect(page.getByTestId(`juego-${j0}`)).toContainText('Se quita')
+    if (juegos.length === 2) {
+      await expect(page.getByRole('button', { name: `Quitar ${NOMBRE[j1]} del plan` })).toBeDisabled()
+      await expect(page.getByText('El plan necesita al menos un ejercicio.')).toBeVisible()
+    }
+    await expect(enviar(page)).toBeEnabled()
+    await enviar(page).click()
+    await expect(hoja(page).getByTestId('cambio')).toHaveCount(1)
+    await expect(hoja(page).getByTestId('cambio')).toContainText(`${NOMBRE[j0]} · ejercicio`)
+    await expect(hoja(page).getByTestId('cambio')).toContainText('En el plan → Se quita')
+    await hoja(page).getByRole('button', { name: 'Cancelar' }).click()
+
+    // Deshacer lo devuelve tal cual: sin cambios.
+    await page.getByTestId(`juego-${j0}`).getByRole('button', { name: 'Deshacer' }).click()
+    await expect(page.getByTestId(`juego-${j0}`)).toHaveAttribute('data-estado', 'igual')
+    await expect(enviar(page)).toBeDisabled()
+
+    // Agregar uno del catálogo: nivel 1 y meta 10 por defecto, con sus controles; «No agregar» lo saca.
+    const agregar = page.getByLabel('Agregar un ejercicio')
+    const opciones = await agregar.locator('option').allTextContents()
+    expect(opciones).toContain('Pinza fina')
+    for (const j of juegos) expect(opciones).not.toContain(NOMBRE[j]) // los que ya están en el plan no se ofrecen
+    await agregar.selectOption({ label: 'Pinza fina' })
+    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    const nuevo = page.getByTestId('juego-pinza-fina')
+    await expect(nuevo).toHaveAttribute('data-estado', 'nuevo')
+    await expect(nuevo).toContainText('Nuevo')
+    await expect(valor(page, 'fila-nivel-pinza-fina')).toHaveText('1')
+    await expect(valor(page, 'fila-meta-pinza-fina')).toHaveText('10')
+    await subir(page, 'nivel de Pinza fina').click()
+    await enviar(page).click()
+    await expect(hoja(page).getByTestId('cambio')).toHaveCount(1)
+    await expect(hoja(page).getByTestId('cambio')).toContainText('Pinza fina · ejercicio')
+    await expect(hoja(page).getByTestId('cambio')).toContainText('No está → Se agrega: nivel 2, meta 10')
+    await hoja(page).getByRole('button', { name: 'Cancelar' }).click()
+    await page.getByRole('button', { name: 'Quitar Pinza fina del plan' }).click()
+    await expect(page.getByTestId('juego-pinza-fina')).toHaveCount(0)
+    await expect(enviar(page)).toBeDisabled()
+    expect((await planesDe('terapeuta', id)).at(-1)!.version).toBe(vigente.version) // nada se envió
+    v.sinErrores()
+  })
 })
 
 // ---------------------------------------------------------------------------------------------- paciente de prueba
@@ -355,5 +409,42 @@ test.describe('prescripción · envío real con el paciente de prueba', () => {
     } finally {
       limpiarPrueba([antiguo, nueva])
     }
+  })
+
+  test('quitar un ejercicio y agregar otro crea la versión 3 con los ítems correctos', async ({ page, context }) => {
+    await entrarComo(context, 'terapeuta')
+    const v = vigilarErrores(page)
+    const v2 = (await planesDe('terapeuta', pacienteId)).at(-1)!
+    expect(v2.version).toBe(2)
+    await page.goto(`/terapeuta/pacientes/${pacienteId}/plan`)
+    await expect(page.getByTestId('version-plan')).toContainText('Versión 2 ·')
+
+    await page.getByRole('button', { name: 'Quitar Movilidad guiada del plan' }).click()
+    await page.getByLabel('Agregar un ejercicio').selectOption({ label: 'Pinza fina' })
+    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Quitar Caja de juguetes del plan' })).toBeEnabled()
+    await enviar(page).click()
+    const filas = hoja(page).getByTestId('cambio')
+    await expect(filas).toHaveCount(2)
+    await expect(filas.filter({ hasText: 'Movilidad guiada' })).toContainText('Se quita')
+    await expect(filas.filter({ hasText: 'Pinza fina' })).toContainText('Se agrega: nivel 1, meta 10')
+    await hoja(page).getByRole('button', { name: 'Confirmar y enviar' }).click()
+    await expect(page.getByText('Plan actualizado', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('version-plan')).toContainText('Versión 3 ·')
+    await expect(page.getByTestId('juego-movilidad-guiada')).toHaveCount(0)
+    await expect(page.getByTestId('juego-pinza-fina')).toHaveAttribute('data-estado', 'igual')
+
+    // BD: la versión 3 lleva Caja tal como estaba y Pinza fina con valores por defecto; la 2 no cambia.
+    const todas = await planesDe('terapeuta', pacienteId)
+    expect(todas.map((p) => p.version)).toEqual([1, 2, 3])
+    expect(todas[1]).toEqual(v2)
+    const v3 = todas[2]!
+    const caja2 = v2.items.find((i) => i.juego === 'caja-juguetes')!
+    expect(v3.items.map((i) => i.juego)).toEqual(['caja-juguetes', 'pinza-fina'])
+    expect(v3.items[0]).toEqual(caja2)
+    expect(v3.items[1]).toEqual({ juego: 'pinza-fina', nivel: 1, duracionMin: 5, mano: caja2.mano, metaAgarres: 10, metaPinzaCm: caja2.metaPinzaCm })
+    expect(v3.sesiones_por_semana).toBe(v2.sesiones_por_semana)
+    expect(v3.mensaje).toBeNull()
+    v.sinErrores()
   })
 })

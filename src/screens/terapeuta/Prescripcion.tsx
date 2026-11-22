@@ -28,9 +28,14 @@ import {
   UMBRAL_MIN,
   borradorDe,
   cambiado,
+  agregarJuego,
   cambios,
   datosDeEnvio,
-  juegosDelPlan,
+  ejerciciosEnPantalla,
+  estadoEjercicio,
+  itemNuevo,
+  juegosParaAgregar,
+  quitarJuego,
   tendenciaPinza,
   textoMetaJuego,
   validar,
@@ -143,8 +148,11 @@ function Editor({ inicial }: { inicial: Datos }) {
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [hoy] = useState(() => new Date())
 
-  const juegos = juegosDelPlan(plan)
+  const juegos = ejerciciosEnPantalla(plan, b)
   const metas = useMetasJuego(juegos)
+  const paraAgregar = juegosParaAgregar(plan, b)
+  const [aAgregar, setAAgregar] = useState('')
+  const elegido = paraAgregar.includes(aAgregar) ? aAgregar : (paraAgregar[0] ?? '')
   const tendencia = tendenciaPinza(sesiones, plan, hoy)
   const lista = cambios(plan, b)
   const invalido = validar(plan, b)
@@ -157,8 +165,8 @@ function Editor({ inicial }: { inicial: Datos }) {
     const valor = b.metas[juego] ?? 0
     if (valor <= 0) return 'Práctica libre: termina por tiempo'
     const meta = metas[juego]
-    const item = plan.items.find((it) => it.juego === juego)
-    if (!meta || !item) return 'Repeticiones por sesión'
+    const item = plan.items.find((it) => it.juego === juego) ?? itemNuevo(plan, b, juego)
+    if (!meta) return 'Repeticiones por sesión'
     const enJuego = meta.desdePlan({ nivel: b.niveles[juego] ?? item.nivel, duracionMin: item.duracionMin, metaAgarres: valor, metaPinzaCm: item.metaPinzaCm })
     return enJuego > 0 && enJuego !== valor ? `En el juego: ${enJuego} ${meta.unidad}` : `${mayuscula(meta.unidad)} por sesión`
   }
@@ -211,7 +219,7 @@ function Editor({ inicial }: { inicial: Datos }) {
             <Fila tarjeta titulo="Frecuencia" detalle="Sesiones por semana" cambiado={marca('sesiones')} testid="fila-sesiones">
               <Stepper valor={b.sesionesPorSemana} min={SESIONES_MIN} max={SESIONES_MAX} onCambio={(v) => poner({ sesionesPorSemana: v })} etiqueta="sesiones por semana" cambiado={marca('sesiones')} />
             </Fila>
-            {juegos.length > 0 && (
+            {b.juegos.length > 0 && (
               <Fila tarjeta titulo="Meta de pinza" detalle="Apertura aprox. (cm)" cambiado={marca('metaPinza')} testid="fila-pinza">
                 <Stepper
                   valor={b.metaPinzaCm}
@@ -243,9 +251,26 @@ function Editor({ inicial }: { inicial: Datos }) {
             <ul className="col sin-vinetas" aria-label="Ejercicios del plan">
               {juegos.map((j) => {
                 const nombre = nombreJuego(j)
+                const estado = estadoEjercicio(plan, b, j)
+                if (estado === 'quitado')
+                  return (
+                    <li key={j} className="tarjeta presc-juego" data-testid={`juego-${j}`} data-estado={estado}>
+                      <div className="presc-juego-cabeza">
+                        <h3 className="presc-juego-nombre">{nombre}</h3>
+                        <span className="presc-etiqueta">Se quita</span>
+                      </div>
+                      <p className="presc-detalle">Al enviar, sale del plan. Sus sesiones anteriores se conservan.</p>
+                      <button type="button" className="boton secundario chico presc-juego-accion" onClick={() => setB((x) => agregarJuego(plan, x, j))}>
+                        Deshacer
+                      </button>
+                    </li>
+                  )
                 return (
-                  <li key={j} className="tarjeta presc-juego" data-testid={`juego-${j}`}>
-                    <h3 className="presc-juego-nombre">{nombre}</h3>
+                  <li key={j} className="tarjeta presc-juego" data-testid={`juego-${j}`} data-estado={estado}>
+                    <div className="presc-juego-cabeza">
+                      <h3 className="presc-juego-nombre">{nombre}</h3>
+                      {estado === 'nuevo' && <span className="presc-etiqueta">Nuevo</span>}
+                    </div>
                     <Fila titulo="Nivel de dificultad" detalle={nivelDe(j, b.niveles[j] ?? NIVEL_MIN).nombre} cambiado={marca('nivel', j)} testid={`fila-nivel-${j}`}>
                       <Stepper
                         valor={b.niveles[j] ?? NIVEL_MIN}
@@ -267,10 +292,37 @@ function Editor({ inicial }: { inicial: Datos }) {
                         cambiado={marca('meta', j)}
                       />
                     </Fila>
+                    <button
+                      type="button"
+                      className="boton texto presc-juego-accion"
+                      disabled={b.juegos.length <= 1}
+                      onClick={() => setB((x) => quitarJuego(x, j))}
+                      aria-label={`Quitar ${nombre} del plan`}
+                    >
+                      {estado === 'nuevo' ? 'No agregar' : 'Quitar del plan'}
+                    </button>
                   </li>
                 )
               })}
             </ul>
+          )}
+          {b.juegos.length <= 1 && <p className="ayuda-campo">El plan necesita al menos un ejercicio.</p>}
+          {paraAgregar.length > 0 && (
+            <div className="campo presc-agregar">
+              <label htmlFor="presc-agregar">Agregar un ejercicio</label>
+              <div className="presc-agregar-fila">
+                <select id="presc-agregar" className="entrada" value={elegido} onChange={(e) => setAAgregar(e.target.value)}>
+                  {paraAgregar.map((id) => (
+                    <option key={id} value={id}>
+                      {nombreJuego(id)}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className="boton secundario" disabled={!elegido} onClick={() => elegido && setB((x) => agregarJuego(plan, x, elegido))}>
+                  Agregar
+                </button>
+              </div>
+            </div>
           )}
         </section>
 

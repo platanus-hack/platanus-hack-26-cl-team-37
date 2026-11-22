@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'vitest'
+import { DURACION_POR_DEFECTO } from '../../games/preparar'
 import type { MetricasSesion, Plan, PlanItem, Sesion } from '../../domain/types'
 import {
   META_JUEGO_MAX,
+  META_JUEGO_NUEVO,
+  agregarJuego,
   ajustarMeta,
   borradorDe,
   cambiado,
   cambios,
   datosDeEnvio,
+  ejerciciosEnPantalla,
+  estadoEjercicio,
   hayCambios,
   itemsNuevos,
+  juegosParaAgregar,
   metaPinzaDe,
+  quitarJuego,
   tendenciaPinza,
   validar,
 } from './edicionPlan'
@@ -37,7 +44,7 @@ const sesion = (atras: number, cm: number, calidad = 0.9): Sesion => ({
 describe('borrador', () => {
   it('parte del plan vigente, con el mensaje vacío y un nivel y una meta por juego', () => {
     const b = borradorDe(plan())
-    expect(b).toEqual({ niveles: { 'movilidad-guiada': 1, 'caja-juguetes': 2 }, metas: METAS, sesionesPorSemana: 5, metaPinzaCm: 7, umbralDolor: 5, mensaje: '' })
+    expect(b).toEqual({ juegos: ['movilidad-guiada', 'caja-juguetes'], niveles: { 'movilidad-guiada': 1, 'caja-juguetes': 2 }, metas: METAS, sesionesPorSemana: 5, metaPinzaCm: 7, umbralDolor: 5, mensaje: '' })
     expect(hayCambios(plan(), b)).toBe(false)
     expect(cambios(plan(), b)).toEqual([])
   })
@@ -152,5 +159,66 @@ describe('tendenciaPinza', () => {
     expect(t.primero).toBe(5)
     expect(t.pct).toBeNull()
     expect(tendenciaPinza([], null, HOY).primero).toBeNull()
+  })
+})
+
+describe('agregar y quitar ejercicios', () => {
+  const CATALOGO = [
+    { id: 'movilidad-guiada', disponible: true },
+    { id: 'caja-juguetes', disponible: true },
+    { id: 'pinza-fina', disponible: true },
+    { id: 'proximamente', disponible: false },
+  ]
+
+  it('se pueden agregar solo los disponibles que no están en pantalla', () => {
+    const p = plan()
+    expect(juegosParaAgregar(p, borradorDe(p), CATALOGO)).toEqual(['pinza-fina'])
+    // Uno quitado no se ofrece aquí: vuelve con «Deshacer» en su tarjeta.
+    expect(juegosParaAgregar(p, quitarJuego(borradorDe(p), 'caja-juguetes'), CATALOGO)).toEqual(['pinza-fina'])
+    expect(juegosParaAgregar(p, agregarJuego(p, borradorDe(p), 'pinza-fina'), CATALOGO)).toEqual([])
+  })
+
+  it('quitar un ejercicio: se marca, aparece en el resumen y no pasa a la versión nueva; el último no se quita', () => {
+    const p = plan()
+    const b = quitarJuego(borradorDe(p), 'movilidad-guiada')
+    expect(b.juegos).toEqual(['caja-juguetes'])
+    expect(estadoEjercicio(p, b, 'movilidad-guiada')).toBe('quitado')
+    expect(cambiado(p, b, 'ejercicio', 'movilidad-guiada')).toBe(true)
+    expect(cambiado(p, b, 'nivel', 'movilidad-guiada')).toBe(false)
+    expect(ejerciciosEnPantalla(p, b)).toEqual(['movilidad-guiada', 'caja-juguetes']) // sigue a la vista para deshacer
+    expect(cambios(p, b).map((c) => [c.campo, c.etiqueta, c.antes, c.despues])).toEqual([['ejercicio', 'Movilidad guiada · ejercicio', 'En el plan', 'Se quita']])
+    expect(itemsNuevos(p, b).map((i) => i.juego)).toEqual(['caja-juguetes'])
+    expect(quitarJuego(b, 'caja-juguetes')).toBe(b) // un plan necesita al menos un ejercicio
+    expect(validar(p, { ...b, juegos: [] })).toMatch(/al menos un ejercicio/)
+  })
+
+  it('los juegos ocultos del catálogo no se ofrecen para agregar', () => {
+    const p = plan([item('caja-juguetes', 2)])
+    const ofrecidos = juegosParaAgregar(p, borradorDe(p))
+    for (const id of ['muneca-3d', 'memoria-cartas', 'piano-dedos']) expect(ofrecidos).not.toContain(id)
+    expect(ofrecidos).toContain('pinza-fina')
+  })
+  it('agregar un ejercicio nuevo: nivel 1, meta por defecto, mano y meta de pinza del plan; va al final', () => {
+    const p = plan([item('caja-juguetes', 2, 7, { mano: 'izquierda', duracionMin: 8 })])
+    const b = agregarJuego(p, borradorDe(p), 'pinza-fina')
+    expect(b.juegos).toEqual(['caja-juguetes', 'pinza-fina'])
+    expect(estadoEjercicio(p, b, 'pinza-fina')).toBe('nuevo')
+    expect(cambios(p, b)).toEqual([
+      { campo: 'ejercicio', juego: 'pinza-fina', etiqueta: 'Pinza fina · ejercicio', antes: 'No está', despues: `Se agrega: nivel 1, meta ${META_JUEGO_NUEVO}` },
+    ])
+    expect(validar(p, b)).toBeNull()
+    expect(itemsNuevos(p, b)).toEqual([p.items[0], { juego: 'pinza-fina', nivel: 1, duracionMin: DURACION_POR_DEFECTO, mano: 'izquierda', metaAgarres: META_JUEGO_NUEVO, metaPinzaCm: 7 }])
+    // Editar el nivel de un ejercicio recién agregado no genera una fila aparte: va en el «Se agrega».
+    const b2 = { ...b, niveles: { ...b.niveles, 'pinza-fina': 3 } }
+    expect(cambios(p, b2).map((c) => c.despues)).toEqual([`Se agrega: nivel 3, meta ${META_JUEGO_NUEVO}`])
+    expect(itemsNuevos(p, b2)[1]!.nivel).toBe(3)
+  })
+
+  it('quitar y volver a agregar un ejercicio del plan lo deja como estaba, sin cambios', () => {
+    const p = plan()
+    const b = agregarJuego(p, quitarJuego({ ...borradorDe(p), niveles: { 'movilidad-guiada': 4, 'caja-juguetes': 2 } }, 'movilidad-guiada'), 'movilidad-guiada')
+    expect(b.niveles['movilidad-guiada']).toBe(1)
+    expect(hayCambios(p, b)).toBe(false)
+    expect(itemsNuevos(p, b)).toEqual(p.items)
   })
 })
