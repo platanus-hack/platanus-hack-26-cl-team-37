@@ -110,13 +110,15 @@ export function BarraPaciente() {
   )
 }
 
-export function BarraTerapeuta({ alertas = 0 }: { alertas?: number }) {
-  const items = [
-    { a: '/terapeuta/pacientes', n: 'Pacientes', i: 'pacientes' },
-    { a: '/terapeuta/alertas', n: 'Alertas', i: 'alerta', punto: alertas > 0 },
-    { a: '/terapeuta/planes', n: 'Planes', i: 'planes' },
-    { a: '/terapeuta/informes', n: 'Informes', i: 'informes' },
-  ]
+/**
+ * Pestañas del terapeuta. Alertas, Planes e Informes están ocultas (2026-11-22, decisión del dueño): sus pantallas siguen en
+ * /terapeuta/alertas, /terapeuta/planes y /terapeuta/informes, pero ninguna pestaña lleva a ellas. Para volver a mostrarlas,
+ * se agregan aquí (Alertas llevaba un punto cuando había alertas abiertas).
+ */
+const PESTANAS_TERAPEUTA = [{ a: '/terapeuta/pacientes', n: 'Pacientes', i: 'pacientes' }]
+
+export function BarraTerapeuta() {
+  const items = PESTANAS_TERAPEUTA
   return (
     <div className="barra-inferior">
       <LogoBarra />
@@ -125,7 +127,6 @@ export function BarraTerapeuta({ alertas = 0 }: { alertas?: number }) {
           <NavLink key={x.a} to={x.a} end={x.a === '/terapeuta/pacientes'}>
             <Icono nombre={x.i} />
             {x.n}
-            {x.punto && <span className="punto" aria-label="hay alertas" />}
           </NavLink>
         ))}
       </nav>
