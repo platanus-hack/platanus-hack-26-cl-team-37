@@ -99,7 +99,7 @@ const TEXTO_PAUSA: Record<MotivoPausa, { titulo: string; texto: string }> = {
 }
 
 /** Capa central: espera de la mano, pausa automática o manual (con su menú). */
-export function CapaPausa({ motivo, onContinuar, onTerminar, terminando }: { motivo: MotivoPausa; onContinuar: () => void; onTerminar: () => void; terminando: boolean }) {
+export function CapaPausa({ motivo, onContinuar, onTerminar, onSalir, terminando }: { motivo: MotivoPausa; onContinuar: () => void; onTerminar: () => void; onSalir?: () => void; terminando: boolean }) {
   const t = TEXTO_PAUSA[motivo]
   if (motivo === 'sin-mano') {
     return (
@@ -125,6 +125,16 @@ export function CapaPausa({ motivo, onContinuar, onTerminar, terminando }: { mot
         <button type="button" className="boton secundario bloque" onClick={onTerminar} disabled={terminando}>
           Terminar sesión
         </button>
+        {onSalir && (
+          <>
+            {/* Salir sin cerrar la sesión ni pasar por la encuesta (pedido del 22-nov-2026: probar o cambiar de juego sin
+                tener que terminarlo). La sesión queda sin cerrar, como si se cerrara la pestaña. */}
+            <button type="button" className="boton secundario bloque" onClick={onSalir} disabled={terminando} data-testid="salir-juegos">
+              Salir a los juegos
+            </button>
+            <p className="muy-tenue chico">Sale sin guardar el resumen ni responder la encuesta.</p>
+          </>
+        )}
       </div>
     </div>
   )

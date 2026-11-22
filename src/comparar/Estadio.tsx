@@ -24,6 +24,8 @@ function armar(m: Motor, p: PropsEstadio): EscenaJuego {
     case 'muneca-3d':
       return montarMuneca(m, base)
     case 'banda-elastica':
+    case 'honda':
+      // La honda guarda las mismas poses ('reposo' y 'pico' de ambas manos) y métricas de la banda.
       return montarBanda(m, base)
     case 'caja-juguetes':
       return montarCaja(m, { ...base, eventosAntes: p.eventosAntes, eventosDespues: p.eventosDespues })

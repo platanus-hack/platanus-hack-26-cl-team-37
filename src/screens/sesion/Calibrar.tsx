@@ -21,6 +21,7 @@ import {
   estadoPinza,
   medidasMano,
   numeroPaso,
+  puedeOmitirCalibracion,
   puntosDentro,
   resultadoCalibracion,
   UMBRALES,
@@ -120,6 +121,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
   // calibración: solo la mano más cercana a la cámara (una mano del fondo no se cuela)
   const { fuente, estado, error: errorFuente, reintentar: recrearFuente } = useFuenteManos(search, CONFIG_FUENTE_CALIBRACION)
   const debug = new URLSearchParams(search).has('debug')
+  const omitible = puedeOmitirCalibracion({ dev: import.meta.env.DEV, search })
   const raiz = useRef<HTMLDivElement>(null)
   const fondo = useRef<HTMLDivElement>(null)
   const lienzo = useRef<HTMLCanvasElement>(null)
@@ -233,6 +235,19 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
     alCompletar.current = () => void guardar()
   })
 
+  // Atajo para devs: Enter omite la calibración (sin guardarla) y pasa al juego. Respeta el Enter de botones y campos.
+  useEffect(() => {
+    if (!omitible) return
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.repeat || calib.current.paso === 'lista') return
+      if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select')) return
+      e.preventDefault()
+      nav(`/sesion/${sesion.id}/jugar${search}`)
+    }
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [omitible, nav, search, sesion.id])
+
   useEffect(() => {
     if (guardado !== 'ok') return
     const t = setTimeout(() => nav(`/sesion/${sesion.id}/jugar${search}`), MS_CONTINUAR)
@@ -267,7 +282,13 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
       <div ref={fondo} className="calibrar-fondo" aria-hidden="true" />
       <canvas ref={lienzo} className="calibrar-lienzo" aria-hidden="true" />
       <header className="calibrar-cabeza">
-        <h1>Calibración</h1>
+        <div className="calibrar-titulo">
+          {/* Salir sin calibrar: vuelve a preparar el ejercicio (antes la pantalla no tenía ninguna salida). */}
+          <button type="button" className="boton-icono" aria-label="Salir de la calibración" data-testid="salir-calibracion" onClick={() => nav(`/sesion/${sesion.juego}/preparar${search}`, { replace: true })}>
+            <Icono nombre="atras" />
+          </button>
+          <h1>Calibración</h1>
+        </div>
         <span className="calibrar-camara" data-testid="fuente">
           <span className="punto-vivo" aria-hidden="true" />
           {NOMBRE_FUENTE[fuente?.tipo ?? 'camara']}
@@ -299,7 +320,7 @@ function Calibracion({ sesion, largoReglaCm }: { sesion: Sesion; largoReglaCm: n
             </span>
           </div>
 
-          {vista.debug && <PanelDebug v={vista} d={vista.debug} />}
+          {vista.debug && <PanelDebug v={vista} d={vista.debug} omitible={omitible} />}
 
           <section className="calibrar-chequeo" aria-label="Lista de chequeo">
             <Fila nombre="Iluminación" nivel={luz.nivel} valor={luz.texto} />
@@ -330,7 +351,7 @@ function textoIndicacion(v: Vista, estado: EstadoSeguimiento): string {
 }
 
 /** Panel del modo depuración (?debug=1): valores crudos para ajustar umbrales con manos reales. */
-function PanelDebug({ v, d }: { v: Vista; d: DatosDebug }) {
+function PanelDebug({ v, d, omitible }: { v: Vista; d: DatosDebug; omitible: boolean }) {
   const n2 = (x: number | null) => num(x, 2)
   const filas: [string, string][] = [
     ['paso', `${numeroPaso(v.paso)} · ${v.paso}`],
@@ -344,6 +365,7 @@ function PanelDebug({ v, d }: { v: Vista; d: DatosDebug }) {
     ['marco', `${v.puntos}/21 ${v.dentro ? '✓' : '✗'}`],
     ['mano', d.lado ? `${d.lado} · ${pctCorto(d.confianza)}` : '—'],
     ['fps', entero(v.fps)],
+    ...(omitible ? ([['atajo', 'Enter: omitir']] as [string, string][]) : []),
   ]
   return (
     <div

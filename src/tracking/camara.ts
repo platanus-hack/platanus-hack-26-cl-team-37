@@ -71,7 +71,6 @@ export function ladoDesdeEtiqueta(etiqueta: string | undefined, invertir = false
   return derecha !== invertir ? 'derecha' : 'izquierda'
 }
 
-/** Resultado de HandLandmarker → manos (una por lado, la de mayor confianza si se repite). */
 /** Todas las manos del resultado de MediaPipe, sin elegir (pueden venir dos del mismo lado). */
 export function todasDesdeResultado(r: HandLandmarkerResult, invertir = false): ManoSeguida[] {
   const etiquetas = r.handedness ?? r.handednesses ?? []
@@ -250,7 +249,7 @@ export class FuenteCamara extends FuenteBase {
       return
     }
     // las más cercanas (más grandes en la imagen): una mano del fondo no le quita el lugar a la propia
-    let manos = masCercanas(todasDesdeResultado(r, this.opciones.invertirLateralidad), this.opciones.maxManos, video.videoWidth, video.videoHeight)
+    let manos = masCercanas(todasDesdeResultado(r, this.opciones.invertirLateralidad), this.opciones.maxManos, video.videoWidth, video.videoHeight, this.ultimo?.manos)
     if (this.opciones.suavizar) manos = this.suavizar(manos, ts)
     if (ahora - this.ultimaLuz > MS_LUZ) {
       this.ultimaLuz = ahora

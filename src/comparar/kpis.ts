@@ -125,6 +125,16 @@ const BANDA: DefKpi[] = [
   mj('cambioPicoPct', 'Cambio del pico (1.ª → última)', '%'),
 ]
 
+/** Honda (F39): llegar a la carga del nivel y sostenerla; la precisión y la constancia muestran el control. */
+const HONDA: DefKpi[] = [
+  mj('aciertos', 'Aciertos', '', { mejor: 'mayor' }),
+  mj('precisionPct', 'Tiros en el blanco', '%', { mejor: 'mayor' }),
+  mj('cargaMaxKg', 'Carga máxima (aprox.)', 'kg', { aprox: true, mejor: 'mayor' }),
+  mj('constanciaPct', 'Constancia entre tiros', '%', { mejor: 'mayor' }),
+  mj('sostenidoPromedioS', 'Sostenido promedio', 's', { mejor: 'mayor' }),
+  mj('tiempoBajoTensionS', 'Tiempo bajo tensión', 's', { mejor: 'mayor' }),
+]
+
 /** Direcciones de la muñeca (° respecto de la mano neutra). */
 export const DIRECCIONES_MUNECA: DefKpi[] = [
   mj('flexionMax', 'Flexión', '°', { aprox: true, mejor: 'mayor' }),
@@ -142,6 +152,7 @@ const FIJOS: Record<string, DefKpi[]> = {
   'caja-juguetes': CAJA,
   'banda-elastica': BANDA,
   'muneca-3d': MUNECA,
+  honda: HONDA,
 }
 
 /** El juego tiene lista fija (no hace falta cargar su módulo para saber qué comparar). */

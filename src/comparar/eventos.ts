@@ -38,6 +38,18 @@ export interface RepBanda {
   cargaKg: number | null
 }
 
+/** Picos de carga de cada tiro de la Honda: eventos `soltar` con { tiro, picoKg } (mismo formato que la banda). */
+export function tirosDeHonda(eventos: EventoSesion[]): RepBanda[] {
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+  return eventos
+    .filter((e) => e.tipo === 'soltar' && e.objeto === 'honda' && e.datos)
+    .map((e, i) => {
+      const d = e.datos as Record<string, unknown>
+      return { rep: num(d.tiro) ?? i + 1, t: e.t, estiramientoCm: null, cargaKg: num(d.picoKg) }
+    })
+    .sort((a, b) => a.rep - b.rep)
+}
+
 /** Picos por repetición de la banda: eventos `umbral_alcanzado` con { estiramientoCm, cargaKg, rep }. */
 export function repsDeBanda(eventos: EventoSesion[]): RepBanda[] {
   const out: RepBanda[] = []

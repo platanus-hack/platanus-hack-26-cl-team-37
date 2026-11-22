@@ -9,7 +9,7 @@ Modelos 3D, texturas y colores de las escenas, hechos con código three.js (no h
 | Archivo | Qué tiene |
 |---|---|
 | `colores.ts` | Colores de las escenas, todos de la paleta del brandbook (`colores.test.ts` impide colores a mano en el resto de `src/games`). |
-| `naturales.ts` | La excepción: colores reales de madera, fruta, jugo, vidrio (`NATURAL`) y bandas elásticas (`BANDAS`). Sin three.js, para la lógica pura. |
+| `naturales.ts` | La excepción: colores reales de madera, fruta, jugo, vidrio, cuero y piedra (`NATURAL`) y bandas elásticas (`BANDAS`). Sin three.js, para la lógica pura. |
 | `recursos.ts` | Tipo `Recursos` y ayudantes `material`, `geometria`, `textura`, `estandar`, `liberar`. |
 | `texturas.ts` | `texturaHalo`, `texturaAnillo`, `texturaMadera`, `texturaDeLienzo`. |
 | `sprites.ts` | `crearSprite` (halos, anillos, brillos, "+1"). |
@@ -29,5 +29,6 @@ Modelos 3D, texturas y colores de las escenas, hechos con código three.js (no h
 | `burbujas/` | Burbuja (todas se pueden reventar), efecto de reventar y aviso de mano abierta. |
 | `piano/` | Teclas, línea de toque y notas. |
 | `movilidad/` | Cuentas del arco de progreso. |
+| `honda/` | Horquilla de madera, tiras de la banda con bolsa y piedra, blanco y marcas de caída. El festejo del acierto usa el efecto de `burbujas/`. |
 
 Pinza fina solo usa lo compartido. Los HUD dibujados en lienzo y fijos a la cámara (luces de Pinza, tarjeta de Naranja, aviso de Piano, rótulos de Movilidad) se quedan en cada juego: se redibujan con su estado.

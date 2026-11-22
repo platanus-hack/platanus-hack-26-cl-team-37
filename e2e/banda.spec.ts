@@ -85,7 +85,9 @@ test.describe('Banda elástica', () => {
       await expect.poll(async () => (await estado(page)).posesReposo, { timeout: 3_000 }).toBeGreaterThan(0)
 
       // En un tirón: más de 25 % de estiramiento, carga = 6 kg × % y se ve en el panel.
-      await expect.poll(async () => (await estado(page)).estiramientoPct ?? 0, { timeout: 15_000 }).toBeGreaterThan(40)
+      // Cada 50 ms: el pico de un tirón dura medio segundo y con el intervalo creciente de expect.poll (hasta 1 s) se perdía,
+      // y al cumplirse la meta el juego se desmonta (fallaba según la carga del equipo).
+      await expect.poll(async () => (await estado(page)).estiramientoPct ?? 0, { timeout: 15_000, intervals: [50] }).toBeGreaterThan(40)
       if (process.env.CAPTURA_BANDA) await page.screenshot({ path: 'docs/capturas/banda-elastica.png', style: SIN_FPS })
       const mid = await estado(page)
       expect(mid.cargaKg!).toBeCloseTo((6 * mid.estiramientoPct!) / 100, 0)
@@ -244,4 +246,20 @@ test.describe('Banda elástica', () => {
     expect(lista.length).toBeGreaterThanOrEqual(4)
     for (const f of lista) expect(readFileSync(f, 'utf8'), f).not.toMatch(PROHIBIDAS)
   })
+
+  test('la preparación pregunta las tiras y la carga se multiplica: 4 tiras = el doble que el lazo', async ({ page }) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/sesion/banda-elastica/preparar')
+    const grupo = page.getByRole('group', { name: 'Tiras de banda entre tus manos' })
+    await expect(grupo.getByRole('button', { pressed: true })).toHaveText('2 · lazo', { timeout: 10_000 })
+    await grupo.getByRole('button', { name: '4 · doblado' }).click()
+    await sesionFalsa(page, 'banda-elastica', 5, 0, 3)
+    await page.setViewportSize(HORIZONTAL)
+    await page.goto(`/sesion/${ID_FALSO}/jugar?fuente=sintetica&guion=quieta`)
+    await esperarFase(page, 'jugando', 15_000)
+    // Nivel 3 = banda verde de 6 kg en lazo; con 4 tiras, 12 kg.
+    expect(await estado(page)).toMatchObject({ kgBanda: 12 })
+  })
+
 })

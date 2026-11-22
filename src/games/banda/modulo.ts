@@ -11,6 +11,7 @@
 // repeticion_incompleta si un tramo de tensión no llegó al 25 %. Poses: 'reposo' (ambas manos al marcarlo) y 'pico'
 // (ambas manos, valor = estiramiento en cm, queda la de mayor valor).
 import * as THREE from 'three'
+import { factorTiras, leerTiras, TIRAS_POR_DEFECTO } from '../../banda/tiras'
 import { KUWU, kuwuAlfa, kuwuNum } from '../../ui/paleta'
 import type { LadoMano } from '../../domain/types'
 import { num } from '../../lib/formato'
@@ -84,6 +85,8 @@ export const crearBanda: CrearJuego = () => {
   let ctx: ContextoJuego | null = null
   let nivel: NivelBanda = nivelBanda(1)
   let sesion = new SesionBanda(nivel.kgBanda)
+  /** Tiras de banda entre las manos (se eligen al preparar). Los kg del nivel son para el lazo (2 tiras). */
+  let tiras = TIRAS_POR_DEFECTO
   let contador = 0
   let ultimoT: number | null = null
   let incompletaT = 0
@@ -258,7 +261,7 @@ export const crearBanda: CrearJuego = () => {
       g.fillRect(xm - 1.5, yBarra - 7, 3, 7)
       g.fillRect(xm - 1.5, yBarra + h, 3, 7)
       texto(`Carga aprox. ${num(kg ?? 0, 1)} kg`, W / 2, 68, 'center', FUENTE_TEXTO)
-      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : 'es una estimación', W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? KUWU.amarillo : kuwuAlfa('blanco', 0.7))
+      texto(incompletaT > 0 ? `Cuenta desde el ${REP_MIN_PCT} %` : tiras === TIRAS_POR_DEFECTO ? 'es una estimación' : `estimación · ${tiras} ${tiras === 1 ? 'tira' : 'tiras'}`, W / 2, 92, 'center', FUENTE_NOTA, incompletaT > 0 ? KUWU.amarillo : kuwuAlfa('blanco', 0.7))
     } else if (fase === 'buscando-reposo') {
       barra(prog, COLOR_OK, `Reposo ${num(prog * (REPOSO_MS / 1000), 1)} / ${num(REPOSO_MS / 1000, 0)} s`)
       texto('Banda recién tensa,', W / 2, 66, 'center', FUENTE_TEXTO)
@@ -399,7 +402,7 @@ export const crearBanda: CrearJuego = () => {
       meta: ctx?.meta ?? 0,
       fase: sesion.fase,
       manos: sesion.nManos,
-      kgBanda: nivel.kgBanda,
+      kgBanda: sesion.kgBanda,
       reposoCm: r1(sesion.reposoCm),
       estiramientoCm: r1(sesion.estiramientoCm),
       estiramientoPct: r1(sesion.estiramientoPct),
@@ -427,7 +430,7 @@ export const crearBanda: CrearJuego = () => {
     metricasVivo: [
       { id: 'estiramientoCm', nombre: 'Estiramiento', unidad: 'cm', formula: '(distancia entre los nudillos de ambas manos − distancia en reposo) en cm; la escala px→cm se congela al marcar el reposo', aprox: true, mejor: 'mayor' },
       { id: 'estiramientoPct', nombre: 'Sobre el reposo', unidad: '%', formula: 'distancia entre nudillos / distancia en reposo − 1 (no depende de la escala en cm)', mejor: 'mayor' },
-      { id: 'cargaKg', nombre: 'Carga aprox.', unidad: 'kg', formula: 'kg nominales de la banda × estiramiento (modelo lineal: la banda marca sus kg al doble de largo, o sea al 100 %); es una estimación', aprox: true, mejor: 'mayor' },
+      { id: 'cargaKg', nombre: 'Carga aprox.', unidad: 'kg', formula: 'kg nominales de la banda (para el lazo; × tiras ÷ 2 si se elige otra cantidad al preparar) × estiramiento (modelo lineal: la banda marca sus kg al doble de largo, o sea al 100 %); es una estimación', aprox: true, mejor: 'mayor' },
     ],
     metricasResumen: [
       { id: 'estiramientoMaxCm', nombre: 'Estiramiento máximo', unidad: 'cm', formula: 'mayor estiramiento de la sesión en cm (distancia entre nudillos − reposo)', aprox: true, mejor: 'mayor', corto: 'Estiramiento máx.' },
@@ -437,7 +440,7 @@ export const crearBanda: CrearJuego = () => {
       { id: 'tiempoBajoTensionS', nombre: 'Tiempo bajo tensión', unidad: 's', formula: 'segundos con la carga sobre el 50 % del pico de la sesión (cada cuadro suma a lo más 0,1 s)', mejor: 'mayor', corto: 'Bajo tensión' },
       { id: 'cambioPicoPct', nombre: 'Cambio del pico entre repeticiones', unidad: '%', formula: '(pico de la última repetición − pico de la primera) / pico de la primera × 100; vacío con menos de 2 repeticiones', corto: 'Cambio del pico' },
       { id: 'reposoCm', nombre: 'Largo de la banda en reposo', unidad: 'cm', formula: 'distancia entre nudillos al marcar el reposo (banda recién tensa)', aprox: true, tarjeta: false },
-      { id: 'kgBanda', nombre: 'Banda del nivel', unidad: 'kg', formula: 'kg nominales de la banda al doble de largo (según el nivel)', tarjeta: false },
+      { id: 'kgBanda', nombre: 'Banda del nivel', unidad: 'kg', formula: 'kg nominales de la banda al doble de largo (según el nivel), × tiras ÷ 2 si al preparar se eligió otra cantidad que el lazo', tarjeta: false },
     ],
     usaFisica: false,
     pista: PISTA_REPOSO,
@@ -446,7 +449,13 @@ export const crearBanda: CrearJuego = () => {
     montar(c) {
       ctx = c
       nivel = nivelBanda(c.parametros.nivel)
-      sesion = new SesionBanda(nivel.kgBanda)
+      tiras = leerTiras()
+      sesion = new SesionBanda(nivel.kgBanda * factorTiras(tiras))
+      // Zona más angosta que la de la base: con la banda real se estira hasta el doble y las manos llegaban a los bordes
+      // de la imagen, detrás del panel y de la tarjeta (prueba con grabaciones reales, 22-nov-2026).
+      c.configurarManos({ x: [-1.55, 1.55] })
+      // Sin mesa: la banda se tensa en el aire, sobre el fondo (se repone al desmontar).
+      c.mesa.objeto.visible = false
       construirEscena(c)
       dibujar(0)
       if (c.fuente.tipo !== 'camara' && typeof window !== 'undefined') window.__manoviva = { ...window.__manoviva, juego: { estado: depuracion } }
@@ -509,6 +518,7 @@ export const crearBanda: CrearJuego = () => {
     desmontar() {
       const c = ctx
       if (c) {
+        c.mesa.objeto.visible = true
         c.escena.remove(grupo)
         c.camara.remove(luces)
         c.escena.remove(c.camara)

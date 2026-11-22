@@ -12,7 +12,7 @@ import { esSimulada } from '../metrics/sesion'
 import { useCarga } from '../lib/useCarga'
 import { Cargando, Encabezado, Estados, Vacio } from '../ui/piezas'
 import './comparar.css'
-import { agarresDe, repsDeBanda } from './eventos'
+import { agarresDe, repsDeBanda, tirosDeHonda } from './eventos'
 import { BarrasPar, Evolucion, RepsBanda, TiraAgarres } from './graficos'
 import { DIRECCIONES_MUNECA, decimalesKpi, formatoKpi, kpisDe, listaKpis, tieneListaFija, type DefKpi, type KpiValor } from './kpis'
 import { ajustarSeleccion, juegosComparables, type GrupoJuego } from './sesiones'
@@ -20,7 +20,7 @@ import { DEDOS_ORDEN } from './mano'
 
 const Estadio = lazy(() => import('./Estadio'))
 
-const JUEGOS_CON_EVENTOS = ['caja-juguetes', 'banda-elastica']
+const JUEGOS_CON_EVENTOS = ['caja-juguetes', 'banda-elastica', 'honda']
 const NOMBRE_DEDO: Record<string, string> = { pulgar: 'Pulgar', indice: 'Índice', medio: 'Medio', anular: 'Anular', menique: 'Meñique' }
 
 interface Datos {
@@ -32,7 +32,7 @@ async function cargar(rol: 'paciente' | 'terapeuta', id: string | undefined): Pr
   const paciente = rol === 'terapeuta' ? (id ? await repos.pacientes.porId(id) : null) : await repos.pacientes.miPaciente()
   if (!paciente) return { paciente: null, sesiones: [] }
   let sesiones = await repos.sesiones.listar(paciente.id)
-  // Solo en desarrollo: ?demo=muneca-3d | banda-elastica agrega sesiones ilustrativas para ver el diseño antes de que existan.
+  // Solo en desarrollo: ?demo=muneca-3d | banda-elastica | honda agrega sesiones ilustrativas para ver el diseño antes de que existan.
   if (import.meta.env.DEV) {
     const demo = new URLSearchParams(location.search).get('demo')
     if (demo) sesiones = [...sesiones, ...(await import('./demo')).sesionesDemo(demo, paciente.id)]
@@ -235,6 +235,11 @@ function PanelDetalle({ juego, antes, despues, evAntes, evDespues }: { juego: st
     const filas = DIRECCIONES_MUNECA.map((d) => ({ id: d.id, nombre: d.nombre, antes: d.leer(antes), despues: d.leer(despues) }))
     if (filas.every((f) => f.antes == null && f.despues == null)) return null
     return <BarrasPar titulo="Máximos por dirección" nota="Grados aprox. respecto de la mano neutra de cada sesión." filas={filas} unidad="°" />
+  }
+  if (juego === 'honda') {
+    const a = tirosDeHonda(evAntes)
+    const b = tirosDeHonda(evDespues)
+    return a.length || b.length ? <RepsBanda antes={a} despues={b} /> : null
   }
   if (juego === 'banda-elastica') {
     const a = repsDeBanda(evAntes)

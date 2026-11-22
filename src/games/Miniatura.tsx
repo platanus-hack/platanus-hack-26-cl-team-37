@@ -75,6 +75,17 @@ const DIBUJOS: Record<string, ReactNode> = {
       <path d="M38 82q12 7 24 0" fill="none" stroke="var(--kuwu-noche-texto-2)" strokeWidth="2.5" strokeDasharray="4 4" strokeLinecap="round" />
     </>
   ),
+  honda: (
+    <>
+      <circle cx="74" cy="34" r="16" fill={C.rojo} />
+      <circle cx="74" cy="34" r="10" fill={C.blanco} />
+      <circle cx="74" cy="34" r="4" fill={C.amarillo} />
+      <path d="M30 86V62M30 62L18 40M30 62L42 40" stroke={C.marino} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M18 40L28 74L42 40" stroke={C.azul} strokeWidth="3" fill="none" strokeLinejoin="round" />
+      <circle cx="28" cy="74" r="5" fill={C.marino} />
+      <path d="M36 66q18-30 34-30" fill="none" stroke="var(--kuwu-noche-texto-2)" strokeWidth="2.5" strokeDasharray="4 4" strokeLinecap="round" />
+    </>
+  ),
   memoria: (
     <>
       <rect x="18" y="18" width="28" height="30" rx="4" fill={C.blanco} />
