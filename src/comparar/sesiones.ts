@@ -3,8 +3,8 @@
 import type { PoseClave, Sesion } from '../domain/types'
 import { JUEGOS, juegoPorId } from '../games/registry'
 
-/** Juegos nuevos (banda, muñeca): sesiones más cortas, así que bastan 20 s. */
-export const JUEGOS_CORTOS = ['banda-elastica', 'muneca-3d']
+/** Juegos nuevos (banda, muñeca, honda): sesiones más cortas, así que bastan 20 s. */
+export const JUEGOS_CORTOS = ['banda-elastica', 'muneca-3d', 'honda']
 export const DURACION_MIN_S = 60
 export const DURACION_MIN_CORTOS_S = 20
 

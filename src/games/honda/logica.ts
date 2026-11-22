@@ -271,6 +271,8 @@ export class SesionHonda {
       sostenidoPromedioS: n ? r1(this.tiros.reduce((s, t) => s + t.sostenidoS, 0) / n) : null,
       vueltaPromedioS: vueltas.length ? r1(vueltas.reduce((s, v) => s + v, 0) / vueltas.length / 1000) : null,
       reposoCm: this.seguidor.reposoCm == null ? null : r1(this.seguidor.reposoCm),
+      estiramientoMaxPct: n ? Math.round(Math.max(...reps.map((r) => r.picoEstiramiento)) * 100) : null,
+      estiramientoMaxCm: n && this.seguidor.reposoCm != null ? r1(Math.max(...reps.map((r) => r.picoEstiramiento)) * this.seguidor.reposoCm) : null,
       cortos: this.tiros.filter((t) => t.resultado === 'corto').length,
       largos: this.tiros.filter((t) => t.resultado === 'largo').length,
     }

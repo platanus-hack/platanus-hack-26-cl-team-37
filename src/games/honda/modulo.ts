@@ -506,6 +506,8 @@ export const crearHonda: CrearJuego = () => {
       { id: 'trabajoJ', nombre: 'Trabajo aprox.', unidad: '', formula: 'suma del área bajo la curva carga–estiramiento hasta cada pico × largo de reposo × g, en joules', tarjeta: false },
       { id: 'cortos', nombre: 'Tiros cortos', unidad: '', formula: 'tiros con el pico bajo el 95 % de la carga del nivel', tarjeta: false },
       { id: 'largos', nombre: 'Tiros largos', unidad: '', formula: 'tiros que pasaron del 135 % de la carga antes de sostener (tirón)', tarjeta: false },
+      { id: 'estiramientoMaxPct', nombre: 'Estiramiento máximo (% del reposo)', unidad: '%', formula: 'mayor estiramiento de un tiro sobre el largo en reposo', tarjeta: false },
+      { id: 'estiramientoMaxCm', nombre: 'Estiramiento máximo', unidad: 'cm', formula: 'mayor estiramiento de un tiro × largo en reposo', aprox: true, tarjeta: false },
       { id: 'reposoCm', nombre: 'Largo de la banda en reposo', unidad: 'cm', formula: 'distancia entre los centros de las palmas con la banda recién tensa', aprox: true, tarjeta: false },
     ],
     usaFisica: false,
